@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
 import { addMessageFromNotification } from "./messages";
+import { sendPushNotification } from "../../apns-service";
 
 interface DeviceInfo {
   token: string;
@@ -37,6 +38,7 @@ export const notificationsRouter = createTRPCRouter({
         deviceId: input.deviceId,
         registeredAt: new Date().toISOString(),
       };
+      console.log("Device registered:", input.token.substring(0, 20) + "...");
       return { success: true, message: "Device registered" };
     }),
 
@@ -48,39 +50,56 @@ export const notificationsRouter = createTRPCRouter({
     .input(z.object({
       message: z.string().min(1),
     }))
-    .mutation(({ input }) => {
+    .mutation(async ({ input }) => {
       addMessageFromNotification(input.message);
+
+      let pushStatus = "no_device";
+
+      if (registeredDevice) {
+        const result = await sendPushNotification(
+          registeredDevice.token,
+          "Nalguitas 💕",
+          input.message
+        );
+        pushStatus = result.success ? "sent" : `failed: ${result.error}`;
+        console.log("Push result:", pushStatus);
+      }
 
       const log: NotificationLog = {
         id: Date.now().toString(),
         message: input.message,
         sentAt: new Date().toISOString(),
-        status: registeredDevice ? "sent" : "no_device",
+        status: pushStatus,
       };
       notificationHistory.unshift(log);
 
       return {
         success: true,
-        message: "Message sent",
-        deviceToken: registeredDevice?.token ?? null,
+        message: pushStatus === "sent" ? "Notificación enviada" : "Mensaje guardado (sin push: " + pushStatus + ")",
         log,
       };
     }),
 
-  testNotification: publicProcedure.mutation(() => {
+  testNotification: publicProcedure.mutation(async () => {
     if (!registeredDevice) {
       throw new Error("No device registered");
     }
 
+    const result = await sendPushNotification(
+      registeredDevice.token,
+      "Nalguitas 💕",
+      "Esta es una notificación de prueba 💗"
+    );
+
     const log: NotificationLog = {
       id: Date.now().toString(),
-      message: "Esta es una notificación de prueba",
+      message: "Notificación de prueba",
       sentAt: new Date().toISOString(),
-      status: "test",
+      status: result.success ? "sent" : `failed: ${result.error}`,
     };
     notificationHistory.unshift(log);
 
-    return { success: true, deviceToken: registeredDevice.token };
+    return { success: result.success, status: log.status, deviceToken: registeredDevice.token };
   }),
 
   history: publicProcedure.query(() => {
