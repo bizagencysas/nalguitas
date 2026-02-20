@@ -84,6 +84,29 @@ app.post("/notifications/send", async (c) => {
   }
 });
 
+app.post("/girlfriend/send", async (c) => {
+  try {
+    const body = await c.req.json();
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.notifications.girlfriendMessage(body);
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error sending girlfriend message:", e);
+    return c.json({ error: e.message || "Failed to send message" }, 500);
+  }
+});
+
+app.get("/girlfriend/messages", async (c) => {
+  try {
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.notifications.getGirlfriendMessages();
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error fetching girlfriend messages:", e);
+    return c.json([], 200);
+  }
+});
+
 app.get("/admin", (c) => {
   return c.html(adminHTML());
 });

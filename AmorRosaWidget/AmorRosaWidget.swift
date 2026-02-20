@@ -167,20 +167,68 @@ struct MediumWidgetView: View {
     }
 }
 
+struct AccessoryRectangularView: View {
+    let entry: LoveEntry
+
+    var body: some View {
+        if entry.message.isEmpty {
+            HStack(spacing: 6) {
+                Image(systemName: "heart.fill")
+                    .font(.caption)
+                Text("Esperando mensaje...")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 9))
+                    Text("Nalguitas")
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                }
+
+                Text(entry.message)
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+    }
+}
+
+struct AccessoryCircularView: View {
+    let entry: LoveEntry
+
+    var body: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            if entry.message.isEmpty {
+                Image(systemName: "heart")
+                    .font(.title3)
+            } else {
+                Image(systemName: "heart.fill")
+                    .font(.title3)
+            }
+        }
+    }
+}
+
 struct LoveWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: LoveEntry
 
     var body: some View {
-        Group {
-            switch family {
-            case .systemSmall:
-                SmallWidgetView(entry: entry)
-            case .systemMedium:
-                MediumWidgetView(entry: entry)
-            default:
-                SmallWidgetView(entry: entry)
-            }
+        switch family {
+        case .systemSmall:
+            SmallWidgetView(entry: entry)
+        case .systemMedium:
+            MediumWidgetView(entry: entry)
+        case .accessoryRectangular:
+            AccessoryRectangularView(entry: entry)
+        case .accessoryCircular:
+            AccessoryCircularView(entry: entry)
+        default:
+            SmallWidgetView(entry: entry)
         }
     }
 }
@@ -205,6 +253,6 @@ struct AmorRosaWidget: Widget {
         }
         .configurationDisplayName("Nalguitas")
         .description("Mensajes de amor en tu pantalla")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
     }
 }

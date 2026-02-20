@@ -12,6 +12,7 @@ struct AdminView: View {
     @State private var showToast: Bool = false
     @State private var sendingNotification: Bool = false
     @State private var creatingMessage: Bool = false
+    @State private var girlfriendMessages: [GirlfriendMessage] = []
 
     private let tones = ["tierno", "romántico", "profundo", "divertido"]
 
@@ -22,6 +23,7 @@ struct AdminView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
+                        girlfriendMessagesCard
                         sendNowCard
                         createMessageCard
                         messagesListCard
@@ -64,6 +66,7 @@ struct AdminView: View {
         }
         .task {
             await loadMessages()
+            await loadGirlfriendMessages()
         }
     }
 
@@ -182,6 +185,49 @@ struct AdminView: View {
                 .opacity(newContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
             }
             .padding(16)
+            .background { cardBackground }
+        }
+    }
+
+    private var girlfriendMessagesCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(icon: "bubble.left.and.text.bubble.right.fill", title: "Mensajes de tu novia")
+
+            VStack(spacing: 0) {
+                if girlfriendMessages.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "tray")
+                            .font(.title3)
+                            .foregroundStyle(Theme.roseLight)
+                        Text("No hay mensajes a\u{00FA}n")
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(24)
+                } else {
+                    ForEach(girlfriendMessages) { msg in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(msg.content)
+                                .font(.system(.subheadline, design: .rounded))
+                                .foregroundStyle(Theme.textPrimary)
+
+                            if let sentAt = msg.sentAt {
+                                Text(sentAt, style: .relative)
+                                    .font(.system(.caption2, design: .rounded))
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+
+                        if msg.id != girlfriendMessages.last?.id {
+                            Divider().overlay(Theme.roseLight.opacity(0.5)).padding(.horizontal, 16)
+                        }
+                    }
+                }
+            }
             .background { cardBackground }
         }
     }
@@ -326,6 +372,12 @@ struct AdminView: View {
         defer { isLoading = false }
         do {
             messages = try await APIService.shared.fetchMessages()
+        } catch {}
+    }
+
+    private func loadGirlfriendMessages() async {
+        do {
+            girlfriendMessages = try await APIService.shared.fetchGirlfriendMessages()
         } catch {}
     }
 

@@ -65,14 +65,14 @@ nonisolated final class APIService: Sendable {
         return resp.messages
     }
 
-    func registerDevice(token: String) async throws {
+    func registerDevice(token: String, isAdmin: Bool = false) async throws {
         let url = URL(string: "\(baseURL)/api/device/register")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        let body = DeviceRegistration(token: token, deviceId: deviceId)
+        let body = DeviceRegistrationFull(token: token, deviceId: deviceId, isAdmin: isAdmin)
         request.httpBody = try JSONEncoder().encode(body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -119,6 +119,24 @@ nonisolated final class APIService: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
+
+    func sendGirlfriendMessage(content: String) async throws {
+        let url = URL(string: "\(baseURL)/api/girlfriend/send")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["content": content]
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+
+    func fetchGirlfriendMessages() async throws -> [GirlfriendMessage] {
+        let url = URL(string: "\(baseURL)/api/girlfriend/messages")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        return try decoder.decode([GirlfriendMessage].self, from: data)
+    }
 }
 
 nonisolated struct CreateMessageInput: Codable, Sendable {
@@ -139,4 +157,17 @@ nonisolated struct DeleteMessageInput: Codable, Sendable {
 
 nonisolated struct DeleteMessagePayload: Codable, Sendable {
     let json: DeleteMessageInput
+}
+
+nonisolated struct DeviceRegistrationFull: Codable, Sendable {
+    let token: String
+    let deviceId: String
+    let isAdmin: Bool
+}
+
+nonisolated struct GirlfriendMessage: Codable, Identifiable, Sendable {
+    let id: String
+    let content: String
+    let sentAt: Date?
+    let read: Bool?
 }

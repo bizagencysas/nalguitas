@@ -16,8 +16,17 @@ interface NotificationLog {
   status: string;
 }
 
+interface GirlfriendMessage {
+  id: string;
+  content: string;
+  sentAt: string;
+  read: boolean;
+}
+
 let registeredDevice: DeviceInfo | null = null;
 let notificationHistory: NotificationLog[] = [];
+let girlfriendMessages: GirlfriendMessage[] = [];
+let adminDeviceToken: string | null = null;
 
 const scheduleConfig = {
   morning: "08:00",
@@ -31,6 +40,7 @@ export const notificationsRouter = createTRPCRouter({
     .input(z.object({
       token: z.string(),
       deviceId: z.string(),
+      isAdmin: z.boolean().optional(),
     }))
     .mutation(({ input }) => {
       registeredDevice = {
@@ -38,6 +48,10 @@ export const notificationsRouter = createTRPCRouter({
         deviceId: input.deviceId,
         registeredAt: new Date().toISOString(),
       };
+      if (input.isAdmin) {
+        adminDeviceToken = input.token;
+        console.log("Admin device registered:", input.token.substring(0, 20) + "...");
+      }
       console.log("Device registered:", input.token.substring(0, 20) + "...");
       return { success: true, message: "Device registered" };
     }),
@@ -108,6 +122,35 @@ export const notificationsRouter = createTRPCRouter({
 
   getSchedule: publicProcedure.query(() => {
     return scheduleConfig;
+  }),
+
+  girlfriendMessage: publicProcedure
+    .input(z.object({
+      content: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      const msg: GirlfriendMessage = {
+        id: Date.now().toString(),
+        content: input.content,
+        sentAt: new Date().toISOString(),
+        read: false,
+      };
+      girlfriendMessages.unshift(msg);
+
+      if (adminDeviceToken) {
+        const result = await sendPushNotification(
+          adminDeviceToken,
+          "Nalguitas \u{1F49D}",
+          `Tu novia dice: ${input.content}`
+        );
+        console.log("Push to admin:", result.success ? "sent" : result.error);
+      }
+
+      return { success: true, message: msg };
+    }),
+
+  getGirlfriendMessages: publicProcedure.query(() => {
+    return girlfriendMessages;
   }),
 
   updateSchedule: publicProcedure

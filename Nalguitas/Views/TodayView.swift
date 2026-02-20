@@ -11,6 +11,9 @@ struct TodayView: View {
     @AppStorage("widgetCTADismissed") private var widgetCTADismissed = false
     @State private var hasWidgetInstalled = false
     @State private var showWidgetInstructions = false
+    @State private var girlfriendMessage: String = ""
+    @State private var isSendingGirlfriendMsg = false
+    @State private var showGirlfriendSentConfirmation = false
 
     var body: some View {
         ZStack {
@@ -25,6 +28,8 @@ struct TodayView: View {
                     messageCard
 
                     saveButton
+
+                    girlfriendSendSection
 
                     if !widgetCTADismissed && !hasWidgetInstalled {
                         widgetCTA
@@ -188,6 +193,97 @@ struct TodayView: View {
                 .opacity(appeared ? 1 : 0)
             }
         }
+    }
+
+    private var girlfriendSendSection: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "bubble.left.and.text.bubble.right")
+                    .font(.caption)
+                    .foregroundStyle(Theme.rosePrimary)
+                Text("Enviar mensaje")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                TextField("Escribe algo bonito...", text: $girlfriendMessage)
+                    .font(.system(.subheadline, design: .rounded))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background {
+                        Capsule()
+                            .fill(.white)
+                            .stroke(Theme.roseLight, lineWidth: 1)
+                    }
+
+                Button {
+                    Task { await sendGirlfriendMessage() }
+                } label: {
+                    Group {
+                        if isSendingGirlfriendMsg {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                        }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background {
+                        Circle().fill(Theme.accentGradient)
+                    }
+                }
+                .disabled(girlfriendMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSendingGirlfriendMsg)
+                .opacity(girlfriendMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
+            }
+
+            if showGirlfriendSentConfirmation {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                    Text("Mensaje enviado")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .padding(16)
+        .background {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white.opacity(0.7))
+                .shadow(color: Theme.rosePrimary.opacity(0.08), radius: 12, y: 4)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Theme.roseLight.opacity(0.5), lineWidth: 1)
+                }
+        }
+        .opacity(appeared ? 1 : 0)
+        .sensoryFeedback(.success, trigger: showGirlfriendSentConfirmation)
+    }
+
+    private func sendGirlfriendMessage() async {
+        let content = girlfriendMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else { return }
+        isSendingGirlfriendMsg = true
+        defer { isSendingGirlfriendMsg = false }
+        do {
+            try await APIService.shared.sendGirlfriendMessage(content: content)
+            girlfriendMessage = ""
+            withAnimation(.spring(duration: 0.3)) {
+                showGirlfriendSentConfirmation = true
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(2.5))
+                withAnimation(.easeOut) {
+                    showGirlfriendSentConfirmation = false
+                }
+            }
+        } catch {}
     }
 
     private var widgetCTA: some View {

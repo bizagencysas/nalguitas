@@ -41,6 +41,8 @@ struct SettingsView: View {
                 Button("Entrar") {
                     if adminUser == "admin" && adminPass == "admin" {
                         loginError = false
+                        UserDefaults.standard.set(true, forKey: "isAdminDevice")
+                        UIApplication.shared.registerForRemoteNotifications()
                         showAdmin = true
                     } else {
                         loginError = true
