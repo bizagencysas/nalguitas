@@ -106,6 +106,24 @@ struct TodayView: View {
                 }
                 .padding(.vertical, 32)
                 .padding(.horizontal, 24)
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "heart.circle")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Theme.roseLight)
+                        .symbolEffect(.breathe, options: .repeating)
+
+                    Text("A\u{00FA}n no hay mensaje")
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+
+                    Text("Cuando llegue uno, aparecer\u{00E1} aqu\u{00ED} para ti")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 40)
+                .padding(.horizontal, 24)
             }
         }
         .frame(maxWidth: .infinity)

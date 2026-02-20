@@ -11,15 +11,6 @@ nonisolated struct LoveEntry: TimelineEntry {
 nonisolated struct LoveProvider: TimelineProvider {
     private let appGroupID = "group.app.rork.amor-rosa-app"
 
-    private let fallbackMessages: [(String, String)] = [
-        ("Te quiero mucho", "Para ti"),
-        ("Eres lo mejor de mi vida", "Siempre"),
-        ("Hoy te ves preciosa", "Un susurro"),
-        ("Pienso en ti todo el tiempo", "De coraz\u{00F3}n"),
-        ("Eres mi lugar tranquilo", "Solo para ti"),
-        ("Ojalá est\u{00E9}s sonriendo", "Pensando en ti"),
-    ]
-
     func placeholder(in context: Context) -> LoveEntry {
         LoveEntry(date: .now, message: "Te quiero mucho", subtitle: "Para ti", sparkleIndex: 0)
     }
@@ -45,14 +36,12 @@ nonisolated struct LoveProvider: TimelineProvider {
 
     private func loadEntry(date: Date, sparkleIndex: Int) -> LoveEntry {
         let defaults = UserDefaults(suiteName: appGroupID)
-        if let message = defaults?.string(forKey: "todayMessage") {
+        if let message = defaults?.string(forKey: "todayMessage"), !message.isEmpty {
             let subtitle = defaults?.string(forKey: "todaySubtitle") ?? "Para ti"
             return LoveEntry(date: date, message: message, subtitle: subtitle, sparkleIndex: sparkleIndex)
         }
 
-        let dayIndex = Calendar.current.component(.day, from: date) % fallbackMessages.count
-        let fallback = fallbackMessages[dayIndex]
-        return LoveEntry(date: date, message: fallback.0, subtitle: fallback.1, sparkleIndex: sparkleIndex)
+        return LoveEntry(date: date, message: "", subtitle: "", sparkleIndex: sparkleIndex)
     }
 }
 
@@ -60,28 +49,42 @@ struct SmallWidgetView: View {
     let entry: LoveEntry
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Spacer()
-                sparkleIcon
+        if entry.message.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "heart.circle")
+                    .font(.title2)
+                    .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.6))
+
+                Text("Esperando un mensaje...")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
+                    .multilineTextAlignment(.center)
             }
+            .padding(14)
+        } else {
+            VStack(spacing: 8) {
+                HStack {
+                    Spacer()
+                    sparkleIcon
+                }
 
-            Spacer()
+                Spacer()
 
-            Text(entry.message)
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-                .minimumScaleFactor(0.8)
+                Text(entry.message)
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .minimumScaleFactor(0.8)
 
-            Spacer()
+                Spacer()
 
-            Text(entry.subtitle)
-                .font(.system(.caption2, design: .rounded, weight: .medium))
-                .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
+                Text(entry.subtitle)
+                    .font(.system(.caption2, design: .rounded, weight: .medium))
+                    .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
+            }
+            .padding(14)
         }
-        .padding(14)
     }
 
     private var sparkleIcon: some View {
@@ -108,43 +111,56 @@ struct MediumWidgetView: View {
     let entry: LoveEntry
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(spacing: 6) {
-                Image(systemName: "heart.fill")
-                    .font(.title3)
-                    .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.65))
+        if entry.message.isEmpty {
+            HStack(spacing: 16) {
+                Image(systemName: "heart.circle")
+                    .font(.title2)
+                    .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.6))
 
-                Text("Nalguitas")
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                Text("Esperando un mensaje...")
+                    .font(.system(.subheadline, design: .rounded, weight: .medium))
                     .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
-                    .multilineTextAlignment(.center)
             }
-            .frame(width: 60)
+            .padding(16)
+        } else {
+            HStack(spacing: 16) {
+                VStack(spacing: 6) {
+                    Image(systemName: "heart.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.65))
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(entry.message)
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
-                    .lineSpacing(3)
-                    .minimumScaleFactor(0.8)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.5))
-                        .frame(width: 3, height: 3)
-                    Text(entry.subtitle)
-                        .font(.system(.caption2, design: .rounded, weight: .medium))
+                    Text("Nalguitas")
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
                         .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
-                    Circle()
-                        .fill(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.5))
-                        .frame(width: 3, height: 3)
+                        .multilineTextAlignment(.center)
                 }
-            }
+                .frame(width: 60)
 
-            Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(entry.message)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
+                        .lineSpacing(3)
+                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.5))
+                            .frame(width: 3, height: 3)
+                        Text(entry.subtitle)
+                            .font(.system(.caption2, design: .rounded, weight: .medium))
+                            .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
+                        Circle()
+                            .fill(Color(red: 0.91, green: 0.58, blue: 0.65).opacity(0.5))
+                            .frame(width: 3, height: 3)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
         }
-        .padding(16)
     }
 }
 
