@@ -16,14 +16,14 @@
 			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
-			remoteInfo = AmorRosaApp;
+			remoteInfo = Nalguitas;
 		};
 		105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
-			remoteInfo = AmorRosaApp;
+			remoteInfo = Nalguitas;
 		};
 		XX11287293F984A2FAEC71XX /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -49,9 +49,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		105FC57A2E9EAD3100EA8BCF /* AmorRosaApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AmorRosaApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		105FC5892E9EAD3200EA8BCF /* AmorRosaAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AmorRosaAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		105FC5932E9EAD3200EA8BCF /* AmorRosaAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AmorRosaAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		105FC57A2E9EAD3100EA8BCF /* Nalguitas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nalguitas.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NalguitasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NalguitasUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AmorRosaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -61,14 +61,14 @@
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */;
+			target = XXCD38C6510CD25D4D602DXX /* Nalguitas */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		105FC57C2E9EAD3100EA8BCF /* AmorRosaApp */ = {
+		105FC57C2E9EAD3100EA8BCF /* Nalguitas */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AmorRosaApp;
+			path = Nalguitas;
 			sourceTree = "<group>";
 		};
 		105FC58C2E9EAD3200EA8BCF /* AmorRosaAppTests */ = {
@@ -126,7 +126,7 @@
 		105FC5712E9EAD3100EA8BCF = {
 			isa = PBXGroup;
 			children = (
-				105FC57C2E9EAD3100EA8BCF /* AmorRosaApp */,
+				105FC57C2E9EAD3100EA8BCF /* Nalguitas */,
 				105FC58C2E9EAD3200EA8BCF /* AmorRosaAppTests */,
 				105FC5962E9EAD3200EA8BCF /* AmorRosaAppUITests */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
@@ -137,9 +137,9 @@
 		105FC57B2E9EAD3100EA8BCF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				105FC57A2E9EAD3100EA8BCF /* AmorRosaApp.app */,
-				105FC5892E9EAD3200EA8BCF /* AmorRosaAppTests.xctest */,
-				105FC5932E9EAD3200EA8BCF /* AmorRosaAppUITests.xctest */,
+				105FC57A2E9EAD3100EA8BCF /* Nalguitas.app */,
+				105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */,
+				105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */,
 				XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */,
 			);
 			name = Products;
@@ -148,9 +148,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		105FC5792E9EAD3100EA8BCF /* AmorRosaApp */ = {
+		105FC5792E9EAD3100EA8BCF /* Nalguitas */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 105FC59D2E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaApp" */;
+			buildConfigurationList = 105FC59D2E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */;
 			buildPhases = (
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
@@ -163,18 +163,18 @@
 				XX8563CEB98856474C63ADXX /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				105FC57C2E9EAD3100EA8BCF /* AmorRosaApp */,
+				105FC57C2E9EAD3100EA8BCF /* Nalguitas */,
 			);
-			name = AmorRosaApp;
+			name = Nalguitas;
 			packageProductDependencies = (
 			);
-			productName = AmorRosaApp;
-			productReference = 105FC57A2E9EAD3100EA8BCF /* AmorRosaApp.app */;
+			productName = Nalguitas;
+			productReference = 105FC57A2E9EAD3100EA8BCF /* Nalguitas.app */;
 			productType = "com.apple.product-type.application";
 		};
-		105FC5882E9EAD3200EA8BCF /* AmorRosaAppTests */ = {
+		105FC5882E9EAD3200EA8BCF /* Nalguitas */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaAppTests" */;
+			buildConfigurationList = 105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */;
 			buildPhases = (
 				105FC5852E9EAD3200EA8BCF /* Sources */,
 				105FC5862E9EAD3200EA8BCF /* Frameworks */,
@@ -188,16 +188,16 @@
 			fileSystemSynchronizedGroups = (
 				105FC58C2E9EAD3200EA8BCF /* AmorRosaAppTests */,
 			);
-			name = AmorRosaAppTests;
+			name = Nalguitas;
 			packageProductDependencies = (
 			);
-			productName = AmorRosaAppTests;
-			productReference = 105FC5892E9EAD3200EA8BCF /* AmorRosaAppTests.xctest */;
+			productName = Nalguitas;
+			productReference = 105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		105FC5922E9EAD3200EA8BCF /* AmorRosaAppUITests */ = {
+		105FC5922E9EAD3200EA8BCF /* Nalguitas */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaAppUITests" */;
+			buildConfigurationList = 105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */;
 			buildPhases = (
 				105FC58F2E9EAD3200EA8BCF /* Sources */,
 				105FC5902E9EAD3200EA8BCF /* Frameworks */,
@@ -211,16 +211,16 @@
 			fileSystemSynchronizedGroups = (
 				105FC5962E9EAD3200EA8BCF /* AmorRosaAppUITests */,
 			);
-			name = AmorRosaAppUITests;
+			name = Nalguitas;
 			packageProductDependencies = (
 			);
-			productName = AmorRosaAppUITests;
-			productReference = 105FC5932E9EAD3200EA8BCF /* AmorRosaAppUITests.xctest */;
+			productName = Nalguitas;
+			productReference = 105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */ = {
+		XXCD38C6510CD25D4D602DXX /* Nalguitas */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "AmorRosaWidget" */;
+			buildConfigurationList = XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "Nalguitas" */;
 			buildPhases = (
 				XXE0FD6AFA7551401BFCEBXX /* Sources */,
 				XX75B8358D2242CEB782C5XX /* Frameworks */,
@@ -230,8 +230,8 @@
 			);
 			dependencies = (
 			);
-			name = AmorRosaWidget;
-			productName = AmorRosaWidget;
+			name = Nalguitas;
+			productName = Nalguitas;
 			productReference = XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 			fileSystemSynchronizedGroups = (
@@ -261,7 +261,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 105FC5752E9EAD3100EA8BCF /* Build configuration list for PBXProject "AmorRosaApp" */;
+			buildConfigurationList = 105FC5752E9EAD3100EA8BCF /* Build configuration list for PBXProject "Nalguitas" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -275,10 +275,10 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				105FC5792E9EAD3100EA8BCF /* AmorRosaApp */,
-				105FC5882E9EAD3200EA8BCF /* AmorRosaAppTests */,
-				105FC5922E9EAD3200EA8BCF /* AmorRosaAppUITests */,
-				XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */,
+				105FC5792E9EAD3100EA8BCF /* Nalguitas */,
+				105FC5882E9EAD3200EA8BCF /* Nalguitas */,
+				105FC5922E9EAD3200EA8BCF /* Nalguitas */,
+				XXCD38C6510CD25D4D602DXX /* Nalguitas */,
 			);
 		};
 /* End PBXProject section */
@@ -348,17 +348,17 @@
 /* Begin PBXTargetDependency section */
 		105FC58B2E9EAD3200EA8BCF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 105FC5792E9EAD3100EA8BCF /* AmorRosaApp */;
+			target = 105FC5792E9EAD3100EA8BCF /* Nalguitas */;
 			targetProxy = 105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */;
 		};
 		105FC5952E9EAD3200EA8BCF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 105FC5792E9EAD3100EA8BCF /* AmorRosaApp */;
+			target = 105FC5792E9EAD3100EA8BCF /* Nalguitas */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
 		};
 		XX8563CEB98856474C63ADXX /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */;
+			target = XXCD38C6510CD25D4D602DXX /* Nalguitas */;
 			targetProxy = XX11287293F984A2FAEC71XX /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -692,7 +692,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		105FC5752E9EAD3100EA8BCF /* Build configuration list for PBXProject "AmorRosaApp" */ = {
+		105FC5752E9EAD3100EA8BCF /* Build configuration list for PBXProject "Nalguitas" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC59B2E9EAD3200EA8BCF /* Debug */,
@@ -701,7 +701,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		105FC59D2E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaApp" */ = {
+		105FC59D2E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC59E2E9EAD3200EA8BCF /* Debug */,
@@ -710,7 +710,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaAppTests" */ = {
+		105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC5A12E9EAD3200EA8BCF /* Debug */,
@@ -719,7 +719,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "AmorRosaAppUITests" */ = {
+		105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
@@ -728,7 +728,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "AmorRosaWidget" */ = {
+		XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				XX1B4863104EFC9B4CB07CXX /* Debug */,
