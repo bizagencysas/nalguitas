@@ -42,13 +42,13 @@ struct TodayView: View {
             }
         }
         .task {
-            await viewModel.loadTodayMessage()
+            await viewModel.loadTodayMessage(context: modelContext)
             withAnimation(.easeOut(duration: 0.8)) {
                 appeared = true
             }
         }
         .refreshable {
-            await viewModel.loadTodayMessage()
+            await viewModel.loadTodayMessage(context: modelContext)
         }
         .task {
             await checkWidgetInstalled()

@@ -7,7 +7,7 @@ struct AmorRosaAppApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([SavedMessage.self])
+        let schema = Schema([SavedMessage.self, MessageHistory.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             return try ModelContainer(for: schema, configurations: [config])
@@ -45,21 +45,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        let body = notification.request.content.body
-        if !body.isEmpty {
-            await MainActor.run {
-                SharedDataService.saveLastNotificationMessage(body)
-            }
-        }
         return [.banner, .badge, .sound]
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let body = response.notification.request.content.body
-        if !body.isEmpty {
-            await MainActor.run {
-                SharedDataService.saveLastNotificationMessage(body)
-            }
-        }
     }
 }

@@ -37,11 +37,12 @@ nonisolated struct LoveProvider: TimelineProvider {
     private func loadEntry(date: Date, sparkleIndex: Int) -> LoveEntry {
         let defaults = UserDefaults(suiteName: appGroupID)
         if let message = defaults?.string(forKey: "todayMessage"), !message.isEmpty {
-            let subtitle = defaults?.string(forKey: "todaySubtitle") ?? "Para ti"
-            return LoveEntry(date: date, message: message, subtitle: subtitle, sparkleIndex: sparkleIndex)
-        }
-        if let notification = defaults?.string(forKey: "lastNotification"), !notification.isEmpty {
-            return LoveEntry(date: date, message: notification, subtitle: "Para ti", sparkleIndex: sparkleIndex)
+            let lastUpdated = defaults?.double(forKey: "lastUpdated") ?? 0
+            let hoursSinceUpdate = Date().timeIntervalSince1970 - lastUpdated
+            if hoursSinceUpdate < 10800 {
+                let subtitle = defaults?.string(forKey: "todaySubtitle") ?? "Para ti"
+                return LoveEntry(date: date, message: message, subtitle: subtitle, sparkleIndex: sparkleIndex)
+            }
         }
         return LoveEntry(date: date, message: "", subtitle: "", sparkleIndex: sparkleIndex)
     }

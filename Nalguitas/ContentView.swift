@@ -18,7 +18,11 @@ struct ContentView: View {
                         SavedView()
                     }
 
-                    Tab("Ajustes", systemImage: "gearshape.fill", value: 2) {
+                    Tab("Historial", systemImage: "clock.arrow.circlepath", value: 2) {
+                        HistoryView()
+                    }
+
+                    Tab("Ajustes", systemImage: "gearshape.fill", value: 3) {
                         SettingsView(notificationService: notificationService, viewModel: viewModel)
                     }
                 }
