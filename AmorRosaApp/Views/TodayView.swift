@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct TodayView: View {
     let viewModel: AppViewModel
@@ -7,6 +8,8 @@ struct TodayView: View {
     @Query(sort: \SavedMessage.savedAt, order: .reverse) private var savedMessages: [SavedMessage]
     @State private var heartBounce: Int = 0
     @State private var appeared = false
+    @AppStorage("widgetCTADismissed") private var widgetCTADismissed = false
+    @State private var hasWidgetInstalled = false
 
     var body: some View {
         ZStack {
@@ -21,6 +24,10 @@ struct TodayView: View {
                     messageCard
 
                     saveButton
+
+                    if !widgetCTADismissed && !hasWidgetInstalled {
+                        widgetCTA
+                    }
 
                     Spacer(minLength: 60)
                 }
@@ -41,6 +48,9 @@ struct TodayView: View {
         }
         .refreshable {
             await viewModel.loadTodayMessage()
+        }
+        .task {
+            await checkWidgetInstalled()
         }
     }
 
@@ -176,6 +186,62 @@ struct TodayView: View {
                 .disabled(isSaved)
                 .opacity(appeared ? 1 : 0)
             }
+        }
+    }
+
+    private var widgetCTA: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.rosePrimary)
+
+                Text("Lleva tu mensaje al inicio")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        widgetCTADismissed = true
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                        .frame(width: 24, height: 24)
+                }
+            }
+
+            Text("Agrega el widget y tendr\u{00E1}s cada mensaje cerquita, sin abrir la app \u{1F49D}")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineSpacing(2)
+        }
+        .padding(16)
+        .background {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white.opacity(0.7))
+                .shadow(color: Theme.rosePrimary.opacity(0.08), radius: 12, y: 4)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Theme.roseLight.opacity(0.5), lineWidth: 1)
+                }
+        }
+        .opacity(appeared ? 1 : 0)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+
+    private func checkWidgetInstalled() async {
+        do {
+            let configs = try await WidgetCenter.shared.currentConfigurations()
+            if !configs.isEmpty {
+                hasWidgetInstalled = true
+            }
+        } catch {
+            // ignore
         }
     }
 
