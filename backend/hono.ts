@@ -19,7 +19,7 @@ app.use(
 );
 
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "Amor Rosa API" });
+  return c.json({ status: "ok", message: "Nalguitas API" });
 });
 
 app.get("/messages/today", async (c) => {
@@ -64,7 +64,7 @@ function adminHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amor Rosa - Admin</title>
+<title>Nalguitas - Admin</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#fff9f9,#fde8ec,#fdf0f2);min-height:100vh;color:#4d3337}
@@ -112,7 +112,7 @@ textarea{min-height:80px;resize:vertical}
 </head>
 <body>
 <div class="container">
-<h1>&#x1F339; Amor <span>Rosa</span> Admin</h1>
+<h1>&#x1F49D; <span>Nalguitas</span> Admin</h1>
 
 <div class="card">
 <h2><span class="icon">&#x1F4E8;</span> Enviar Ahora</h2>
