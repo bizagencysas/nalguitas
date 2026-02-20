@@ -44,16 +44,22 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        if let body = notification.request.content.body as String? {
-            SharedDataService.saveLastNotificationMessage(body)
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        let body = notification.request.content.body
+        if !body.isEmpty {
+            await MainActor.run {
+                SharedDataService.saveLastNotificationMessage(body)
+            }
         }
         return [.banner, .badge, .sound]
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        if let body = response.notification.request.content.body as String? {
-            SharedDataService.saveLastNotificationMessage(body)
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let body = response.notification.request.content.body
+        if !body.isEmpty {
+            await MainActor.run {
+                SharedDataService.saveLastNotificationMessage(body)
+            }
         }
     }
 }

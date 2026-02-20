@@ -40,7 +40,9 @@ nonisolated struct LoveProvider: TimelineProvider {
             let subtitle = defaults?.string(forKey: "todaySubtitle") ?? "Para ti"
             return LoveEntry(date: date, message: message, subtitle: subtitle, sparkleIndex: sparkleIndex)
         }
-
+        if let notification = defaults?.string(forKey: "lastNotification"), !notification.isEmpty {
+            return LoveEntry(date: date, message: notification, subtitle: "Para ti", sparkleIndex: sparkleIndex)
+        }
         return LoveEntry(date: date, message: "", subtitle: "", sparkleIndex: sparkleIndex)
     }
 }

@@ -23,10 +23,13 @@ struct SharedDataService {
         return (content, subtitle)
     }
 
-    static func saveLastNotificationMessage(_ content: String) {
+    static func saveLastNotificationMessage(_ content: String, subtitle: String = "Para ti") {
         guard let defaults = sharedDefaults else { return }
         defaults.set(content, forKey: "lastNotification")
         defaults.set(Date().timeIntervalSince1970, forKey: "lastNotificationTime")
+        defaults.set(content, forKey: "todayMessage")
+        defaults.set(subtitle, forKey: "todaySubtitle")
+        defaults.set(Date().timeIntervalSince1970, forKey: "lastUpdated")
         WidgetCenter.shared.reloadAllTimelines()
     }
 }
