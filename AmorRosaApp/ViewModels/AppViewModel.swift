@@ -16,10 +16,14 @@ class AppViewModel {
 
         do {
             let message = try await APIService.shared.fetchTodayMessage()
-            todayMessage = message
-            SharedDataService.saveTodayMessage(message)
+            if message.id.isEmpty || message.content.isEmpty {
+                todayMessage = nil
+            } else {
+                todayMessage = message
+                SharedDataService.saveTodayMessage(message)
+            }
         } catch {
-            if todayMessage == nil, let cached = SharedDataService.getTodayMessage() {
+            if todayMessage == nil, let cached = SharedDataService.getTodayMessage(), !cached.content.isEmpty {
                 todayMessage = LoveMessage(id: "cached", content: cached.content, subtitle: cached.subtitle, tone: nil, createdAt: nil, isSpecial: nil)
             }
         }
