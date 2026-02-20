@@ -114,7 +114,7 @@ struct MediumWidgetView: View {
                     .font(.title3)
                     .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.65))
 
-                Text("Amor\nRosa")
+                Text("Nalguitas")
                     .font(.system(.caption2, design: .rounded, weight: .semibold))
                     .foregroundStyle(Color(red: 0.55, green: 0.42, blue: 0.45))
                     .multilineTextAlignment(.center)
@@ -184,7 +184,7 @@ struct AmorRosaWidget: Widget {
                     )
                 }
         }
-        .configurationDisplayName("Amor Rosa")
+        .configurationDisplayName("Nalguitas")
         .description("Mensajes de amor en tu pantalla")
         .supportedFamilies([.systemSmall, .systemMedium])
     }

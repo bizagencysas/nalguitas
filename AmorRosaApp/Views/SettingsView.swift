@@ -141,7 +141,7 @@ struct SettingsView: View {
                         }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Widget de Amor")
+                        Text("Widget de Nalguitas")
                             .font(.system(.headline, design: .rounded))
                             .foregroundStyle(Theme.textPrimary)
 
@@ -255,7 +255,7 @@ struct WidgetInstructionsSheet: View {
                             number: 2,
                             icon: "plus.circle.fill",
                             title: "Toca el botón +",
-                            description: "Busca \"Amor Rosa\" en la lista de widgets disponibles"
+                            description: "Busca \"Nalguitas\" en la lista de widgets disponibles"
                         )
 
                         instructionStep(
