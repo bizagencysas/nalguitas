@@ -4,7 +4,7 @@ import UIKit
 nonisolated final class APIService: Sendable {
     static let shared = APIService()
 
-    private let baseURL: String = "https://placeholder.api.com"
+    private let baseURL: String = "https://dev-2em1f73schcayului3oej.rorktest.dev"
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
