@@ -10,6 +10,7 @@ struct TodayView: View {
     @State private var appeared = false
     @AppStorage("widgetCTADismissed") private var widgetCTADismissed = false
     @State private var hasWidgetInstalled = false
+    @State private var showWidgetInstructions = false
 
     var body: some View {
         ZStack {
@@ -190,36 +191,41 @@ struct TodayView: View {
     }
 
     private var widgetCTA: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Theme.rosePrimary)
+        Button {
+            showWidgetInstructions = true
+        } label: {
+            VStack(spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Theme.rosePrimary)
 
-                Text("Lleva tu mensaje al inicio")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    Text("Lleva tu mensaje al inicio")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
 
-                Spacer()
+                    Spacer()
 
-                Button {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        widgetCTADismissed = true
+                    Button {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            widgetCTADismissed = true
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
+                            .frame(width: 24, height: 24)
                     }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.5))
-                        .frame(width: 24, height: 24)
                 }
-            }
 
-            Text("Agrega el widget y tendr\u{00E1}s cada mensaje cerquita, sin abrir la app \u{1F49D}")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(Theme.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .lineSpacing(2)
+                Text("Agrega el widget y tendr\u{00E1}s cada mensaje cerquita, sin abrir la app \u{1F49D}")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineSpacing(2)
+            }
         }
+        .buttonStyle(.plain)
         .padding(16)
         .background {
             RoundedRectangle(cornerRadius: 16)
@@ -232,6 +238,10 @@ struct TodayView: View {
         }
         .opacity(appeared ? 1 : 0)
         .transition(.opacity.combined(with: .move(edge: .bottom)))
+        .sheet(isPresented: $showWidgetInstructions) {
+            WidgetInstructionsSheet()
+                .presentationDetents([.medium])
+        }
     }
 
     private func checkWidgetInstalled() async {
