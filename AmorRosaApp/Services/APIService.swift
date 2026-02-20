@@ -44,4 +44,54 @@ nonisolated final class APIService: Sendable {
         request.httpMethod = "POST"
         let (_, _) = try await URLSession.shared.data(for: request)
     }
+
+    func sendNotification(message: String) async throws {
+        let url = URL(string: "\(baseURL)/api/notifications/send")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["message": message]
+        request.httpBody = try JSONEncoder().encode(body)
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
+    func createMessage(content: String, subtitle: String, tone: String) async throws {
+        let url = URL(string: "\(baseURL)/api/trpc/messages.create")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload = CreateMessagePayload(json: CreateMessageInput(content: content, subtitle: subtitle, tone: tone, isSpecial: false, priority: 1))
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+
+    func deleteMessage(id: String) async throws {
+        let url = URL(string: "\(baseURL)/api/trpc/messages.delete")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let payload = DeleteMessagePayload(json: DeleteMessageInput(id: id))
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (_, _) = try await URLSession.shared.data(for: request)
+    }
+}
+
+nonisolated struct CreateMessageInput: Codable, Sendable {
+    let content: String
+    let subtitle: String
+    let tone: String
+    let isSpecial: Bool
+    let priority: Int
+}
+
+nonisolated struct CreateMessagePayload: Codable, Sendable {
+    let json: CreateMessageInput
+}
+
+nonisolated struct DeleteMessageInput: Codable, Sendable {
+    let id: String
+}
+
+nonisolated struct DeleteMessagePayload: Codable, Sendable {
+    let json: DeleteMessageInput
 }

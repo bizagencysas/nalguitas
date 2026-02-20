@@ -4,6 +4,12 @@ struct SettingsView: View {
     let notificationService: NotificationService
     let viewModel: AppViewModel
     @State private var showWidgetInstructions = false
+    @State private var secretTapCount: Int = 0
+    @State private var showAdminLogin: Bool = false
+    @State private var showAdmin: Bool = false
+    @State private var adminUser: String = ""
+    @State private var adminPass: String = ""
+    @State private var loginError: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +32,32 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showWidgetInstructions) {
                 WidgetInstructionsSheet()
+            }
+            .alert("Acceso Admin", isPresented: $showAdminLogin) {
+                TextField("Usuario", text: $adminUser)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("Contraseña", text: $adminPass)
+                Button("Entrar") {
+                    if adminUser == "admin" && adminPass == "admin" {
+                        loginError = false
+                        showAdmin = true
+                    } else {
+                        loginError = true
+                    }
+                    adminUser = ""
+                    adminPass = ""
+                }
+                Button("Cancelar", role: .cancel) {
+                    adminUser = ""
+                    adminPass = ""
+                    secretTapCount = 0
+                }
+            } message: {
+                Text(loginError ? "Credenciales incorrectas" : "Ingresa tus credenciales")
+            }
+            .fullScreenCover(isPresented: $showAdmin) {
+                AdminView()
             }
         }
     }
@@ -204,6 +236,14 @@ struct SettingsView: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(Theme.roseLight.opacity(0.4), lineWidth: 0.5)
                     }
+            }
+            .onTapGesture {
+                secretTapCount += 1
+                if secretTapCount >= 5 {
+                    secretTapCount = 0
+                    loginError = false
+                    showAdminLogin = true
+                }
             }
         }
     }
