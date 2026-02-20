@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
+import { addMessageFromNotification } from "./messages";
 
 interface DeviceInfo {
   token: string;
@@ -48,22 +49,20 @@ export const notificationsRouter = createTRPCRouter({
       message: z.string().min(1),
     }))
     .mutation(({ input }) => {
-      if (!registeredDevice) {
-        throw new Error("No device registered");
-      }
+      addMessageFromNotification(input.message);
 
       const log: NotificationLog = {
         id: Date.now().toString(),
         message: input.message,
         sentAt: new Date().toISOString(),
-        status: "queued",
+        status: registeredDevice ? "sent" : "no_device",
       };
       notificationHistory.unshift(log);
 
       return {
         success: true,
-        message: "Notification queued",
-        deviceToken: registeredDevice.token,
+        message: "Message sent",
+        deviceToken: registeredDevice?.token ?? null,
         log,
       };
     }),

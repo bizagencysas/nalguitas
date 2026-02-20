@@ -300,9 +300,9 @@ struct AdminView: View {
         do {
             try await APIService.shared.sendNotification(message: messageText.trimmingCharacters(in: .whitespacesAndNewlines))
             messageText = ""
-            showTemporaryToast("Notificación enviada 💕")
+            showTemporaryToast("Mensaje enviado 💕")
         } catch {
-            showTemporaryToast("Error al enviar")
+            showTemporaryToast("Error: \(error.localizedDescription)")
         }
     }
 
@@ -317,7 +317,7 @@ struct AdminView: View {
             showTemporaryToast("Mensaje creado ✨")
             await loadMessages()
         } catch {
-            showTemporaryToast("Error al crear mensaje")
+            showTemporaryToast("Error: \(error.localizedDescription)")
         }
     }
 

@@ -1,6 +1,22 @@
 import Foundation
 import UIKit
 
+nonisolated enum APIError: Error, Sendable, LocalizedError {
+    case serverError(String)
+    case networkError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .serverError(let msg): return msg
+        case .networkError(let msg): return msg
+        }
+    }
+}
+
+nonisolated struct ErrorResponse: Codable, Sendable {
+    let error: String?
+}
+
 nonisolated final class APIService: Sendable {
     static let shared = APIService()
 
@@ -23,17 +39,30 @@ nonisolated final class APIService: Sendable {
         return d
     }()
 
+    private func checkResponse(_ data: Data, _ response: URLResponse) throws {
+        guard let http = response as? HTTPURLResponse else { return }
+        guard http.statusCode >= 200 && http.statusCode < 300 else {
+            if let errorResp = try? JSONDecoder().decode(ErrorResponse.self, from: data), let msg = errorResp.error {
+                throw APIError.serverError(msg)
+            }
+            let text = String(data: data, encoding: .utf8) ?? "Error desconocido"
+            throw APIError.serverError(text)
+        }
+    }
+
     func fetchTodayMessage() async throws -> LoveMessage {
         let url = URL(string: "\(baseURL)/api/messages/today")!
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
         return try decoder.decode(LoveMessage.self, from: data)
     }
 
     func fetchMessages() async throws -> [LoveMessage] {
         let url = URL(string: "\(baseURL)/api/messages")!
-        let (data, _) = try await URLSession.shared.data(from: url)
-        let response = try decoder.decode(MessagesResponse.self, from: data)
-        return response.messages
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        let resp = try decoder.decode(MessagesResponse.self, from: data)
+        return resp.messages
     }
 
     func registerDevice(token: String) async throws {
@@ -46,14 +75,16 @@ nonisolated final class APIService: Sendable {
         let body = DeviceRegistration(token: token, deviceId: deviceId)
         request.httpBody = try JSONEncoder().encode(body)
 
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
     }
 
     func testNotification() async throws {
         let url = URL(string: "\(baseURL)/api/notifications/test")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
     }
 
     func sendNotification(message: String) async throws {
@@ -63,7 +94,8 @@ nonisolated final class APIService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["message": message]
         request.httpBody = try JSONEncoder().encode(body)
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
     }
 
     func createMessage(content: String, subtitle: String, tone: String) async throws {
@@ -73,7 +105,8 @@ nonisolated final class APIService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let payload = CreateMessagePayload(json: CreateMessageInput(content: content, subtitle: subtitle, tone: tone, isSpecial: false, priority: 1))
         request.httpBody = try JSONEncoder().encode(payload)
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
     }
 
     func deleteMessage(id: String) async throws {
@@ -83,7 +116,8 @@ nonisolated final class APIService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let payload = DeleteMessagePayload(json: DeleteMessageInput(id: id))
         request.httpBody = try JSONEncoder().encode(payload)
-        let (_, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
     }
 }
 

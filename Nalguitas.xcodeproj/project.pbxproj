@@ -31,6 +31,7 @@
 			proxyType = 1;
 			remoteGlobalIDString = XXCD38C6510CD25D4D602DXX;
 			remoteInfo = AmorRosaWidget;
+
 		};
 /* End PBXContainerItemProxy section */
 
@@ -172,9 +173,9 @@
 			productReference = 105FC57A2E9EAD3100EA8BCF /* Nalguitas.app */;
 			productType = "com.apple.product-type.application";
 		};
-		105FC5882E9EAD3200EA8BCF /* Nalguitas */ = {
+		105FC5882E9EAD3200EA8BCF /* NalguitasTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */;
+			buildConfigurationList = 105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "NalguitasTests" */;
 			buildPhases = (
 				105FC5852E9EAD3200EA8BCF /* Sources */,
 				105FC5862E9EAD3200EA8BCF /* Frameworks */,
@@ -188,16 +189,16 @@
 			fileSystemSynchronizedGroups = (
 				105FC58C2E9EAD3200EA8BCF /* AmorRosaAppTests */,
 			);
-			name = Nalguitas;
+			name = NalguitasTests;
 			packageProductDependencies = (
 			);
-			productName = Nalguitas;
+			productName = NalguitasTests;
 			productReference = 105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		105FC5922E9EAD3200EA8BCF /* Nalguitas */ = {
+		105FC5922E9EAD3200EA8BCF /* NalguitasUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */;
+			buildConfigurationList = 105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "NalguitasUITests" */;
 			buildPhases = (
 				105FC58F2E9EAD3200EA8BCF /* Sources */,
 				105FC5902E9EAD3200EA8BCF /* Frameworks */,
@@ -211,16 +212,16 @@
 			fileSystemSynchronizedGroups = (
 				105FC5962E9EAD3200EA8BCF /* AmorRosaAppUITests */,
 			);
-			name = Nalguitas;
+			name = NalguitasUITests;
 			packageProductDependencies = (
 			);
-			productName = Nalguitas;
+			productName = NalguitasUITests;
 			productReference = 105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		XXCD38C6510CD25D4D602DXX /* Nalguitas */ = {
+		XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "Nalguitas" */;
+			buildConfigurationList = XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "AmorRosaWidget" */;
 			buildPhases = (
 				XXE0FD6AFA7551401BFCEBXX /* Sources */,
 				XX75B8358D2242CEB782C5XX /* Frameworks */,
@@ -230,8 +231,8 @@
 			);
 			dependencies = (
 			);
-			name = Nalguitas;
-			productName = Nalguitas;
+			name = AmorRosaWidget;
+			productName = AmorRosaWidget;
 			productReference = XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 			fileSystemSynchronizedGroups = (
@@ -276,9 +277,9 @@
 			projectRoot = "";
 			targets = (
 				105FC5792E9EAD3100EA8BCF /* Nalguitas */,
-				105FC5882E9EAD3200EA8BCF /* Nalguitas */,
-				105FC5922E9EAD3200EA8BCF /* Nalguitas */,
-				XXCD38C6510CD25D4D602DXX /* Nalguitas */,
+				105FC5882E9EAD3200EA8BCF /* NalguitasTests */,
+				105FC5922E9EAD3200EA8BCF /* NalguitasUITests */,
+				XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -490,7 +491,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AmorRosaApp/AmorRosaApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Nalguitas/AmorRosaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -512,6 +513,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app";
 				PRODUCT_NAME = Nalguitas;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -526,7 +528,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AmorRosaApp/AmorRosaApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Nalguitas/AmorRosaApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -548,6 +550,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app";
 				PRODUCT_NAME = Nalguitas;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -710,7 +713,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
+		105FC5A02E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "NalguitasTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC5A12E9EAD3200EA8BCF /* Debug */,
@@ -719,7 +722,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
+		105FC5A32E9EAD3200EA8BCF /* Build configuration list for PBXNativeTarget "NalguitasUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
@@ -728,7 +731,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "Nalguitas" */ = {
+		XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "AmorRosaWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				XX1B4863104EFC9B4CB07CXX /* Debug */,

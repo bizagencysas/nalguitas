@@ -9,6 +9,11 @@ const app = new Hono();
 
 app.use("*", cors());
 
+app.onError((err, c) => {
+  console.error("API Error:", err.message);
+  return c.json({ error: err.message || "Internal Server Error" }, 500);
+});
+
 app.use(
   "/trpc/*",
   trpcServer({
@@ -23,35 +28,60 @@ app.get("/", (c) => {
 });
 
 app.get("/messages/today", async (c) => {
-  const caller = appRouter.createCaller({ req: c.req.raw });
-  const msg = await caller.messages.today();
-  return c.json(msg);
+  try {
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const msg = await caller.messages.today();
+    return c.json(msg);
+  } catch (e: any) {
+    console.error("Error fetching today message:", e);
+    return c.json({ id: "", content: "", subtitle: "", tone: "", createdAt: "", isSpecial: false, priority: 0 }, 200);
+  }
 });
 
 app.get("/messages", async (c) => {
-  const caller = appRouter.createCaller({ req: c.req.raw });
-  const data = await caller.messages.list();
-  return c.json(data);
+  try {
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const data = await caller.messages.list();
+    return c.json(data);
+  } catch (e: any) {
+    console.error("Error fetching messages:", e);
+    return c.json({ messages: [], todayMessage: null }, 200);
+  }
 });
 
 app.post("/device/register", async (c) => {
-  const body = await c.req.json();
-  const caller = appRouter.createCaller({ req: c.req.raw });
-  const result = await caller.notifications.registerDevice(body);
-  return c.json(result);
+  try {
+    const body = await c.req.json();
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.notifications.registerDevice(body);
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error registering device:", e);
+    return c.json({ error: e.message || "Failed to register device" }, 500);
+  }
 });
 
 app.post("/notifications/test", async (c) => {
-  const caller = appRouter.createCaller({ req: c.req.raw });
-  const result = await caller.notifications.testNotification();
-  return c.json(result);
+  try {
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.notifications.testNotification();
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error sending test notification:", e);
+    return c.json({ error: e.message || "Failed to send test notification" }, 500);
+  }
 });
 
 app.post("/notifications/send", async (c) => {
-  const body = await c.req.json();
-  const caller = appRouter.createCaller({ req: c.req.raw });
-  const result = await caller.notifications.sendNow(body);
-  return c.json(result);
+  try {
+    const body = await c.req.json();
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.notifications.sendNow(body);
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error sending notification:", e);
+    return c.json({ error: e.message || "Failed to send notification" }, 500);
+  }
 });
 
 app.get("/admin", (c) => {

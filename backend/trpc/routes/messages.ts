@@ -20,6 +20,20 @@ function getTodayMessage(): LoveMessage | null {
   return lastMessage;
 }
 
+export function addMessageFromNotification(content: string): LoveMessage {
+  const msg: LoveMessage = {
+    id: Date.now().toString(),
+    content,
+    subtitle: "Para ti",
+    tone: "tierno",
+    createdAt: new Date().toISOString(),
+    isSpecial: false,
+    priority: 1,
+  };
+  messages.push(msg);
+  return msg;
+}
+
 export const messagesRouter = createTRPCRouter({
   list: publicProcedure.query(() => {
     return { messages, todayMessage: getTodayMessage() };
