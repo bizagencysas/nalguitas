@@ -8,7 +8,18 @@ nonisolated final class APIService: Sendable {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let fallback = ISO8601DateFormatter()
+        fallback.formatOptions = [.withInternetDateTime]
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let str = try container.decode(String.self)
+            if str.isEmpty { throw DecodingError.dataCorruptedError(in: container, debugDescription: "Empty date") }
+            if let date = formatter.date(from: str) { return date }
+            if let date = fallback.date(from: str) { return date }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date: \(str)")
+        }
         return d
     }()
 
