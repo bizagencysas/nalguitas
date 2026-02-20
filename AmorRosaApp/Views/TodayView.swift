@@ -60,11 +60,13 @@ struct TodayView: View {
     }
 
     private var greetingText: String {
+        let petNames = ["nalguitas", "tucancita", "futura esposa"]
+        let name = petNames.randomElement()!
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Buenos d\u{00ED}as, mi amor"
-        case 12..<18: return "Buenas tardes, preciosa"
-        case 18..<22: return "Buenas noches, mi vida"
+        case 5..<12: return "Buenos d\u{00ED}as, \(name)"
+        case 12..<18: return "Buenas tardes, \(name)"
+        case 18..<22: return "Buenas noches, \(name)"
         default: return "Para ti, siempre"
         }
     }
