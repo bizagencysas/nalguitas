@@ -659,6 +659,7 @@
 				MARKETING_VERSION = 1.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				INFOPLIST_KEY_CFBundleDisplayName = Nalguitas;
+				INFOPLIST_KEY_CFBundleName = Nalguitas;
 			};
 			name = Debug;
 		};
@@ -682,6 +683,7 @@
 				MARKETING_VERSION = 1.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				INFOPLIST_KEY_CFBundleDisplayName = Nalguitas;
+				INFOPLIST_KEY_CFBundleName = Nalguitas;
 			};
 			name = Release;
 		};
