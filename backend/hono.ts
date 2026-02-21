@@ -11,6 +11,21 @@ const app = new Hono();
 
 app.use("*", cors());
 
+let migrated = false;
+app.use("*", async (c, next) => {
+  if (!migrated) {
+    migrated = true;
+    try {
+      await migrate();
+      console.log("[DB] Migration successful");
+    } catch (e: any) {
+      console.error("[DB] Migration failed:", e.message);
+      migrated = false;
+    }
+  }
+  await next();
+});
+
 app.onError((err, c) => {
   console.error("API Error:", err.message);
   return c.json({ error: err.message || "Internal Server Error" }, 500);
