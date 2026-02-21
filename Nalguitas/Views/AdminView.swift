@@ -547,7 +547,7 @@ struct AdminView: View {
                 Divider()
                 ForEach(customFacts) { fact in
                     HStack {
-                        Text("\ud83d\udca1")
+                        Text("💡")
                         Text(fact.fact)
                             .font(.system(.caption, design: .rounded))
                             .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
@@ -584,7 +584,7 @@ struct AdminView: View {
             let fact = try await APIService.shared.createFact(fact: text)
             customFacts.insert(fact, at: 0)
             newFactText = ""
-            showTemporaryToast("¡Dato curioso agregado! \ud83d\udca1")
+            showTemporaryToast("¡Dato curioso agregado! 💡")
         } catch {
             showTemporaryToast("Error: \(error.localizedDescription)")
         }
