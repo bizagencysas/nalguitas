@@ -20,7 +20,7 @@ nonisolated struct ErrorResponse: Codable, Sendable {
 nonisolated final class APIService: Sendable {
     static let shared = APIService()
 
-    private let baseURL: String = "https://dev-2em1f73schcayului3oej.rorktest.dev"
+    private let baseURL: String = "https://nalguitas.onrender.com"
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
