@@ -749,7 +749,9 @@ export async function deleteExperience(id: string) {
 
 export async function getProfile(username: string) {
   const rows = await sql`SELECT * FROM profiles WHERE username = ${username}`;
-  return rows.length ? toCamel(rows[0]) : null;
+  if (!rows.length) return null;
+  const r: any = rows[0];
+  return { username: r.username, displayName: r.display_name || "", avatar: r.avatar || "", statusMessage: r.status_message || "", updatedAt: r.updated_at };
 }
 
 export async function saveProfile(username: string, displayName: string, avatar: string, statusMessage: string) {
