@@ -1105,6 +1105,10 @@ struct AchievementsSheetView: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } } }
         }
     }
+}
+
+// MARK: - New Feature Views
+extension ExploreView {
     // MARK: - Word of the Day Card
     private func wordOfDayCard(_ word: EnglishWord) -> some View {
         VStack(alignment: .leading, spacing: 12) {
