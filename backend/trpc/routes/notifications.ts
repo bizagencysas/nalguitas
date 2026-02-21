@@ -1,6 +1,5 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { addMessageFromNotification } from "./messages";
 import { sendPushNotification } from "../../apns-service";
 
 interface DeviceInfo {
@@ -77,8 +76,6 @@ export const notificationsRouter = createTRPCRouter({
       message: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
-      addMessageFromNotification(input.message);
-
       let pushStatus = "no_device";
 
       if (girlfriendDevices.length > 0) {

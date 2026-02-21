@@ -353,8 +353,7 @@ struct AdminView: View {
         do {
             try await APIService.shared.sendNotification(message: messageText.trimmingCharacters(in: .whitespacesAndNewlines))
             messageText = ""
-            showTemporaryToast("Mensaje enviado 💕")
-            await loadMessages()
+            showTemporaryToast("Notificación enviada 💕")
         } catch {
             showTemporaryToast("Error: \(error.localizedDescription)")
         }
