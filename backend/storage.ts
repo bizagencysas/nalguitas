@@ -39,11 +39,29 @@ interface GirlfriendMessage {
   read: boolean;
 }
 
+interface RemoteConfig {
+  popup: {
+    enabled: boolean;
+    type: string;
+    title: string;
+    subtitle: string;
+    options: { id: string; label: string; emoji: string; role: string }[];
+  } | null;
+}
+
+interface RoleRegistration {
+  deviceId: string;
+  role: string;
+  registeredAt: string;
+}
+
 interface AllData {
   devices: StoredDevices;
   messages: LoveMessage[];
   notificationHistory: NotificationLog[];
   girlfriendMessages: GirlfriendMessage[];
+  remoteConfig: RemoteConfig;
+  roles: RoleRegistration[];
 }
 
 function ensureDir() {
@@ -116,4 +134,31 @@ export function loadGirlfriendMessages(): GirlfriendMessage[] {
 
 export function saveGirlfriendMessages(data: GirlfriendMessage[]) {
   writeFile("girlfriend-messages.json", data);
+}
+
+export function loadRemoteConfig(): RemoteConfig {
+  return readFile<RemoteConfig>("remote-config.json", {
+    popup: {
+      enabled: true,
+      type: "role_selection",
+      title: "\u00bfQui\u00e9n eres?",
+      subtitle: "Selecciona tu rol para personalizar tu experiencia",
+      options: [
+        { id: "admin", label: "Soy el Admin", emoji: "\ud83d\udc51", role: "admin" },
+        { id: "girlfriend", label: "Soy la Novia", emoji: "\ud83d\udc96", role: "girlfriend" },
+      ],
+    },
+  });
+}
+
+export function saveRemoteConfig(data: RemoteConfig) {
+  writeFile("remote-config.json", data);
+}
+
+export function loadRoles(): RoleRegistration[] {
+  return readFile<RoleRegistration[]>("roles.json", []);
+}
+
+export function saveRoles(data: RoleRegistration[]) {
+  writeFile("roles.json", data);
 }

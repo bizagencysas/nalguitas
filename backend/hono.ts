@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRoles } from "./storage";
 
 const app = new Hono(); // v2
 
@@ -104,6 +105,62 @@ app.get("/girlfriend/messages", async (c) => {
   } catch (e: any) {
     console.error("Error fetching girlfriend messages:", e);
     return c.json([], 200);
+  }
+});
+
+app.get("/config", (c) => {
+  try {
+    const config = loadRemoteConfig();
+    return c.json(config);
+  } catch (e: any) {
+    console.error("Error loading remote config:", e);
+    return c.json({ popup: null }, 200);
+  }
+});
+
+app.post("/config", async (c) => {
+  try {
+    const body = await c.req.json();
+    saveRemoteConfig(body);
+    return c.json({ success: true });
+  } catch (e: any) {
+    console.error("Error saving remote config:", e);
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.post("/role/register", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { deviceId, role } = body;
+    if (!deviceId || !role) {
+      return c.json({ error: "deviceId and role are required" }, 400);
+    }
+    const roles = loadRoles();
+    const existing = roles.findIndex((r: any) => r.deviceId === deviceId);
+    const registration = { deviceId, role, registeredAt: new Date().toISOString() };
+    if (existing >= 0) {
+      roles[existing] = registration;
+    } else {
+      roles.push(registration);
+    }
+    saveRoles(roles);
+    console.log(`[Role] Registered ${deviceId.substring(0, 8)}... as ${role}`);
+    return c.json({ success: true, role });
+  } catch (e: any) {
+    console.error("Error registering role:", e);
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.get("/role/:deviceId", (c) => {
+  try {
+    const deviceId = c.req.param("deviceId");
+    const roles = loadRoles();
+    const found = roles.find((r: any) => r.deviceId === deviceId);
+    return c.json({ role: found?.role || null });
+  } catch (e: any) {
+    return c.json({ role: null }, 200);
   }
 });
 

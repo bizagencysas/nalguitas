@@ -131,6 +131,32 @@ nonisolated final class APIService: Sendable {
         try checkResponse(data, response)
     }
 
+    func fetchRemoteConfig() async throws -> RemoteConfig {
+        let url = URL(string: "\(baseURL)/api/config")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        return try JSONDecoder().decode(RemoteConfig.self, from: data)
+    }
+
+    func registerRole(deviceId: String, role: String) async throws {
+        let url = URL(string: "\(baseURL)/api/role/register")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: String] = ["deviceId": deviceId, "role": role]
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+
+    func fetchRole(deviceId: String) async throws -> String? {
+        let url = URL(string: "\(baseURL)/api/role/\(deviceId)")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        let result = try JSONDecoder().decode(RoleResponse.self, from: data)
+        return result.role
+    }
+
     func fetchGirlfriendMessages() async throws -> [GirlfriendMessage] {
         let url = URL(string: "\(baseURL)/api/girlfriend/messages")!
         let (data, response) = try await URLSession.shared.data(from: url)
