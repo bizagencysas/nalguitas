@@ -11,6 +11,7 @@ class AppViewModel {
     var showSavedConfirmation = false
 
     func loadTodayMessage(context: ModelContext? = nil) async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
