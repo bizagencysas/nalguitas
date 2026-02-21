@@ -66,6 +66,30 @@ app.get("/messages", async (c) => {
   }
 });
 
+app.post("/messages", async (c) => {
+  try {
+    const body = await c.req.json();
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    const result = await caller.messages.create(body);
+    return c.json(result);
+  } catch (e: any) {
+    console.error("Error creating message:", e);
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.delete("/messages/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const caller = appRouter.createCaller({ req: c.req.raw });
+    await caller.messages.delete({ id });
+    return c.json({ success: true });
+  } catch (e: any) {
+    console.error("Error deleting message:", e);
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 app.post("/device/register", async (c) => {
   try {
     const body = await c.req.json();
