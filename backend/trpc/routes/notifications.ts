@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
 import { sendPushNotification } from "../../apns-service";
+import { loadDevices, saveDevices } from "../../storage";
 
 interface DeviceInfo {
   token: string;
@@ -22,8 +23,9 @@ interface GirlfriendMessage {
   read: boolean;
 }
 
-let girlfriendDevices: DeviceInfo[] = [];
-let adminDevices: DeviceInfo[] = [];
+const stored = loadDevices();
+let girlfriendDevices: DeviceInfo[] = stored.girlfriendDevices;
+let adminDevices: DeviceInfo[] = stored.adminDevices;
 const MAX_DEVICES = 10;
 let notificationHistory: NotificationLog[] = [];
 let girlfriendMessages: GirlfriendMessage[] = [];
@@ -34,6 +36,10 @@ const scheduleConfig = {
   afternoon: "17:00",
   night: "21:30",
 };
+
+function persistDevices() {
+  saveDevices({ girlfriendDevices, adminDevices });
+}
 
 export const notificationsRouter = createTRPCRouter({
   registerDevice: publicProcedure
@@ -52,13 +58,14 @@ export const notificationsRouter = createTRPCRouter({
         adminDevices = adminDevices.filter(d => d.deviceId !== input.deviceId && d.token !== input.token);
         adminDevices.push(device);
         if (adminDevices.length > MAX_DEVICES) adminDevices = adminDevices.slice(-MAX_DEVICES);
-        console.log("Admin device registered:", input.token.substring(0, 20) + "... (total:", adminDevices.length + ")");
+        console.log(`[Register] Admin device: ${input.token.substring(0, 20)}... (total: ${adminDevices.length})`);
       } else {
         girlfriendDevices = girlfriendDevices.filter(d => d.deviceId !== input.deviceId && d.token !== input.token);
         girlfriendDevices.push(device);
         if (girlfriendDevices.length > MAX_DEVICES) girlfriendDevices = girlfriendDevices.slice(-MAX_DEVICES);
-        console.log("Girlfriend device registered:", input.token.substring(0, 20) + "... (total:", girlfriendDevices.length + ")");
+        console.log(`[Register] Girlfriend device: ${input.token.substring(0, 20)}... (total: ${girlfriendDevices.length})`);
       }
+      persistDevices();
       return { success: true, message: "Device registered" };
     }),
 
@@ -76,17 +83,20 @@ export const notificationsRouter = createTRPCRouter({
       message: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
+      console.log(`[SendNow] Sending notification: "${input.message.substring(0, 50)}..."`);
+      console.log(`[SendNow] Girlfriend devices: ${girlfriendDevices.length}, Admin devices: ${adminDevices.length}`);
+
       let pushStatus = "no_device";
 
       if (girlfriendDevices.length > 0) {
         const results = await Promise.all(
-          girlfriendDevices.map(d => sendPushNotification(d.token, "Nalguitas \u{1F495}", input.message))
+          girlfriendDevices.map(d => sendPushNotification(d.token, "Nalguitas 💕", input.message))
         );
         const successCount = results.filter(r => r.success).length;
         pushStatus = successCount > 0 ? `sent (${successCount}/${girlfriendDevices.length})` : `failed: ${results[0]?.error}`;
-        console.log("Push to girlfriend devices:", pushStatus);
+        console.log(`[SendNow] Push result: ${pushStatus}`);
       } else {
-        console.log("No girlfriend devices registered");
+        console.log("[SendNow] No girlfriend devices registered - notification NOT sent");
       }
 
       const log: NotificationLog = {
@@ -99,18 +109,20 @@ export const notificationsRouter = createTRPCRouter({
 
       return {
         success: true,
-        message: pushStatus === "sent" ? "Notificación enviada" : "Mensaje guardado (sin push: " + pushStatus + ")",
+        message: pushStatus.startsWith("sent") ? "Notificación enviada" : "Mensaje guardado (sin push: " + pushStatus + ")",
         log,
       };
     }),
 
   testNotification: publicProcedure.mutation(async () => {
+    console.log(`[Test] Girlfriend devices: ${girlfriendDevices.length}, Admin devices: ${adminDevices.length}`);
+    
     if (girlfriendDevices.length === 0) {
-      throw new Error("No girlfriend device registered");
+      throw new Error("No girlfriend device registered. La novia debe abrir la app primero para registrar su dispositivo.");
     }
 
     const results = await Promise.all(
-      girlfriendDevices.map(d => sendPushNotification(d.token, "Nalguitas \u{1F495}", "Esta es una notificación de prueba \u{1F497}"))
+      girlfriendDevices.map(d => sendPushNotification(d.token, "Nalguitas 💕", "Esta es una notificación de prueba 💗"))
     );
     const successCount = results.filter(r => r.success).length;
 
@@ -148,10 +160,10 @@ export const notificationsRouter = createTRPCRouter({
 
       if (adminDevices.length > 0) {
         const results = await Promise.all(
-          adminDevices.map(d => sendPushNotification(d.token, "Nalguitas \u{1F49D}", `Tu novia dice: ${input.content}`))
+          adminDevices.map(d => sendPushNotification(d.token, "Nalguitas 💝", `Tu novia dice: ${input.content}`))
         );
         const successCount = results.filter(r => r.success).length;
-        console.log("Push to admin devices:", `${successCount}/${adminDevices.length} sent`);
+        console.log(`[Girlfriend] Push to admin: ${successCount}/${adminDevices.length} sent`);
       }
 
       return { success: true, message: msg };

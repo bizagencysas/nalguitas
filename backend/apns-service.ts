@@ -1,23 +1,20 @@
 import * as crypto from "node:crypto";
 import * as http2 from "node:http2";
-import * as fs from "node:fs";
-import * as path from "node:path";
 
 const TEAM_ID = "7KG6CT3HX5";
 const KEY_ID = "4LHKNF3PAH";
 const BUNDLE_ID = "app.rork.amor-rosa-app";
 const APNS_HOST = "api.push.apple.com";
 
-let cachedKey: string | null = null;
+const SIGNING_KEY = `-----BEGIN PRIVATE KEY-----
+MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgaKUCTg4gHfc72Vs5
+NoKt8so+nd5wnbKfczU9PiqUt0CgCgYIKoZIzj0DAQehRANCAATxZx+IeOMAmPWU
+2J8aIJwrnrV7lTLb/5iat6y1FjCC5qSZkG5aT4DUZoHHlxD/ygNtHLYX8ZVUkDrw
+czQfKnhx
+-----END PRIVATE KEY-----`;
+
 let cachedToken: string | null = null;
 let tokenIssuedAt = 0;
-
-function getSigningKey(): string {
-  if (cachedKey) return cachedKey;
-  const keyPath = path.join(import.meta.dir, "AuthKey_4LHKNF3PAH.p8");
-  cachedKey = fs.readFileSync(keyPath, "utf8");
-  return cachedKey;
-}
 
 function base64url(data: Buffer | string): string {
   const buf = typeof data === "string" ? Buffer.from(data) : data;
@@ -35,10 +32,9 @@ function generateJWT(): string {
   const payload = base64url(JSON.stringify({ iss: TEAM_ID, iat: now }));
   const signingInput = `${header}.${payload}`;
 
-  const key = getSigningKey();
   const sign = crypto.createSign("SHA256");
   sign.update(signingInput);
-  const derSig = sign.sign(key);
+  const derSig = sign.sign(SIGNING_KEY);
 
   const r = extractR(derSig);
   const s = extractS(derSig);
@@ -87,12 +83,14 @@ export async function sendPushNotification(
 ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
   return new Promise((resolve) => {
     try {
+      console.log(`[APNs] Sending push to token: ${deviceToken.substring(0, 20)}...`);
       const jwt = generateJWT();
+      console.log(`[APNs] JWT generated successfully`);
 
       const client = http2.connect(`https://${APNS_HOST}`);
 
       client.on("error", (err) => {
-        console.error("APNs connection error:", err.message);
+        console.error("[APNs] Connection error:", err.message);
         resolve({ success: false, error: err.message });
       });
 
@@ -120,6 +118,7 @@ export async function sendPushNotification(
 
       req.on("response", (headers) => {
         statusCode = headers[":status"] as number;
+        console.log(`[APNs] Response status: ${statusCode}`);
       });
 
       req.on("data", (chunk: Buffer) => {
@@ -129,9 +128,10 @@ export async function sendPushNotification(
       req.on("end", () => {
         client.close();
         if (statusCode === 200) {
+          console.log(`[APNs] Push sent successfully!`);
           resolve({ success: true, statusCode });
         } else {
-          console.error("APNs error:", statusCode, responseData);
+          console.error(`[APNs] Error: ${statusCode} ${responseData}`);
           resolve({
             success: false,
             statusCode,
@@ -142,6 +142,7 @@ export async function sendPushNotification(
 
       req.on("error", (err) => {
         client.close();
+        console.error(`[APNs] Request error: ${err.message}`);
         resolve({ success: false, error: err.message });
       });
 
@@ -153,7 +154,7 @@ export async function sendPushNotification(
         resolve({ success: false, error: "Timeout" });
       }, 15000);
     } catch (err: any) {
-      console.error("APNs send error:", err.message);
+      console.error("[APNs] Send error:", err.message);
       resolve({ success: false, error: err.message });
     }
   });
