@@ -25,8 +25,6 @@ struct AmorRosaAppApp: App {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    private let notificationService = NotificationService()
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         return true
@@ -53,7 +51,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        // Delay to allow app views to mount on cold start
         Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
     }
