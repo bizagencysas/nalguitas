@@ -126,15 +126,19 @@ struct GirlfriendTabView: View {
                 ExploreView(isAdmin: false)
             }
 
-            Tab("Guardados", systemImage: "bookmark.fill", value: 2) {
+            Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: 2) {
+                ChatView(isAdmin: false)
+            }
+
+            Tab("Guardados", systemImage: "bookmark.fill", value: 3) {
                 SavedView()
             }
 
-            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 3) {
+            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 4) {
                 HistoryView()
             }
 
-            Tab("Ajustes", systemImage: "gearshape.fill", value: 4) {
+            Tab("Ajustes", systemImage: "gearshape.fill", value: 5) {
                 SettingsView(notificationService: notificationService, viewModel: viewModel)
             }
         }

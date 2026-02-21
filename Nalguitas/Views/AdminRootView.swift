@@ -15,19 +15,23 @@ struct AdminRootView: View {
                 ExploreView(isAdmin: true)
             }
 
-            Tab("Vista Novia", systemImage: "heart.fill", value: 2) {
+            Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: 2) {
+                ChatView(isAdmin: true)
+            }
+
+            Tab("Vista Novia", systemImage: "heart.fill", value: 3) {
                 TodayView(viewModel: viewModel)
             }
 
-            Tab("Guardados", systemImage: "bookmark.fill", value: 3) {
+            Tab("Guardados", systemImage: "bookmark.fill", value: 4) {
                 SavedView()
             }
 
-            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 4) {
+            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 5) {
                 HistoryView()
             }
 
-            Tab("Ajustes", systemImage: "gearshape.fill", value: 5) {
+            Tab("Ajustes", systemImage: "gearshape.fill", value: 6) {
                 SettingsView(notificationService: notificationService, viewModel: viewModel)
             }
         }
