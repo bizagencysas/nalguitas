@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage } from "./storage";
 import { migrate } from "./db";
 
 const app = new Hono();
@@ -69,9 +69,23 @@ app.get("/messages", async (c) => {
 app.post("/messages", async (c) => {
   try {
     const body = await c.req.json();
-    const caller = appRouter.createCaller({ req: c.req.raw });
-    const result = await caller.messages.create(body);
-    return c.json(result);
+    const content = body?.content;
+    if (!content || typeof content !== "string" || content.trim() === "") {
+      return c.json({ error: "content is required" }, 400);
+    }
+    const msg = {
+      id: Date.now().toString(),
+      content: content.trim(),
+      subtitle: body?.subtitle || "Para ti",
+      tone: body?.tone || "tierno",
+      createdAt: new Date().toISOString(),
+      isSpecial: body?.isSpecial ?? false,
+      scheduledDate: body?.scheduledDate,
+      priority: body?.priority ?? 1,
+    };
+    await saveMessage(msg);
+    console.log(`[Messages] Created: "${msg.content.substring(0, 40)}"`);
+    return c.json(msg);
   } catch (e: any) {
     console.error("Error creating message:", e);
     return c.json({ error: e.message }, 500);
@@ -81,8 +95,7 @@ app.post("/messages", async (c) => {
 app.delete("/messages/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const caller = appRouter.createCaller({ req: c.req.raw });
-    await caller.messages.delete({ id });
+    await deleteMessage(id);
     return c.json({ success: true });
   } catch (e: any) {
     console.error("Error deleting message:", e);
