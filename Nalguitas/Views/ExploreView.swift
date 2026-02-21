@@ -130,7 +130,7 @@ struct ExploreView: View {
                     VStack {
                         Spacer()
                         Text(toast)
-                            .font(.system(.subheadline, weight: .medium, design: .rounded))
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 12)
@@ -168,13 +168,13 @@ struct ExploreView: View {
                 .contentTransition(.numericText())
             
             Text("días juntos")
-                .font(.system(.title3, weight: .medium, design: .rounded))
+                .font(.system(.title3, design: .rounded, weight: .medium))
                 .foregroundStyle(.secondary)
             
             HStack(spacing: 16) {
-                VStack { Text("\(days.years)").font(.system(.title2, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary); Text("años").font(.caption).foregroundStyle(.secondary) }
-                VStack { Text("\(days.months)").font(.system(.title2, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary); Text("meses").font(.caption).foregroundStyle(.secondary) }
-                VStack { Text("\(days.days)").font(.system(.title2, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary); Text("días").font(.caption).foregroundStyle(.secondary) }
+                VStack { Text("\(days.years)").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary); Text("años").font(.caption).foregroundStyle(.secondary) }
+                VStack { Text("\(days.months)").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary); Text("meses").font(.caption).foregroundStyle(.secondary) }
+                VStack { Text("\(days.days)").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary); Text("días").font(.caption).foregroundStyle(.secondary) }
             }
             
             Text("Desde el 2 de Mayo de 2021")
@@ -192,13 +192,13 @@ struct ExploreView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("Reto de Amor del Día", systemImage: "flame.fill")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(.orange)
                 Spacer()
                 Text(challenge.emoji).font(.title)
             }
             Text(challenge.challenge)
-                .font(.system(.body, weight: .medium, design: .rounded))
+                .font(.system(.body, design: .rounded, weight: .medium))
                 .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
         }
         .padding(16)
@@ -210,7 +210,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("¿Cómo te sientes hoy?", systemImage: "heart.circle")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(Theme.rosePrimary)
                 Spacer()
                 if let mood = todayMood { Text(mood.emoji).font(.title) }
@@ -219,7 +219,7 @@ struct ExploreView: View {
             if todayMood != nil {
                 HStack(spacing: 6) {
                     Text("Hoy te sientes:").font(.subheadline).foregroundStyle(.secondary)
-                    Text(todayMood!.mood).font(.system(.subheadline, weight: .semibold, design: .rounded)).foregroundStyle(Theme.rosePrimary)
+                    Text(todayMood!.mood).font(.system(.subheadline, design: .rounded, weight: .semibold)).foregroundStyle(Theme.rosePrimary)
                     if let note = todayMood?.note, !note.isEmpty {
                         Text("— \(note)").font(.caption).foregroundStyle(.tertiary).lineLimit(1)
                     }
@@ -248,13 +248,13 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Label("Pregunta del Día", systemImage: "bubble.left.and.bubble.right")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(Theme.rosePrimary)
                 Spacer()
                 Text(q.category ?? "").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8).padding(.vertical, 2).background(Capsule().fill(Theme.rosePrimary.opacity(0.1)))
             }
             Text(q.question)
-                .font(.system(.body, weight: .medium, design: .rounded))
+                .font(.system(.body, design: .rounded, weight: .medium))
                 .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
             
             if q.answered == true, let answer = q.answer {
@@ -282,7 +282,7 @@ struct ExploreView: View {
         let fact = RomanticFact.todayFact()
         return VStack(alignment: .leading, spacing: 8) {
             Label("¿Sabías que...?", systemImage: "lightbulb.fill")
-                .font(.system(.subheadline, weight: .bold, design: .rounded))
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .foregroundStyle(.purple)
             Text(fact.fact)
                 .font(.system(.caption, design: .rounded))
@@ -310,8 +310,8 @@ struct ExploreView: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(icon).font(.system(size: 24))
-                Text(title).font(.system(.caption2, weight: .semibold, design: .rounded)).foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
-                if let count = count { Text("\(count)").font(.system(.caption2, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary) }
+                Text(title).font(.system(.caption2, design: .rounded, weight: .semibold)).foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
+                if let count = count { Text("\(count)").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary) }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -324,7 +324,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Planes de Pareja", systemImage: "map.fill")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(Theme.rosePrimary)
                 Spacer()
                 Button { showPlanSheet = true } label: {
@@ -335,7 +335,7 @@ struct ExploreView: View {
                 HStack {
                     Text(PlanCategory.categories.first { $0.id == plan.category }?.emoji ?? "💕").font(.title2)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(plan.title).font(.system(.subheadline, weight: .semibold, design: .rounded))
+                        Text(plan.title).font(.system(.subheadline, design: .rounded, weight: .semibold))
                         HStack(spacing: 4) {
                             if !plan.proposedDate.isEmpty { Text(plan.proposedDate).font(.caption2).foregroundStyle(.secondary) }
                             if !plan.proposedTime.isEmpty { Text("• \(plan.proposedTime)").font(.caption2).foregroundStyle(.secondary) }
@@ -350,7 +350,7 @@ struct ExploreView: View {
                                 await loadData()
                             }
                         } label: {
-                            Text("Aceptar").font(.system(.caption2, weight: .bold, design: .rounded)).foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.green))
+                            Text("Aceptar").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.green))
                         }
                     }
                 }
@@ -367,7 +367,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Galería de Fotos", systemImage: "photo.on.rectangle.angled")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(Theme.rosePrimary)
                 Spacer()
                 Button { showPhotoSheet = true } label: {
@@ -397,18 +397,18 @@ struct ExploreView: View {
     private var upcomingDatesCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Fechas Especiales", systemImage: "calendar.badge.clock")
-                .font(.system(.headline, weight: .bold, design: .rounded))
+                .font(.system(.headline, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.rosePrimary)
             ForEach(specialDates) { d in
                 HStack {
                     Text(d.emoji).font(.title2)
                     VStack(alignment: .leading) {
-                        Text(d.title).font(.system(.subheadline, weight: .semibold, design: .rounded))
+                        Text(d.title).font(.system(.subheadline, design: .rounded, weight: .semibold))
                         Text(d.date).font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     let daysUntil = daysUntilDate(d.date)
-                    if daysUntil >= 0 { Text("en \(daysUntil) días").font(.system(.caption, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary) }
+                    if daysUntil >= 0 { Text("en \(daysUntil) días").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary) }
                     else { Text("pasó").font(.caption).foregroundStyle(.tertiary) }
                 }
             }
@@ -421,7 +421,7 @@ struct ExploreView: View {
     private var recentSongsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Canciones Compartidas", systemImage: "music.note.list")
-                .font(.system(.headline, weight: .bold, design: .rounded))
+                .font(.system(.headline, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.rosePrimary)
             ForEach(songs.prefix(3)) { s in
                 Button {
@@ -430,7 +430,7 @@ struct ExploreView: View {
                     HStack {
                         Image(systemName: "play.circle.fill").font(.title2).foregroundStyle(Color.red)
                         VStack(alignment: .leading) {
-                            Text(s.title.isEmpty ? "🎵 Canción" : s.title).font(.system(.subheadline, weight: .semibold, design: .rounded)).foregroundStyle(.primary)
+                            Text(s.title.isEmpty ? "🎵 Canción" : s.title).font(.system(.subheadline, design: .rounded, weight: .semibold)).foregroundStyle(.primary)
                             if !s.artist.isEmpty { Text(s.artist).font(.caption).foregroundStyle(.secondary) }
                             if !s.message.isEmpty { Text(s.message).font(.caption2).foregroundStyle(.tertiary).lineLimit(1) }
                         }
@@ -448,7 +448,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Su Historial de Moods", systemImage: "chart.line.uptrend.xyaxis")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(.indigo)
                 Spacer()
                 Button("Ver todo") { showMoodHistory = true }.font(.caption).foregroundStyle(Theme.rosePrimary)
@@ -471,14 +471,14 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Sus Respuestas", systemImage: "text.bubble.fill")
-                    .font(.system(.headline, weight: .bold, design: .rounded))
+                    .font(.system(.headline, design: .rounded, weight: .bold))
                     .foregroundStyle(.teal)
                 Spacer()
                 Button("Ver todo") { showAnswerHistory = true }.font(.caption).foregroundStyle(Theme.rosePrimary)
             }
             ForEach(answeredQuestions.prefix(2)) { q in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(q.question).font(.system(.caption, weight: .medium, design: .rounded)).foregroundStyle(.secondary)
+                    Text(q.question).font(.system(.caption, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
                     Text(q.answer ?? "").font(.system(.subheadline, design: .rounded)).foregroundStyle(.primary)
                 }
                 .padding(8)
@@ -499,7 +499,7 @@ struct ExploreView: View {
                         // Show existing songs first
                         if !songs.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Canciones compartidas (\(songs.count))").font(.system(.subheadline, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                                Text("Canciones compartidas (\(songs.count))").font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                                 ForEach(songs) { s in
                                     Button { if let url = URL(string: s.youtubeUrl) { UIApplication.shared.open(url) } } label: {
                                         HStack {
@@ -517,7 +517,7 @@ struct ExploreView: View {
                             Divider().padding(.vertical, 8)
                         }
                         
-                        Text("Compartir nueva canción").font(.system(.headline, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary)
+                        Text("Compartir nueva canción").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
                         TextField("Link de YouTube", text: $songUrl).textFieldStyle(.roundedBorder)
                         TextField("Título de la canción", text: $songTitle).textFieldStyle(.roundedBorder)
                         TextField("Artista", text: $songArtist).textFieldStyle(.roundedBorder)
@@ -527,7 +527,7 @@ struct ExploreView: View {
                             HStack {
                                 if isSendingSong { ProgressView().tint(.white) } else { Image(systemName: "music.note"); Text("Compartir Canción") }
                             }
-                            .font(.system(.body, weight: .semibold, design: .rounded))
+                            .font(.system(.body, design: .rounded, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
@@ -562,7 +562,7 @@ struct ExploreView: View {
                     Button { Task { await createCoupon() } } label: {
                         HStack {
                             if isCreatingCoupon { ProgressView().tint(.white) } else { Image(systemName: "gift"); Text("Crear Cupón") }
-                        }.font(.system(.body, weight: .semibold, design: .rounded)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
+                        }.font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
                     }.disabled(couponTitle.isEmpty || isCreatingCoupon)
                     Spacer()
                 }.padding(20)
@@ -583,7 +583,7 @@ struct ExploreView: View {
                         // Existing plans
                         if !plans.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Planes existentes").font(.system(.subheadline, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                                Text("Planes existentes").font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                                 ForEach(plans) { plan in
                                     HStack {
                                         Text(PlanCategory.categories.first { $0.id == plan.category }?.emoji ?? "💕")
@@ -602,7 +602,7 @@ struct ExploreView: View {
                             Divider().padding(.vertical, 8)
                         }
                         
-                        Text("Proponer nuevo plan").font(.system(.headline, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary)
+                        Text("Proponer nuevo plan").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
                         
                         // Category picker
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -629,7 +629,7 @@ struct ExploreView: View {
                         Button { Task { await createPlan() } } label: {
                             HStack {
                                 if isCreatingPlan { ProgressView().tint(.white) } else { Image(systemName: "map.fill"); Text("Proponer Plan") }
-                            }.font(.system(.body, weight: .semibold, design: .rounded)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
+                            }.font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
                         }.disabled(planTitle.isEmpty || isCreatingPlan)
                     }.padding(20)
                 }
@@ -664,14 +664,14 @@ struct ExploreView: View {
                             Divider().padding(.vertical, 8)
                         }
                         
-                        Text("Subir nueva foto").font(.system(.headline, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary)
+                        Text("Subir nueva foto").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
                         
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                             HStack {
                                 Image(systemName: "photo.badge.plus")
                                 Text("Seleccionar foto")
                             }
-                            .font(.system(.body, weight: .medium, design: .rounded))
+                            .font(.system(.body, design: .rounded, weight: .medium))
                             .foregroundStyle(Theme.rosePrimary)
                             .frame(maxWidth: .infinity).padding(.vertical, 40)
                             .background(RoundedRectangle(cornerRadius: 16).strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8])).foregroundStyle(Theme.rosePrimary.opacity(0.3)))
@@ -696,7 +696,7 @@ struct ExploreView: View {
                         Button { Task { await uploadPhoto() } } label: {
                             HStack {
                                 if isUploadingPhoto { ProgressView().tint(.white) } else { Image(systemName: "arrow.up.circle.fill"); Text("Subir Foto") }
-                            }.font(.system(.body, weight: .semibold, design: .rounded)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
+                            }.font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14).background(RoundedRectangle(cornerRadius: 14).fill(LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .leading, endPoint: .trailing)))
                         }.disabled(selectedImageData == nil || isUploadingPhoto)
                     }.padding(20)
                 }
@@ -718,7 +718,7 @@ struct ExploreView: View {
                             HStack {
                                 Text(m.emoji).font(.title2)
                                 VStack(alignment: .leading) {
-                                    Text(m.mood).font(.system(.subheadline, weight: .semibold, design: .rounded))
+                                    Text(m.mood).font(.system(.subheadline, design: .rounded, weight: .semibold))
                                     if let note = m.note, !note.isEmpty { Text(note).font(.caption).foregroundStyle(.secondary) }
                                 }
                                 Spacer()
@@ -750,7 +750,7 @@ struct ExploreView: View {
                                     Spacer()
                                     Text(shortDate(q.answeredAt)).font(.caption2).foregroundStyle(.tertiary)
                                 }
-                                Text(q.question).font(.system(.subheadline, weight: .medium, design: .rounded)).foregroundStyle(.secondary)
+                                Text(q.question).font(.system(.subheadline, design: .rounded, weight: .medium)).foregroundStyle(.secondary)
                                 Text(q.answer ?? "").font(.system(.body, design: .rounded)).foregroundStyle(.primary)
                             }
                             .padding(12)
@@ -897,7 +897,7 @@ struct CouponsSheetView: View {
                             HStack {
                                 Text(coupon.emoji).font(.title)
                                 VStack(alignment: .leading) {
-                                    Text(coupon.title).font(.system(.body, weight: .semibold, design: .rounded)).strikethrough(coupon.redeemed)
+                                    Text(coupon.title).font(.system(.body, design: .rounded, weight: .semibold)).strikethrough(coupon.redeemed)
                                     if !coupon.description.isEmpty { Text(coupon.description).font(.caption).foregroundStyle(.secondary) }
                                 }
                                 Spacer()
@@ -907,7 +907,7 @@ struct CouponsSheetView: View {
                                     Button {
                                         Task { redeemingId = coupon.id; try? await APIService.shared.redeemCoupon(id: coupon.id); await onRefresh(); redeemingId = nil }
                                     } label: {
-                                        Text("Canjear").font(.system(.caption, weight: .bold, design: .rounded)).foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(Theme.rosePrimary))
+                                        Text("Canjear").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(Theme.rosePrimary))
                                     }.disabled(redeemingId == coupon.id)
                                 }
                             }
@@ -941,17 +941,17 @@ struct AchievementsSheetView: View {
                         Text("\(unlockedCount)/\(achievements.count) desbloqueados").font(.system(.headline, design: .rounded)).foregroundStyle(Theme.rosePrimary).frame(maxWidth: .infinity)
                         ForEach(categories, id: \.self) { cat in
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(cat.capitalized).font(.system(.subheadline, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                                Text(cat.capitalized).font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                                 ForEach(achievements.filter { $0.category == cat }) { a in
                                     HStack {
                                         Text(a.emoji).font(.title2).opacity(a.unlocked ? 1 : 0.3).grayscale(a.unlocked ? 0 : 1)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(a.title).font(.system(.subheadline, weight: .semibold, design: .rounded)).foregroundStyle(a.unlocked ? .primary : .secondary)
+                                            Text(a.title).font(.system(.subheadline, design: .rounded, weight: .semibold)).foregroundStyle(a.unlocked ? .primary : .secondary)
                                             Text(a.description).font(.caption2).foregroundStyle(.tertiary)
                                         }
                                         Spacer()
                                         if a.unlocked { Image(systemName: "checkmark.seal.fill").foregroundStyle(.yellow).font(.title3) }
-                                        else { Text("\(a.progress)/\(a.target)").font(.system(.caption2, weight: .bold, design: .rounded)).foregroundStyle(.tertiary) }
+                                        else { Text("\(a.progress)/\(a.target)").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundStyle(.tertiary) }
                                     }
                                     .padding(10)
                                     .background(RoundedRectangle(cornerRadius: 12).fill(a.unlocked ? Theme.rosePrimary.opacity(0.05) : Color.gray.opacity(0.05)))
