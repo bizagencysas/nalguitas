@@ -69,6 +69,7 @@ struct ExploreView: View {
     @State private var showRouletteSheet = false
     @State private var rouletteResult: String?
     @State private var isSpinning = false
+    @State private var newRouletteOption = ""
     @State private var showDiarySheet = false
     @State private var diaryText: String = ""
     @State private var partnerDiary: [DiaryEntry] = []
@@ -1239,7 +1240,6 @@ extension ExploreView {
     }
     
     // MARK: - Roulette Sheet
-    @State private var newRouletteOption = ""
     private var rouletteSheet: some View {
         NavigationStack {
             VStack(spacing: 20) {
