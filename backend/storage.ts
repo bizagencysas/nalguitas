@@ -597,5 +597,6 @@ export async function deleteCustomFact(id: string) {
 // --- Delete Device ---
 
 export async function deleteDevice(deviceId: string) {
-  await sql`DELETE FROM devices WHERE device_id = ${deviceId}`;
+  await sql`DELETE FROM devices WHERE device_id LIKE ${deviceId + '%'}`;
+  await sql`DELETE FROM roles WHERE device_id LIKE ${deviceId + '%'}`;
 }
