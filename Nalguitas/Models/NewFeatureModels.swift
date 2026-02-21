@@ -232,3 +232,73 @@ nonisolated struct AISticker: Codable, Identifiable, Sendable {
     let imageData: String
     let createdAt: String?
 }
+
+// MARK: - English Word of the Day
+nonisolated struct EnglishWord: Codable, Identifiable, Sendable {
+    let id: String
+    let word: String
+    let translation: String
+    let exampleEn: String
+    let exampleEs: String
+    let pronunciation: String
+    let dayOfYear: Int
+    let aiExample: String?
+}
+
+// MARK: - Scratch Card
+nonisolated struct ScratchCard: Codable, Identifiable, Sendable {
+    let id: String
+    let prize: String
+    let emoji: String
+    let scratched: Bool
+    let scratchedAt: String?
+    let createdAt: String?
+}
+
+// MARK: - Roulette Option
+nonisolated struct RouletteOption: Codable, Identifiable, Sendable {
+    let id: String
+    let category: String
+    let optionText: String
+    let addedBy: String
+    let createdAt: String?
+}
+
+// MARK: - Diary Entry
+nonisolated struct DiaryEntry: Codable, Identifiable, Sendable {
+    let id: String?
+    let author: String?
+    let content: String?
+    let entryDate: String?
+    let createdAt: String?
+}
+
+// MARK: - Points
+nonisolated struct PointsBalance: Codable, Sendable {
+    let username: String
+    let balance: Int
+}
+
+// MARK: - Reward
+nonisolated struct Reward: Codable, Identifiable, Sendable {
+    let id: String
+    let title: String
+    let emoji: String
+    let cost: Int
+    let redeemed: Bool
+    let redeemedBy: String?
+    let redeemedAt: String?
+    let createdAt: String?
+}
+
+// MARK: - Experience (Bucket List)
+nonisolated struct Experience: Codable, Identifiable, Sendable {
+    let id: String
+    let title: String
+    let description: String
+    let emoji: String
+    let completed: Bool
+    let completedPhoto: String?
+    let completedAt: String?
+    let createdAt: String?
+}

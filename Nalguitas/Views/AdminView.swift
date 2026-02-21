@@ -24,6 +24,20 @@ struct AdminView: View {
     @State private var customFacts: [CustomFact] = []
     @State private var newFactText: String = ""
     @State private var isCreatingFact: Bool = false
+    
+    // Scratch card admin
+    @State private var scratchPrize: String = ""
+    @State private var scratchEmoji: String = "🎁"
+    
+    // Reward admin
+    @State private var rewardTitle: String = ""
+    @State private var rewardEmoji: String = "🎁"
+    @State private var rewardCost: String = "10"
+    
+    // Experience admin
+    @State private var expTitle: String = ""
+    @State private var expDescription: String = ""
+    @State private var expEmoji: String = "✨"
 
     private let tones = ["tierno", "romántico", "profundo", "divertido"]
 
@@ -37,6 +51,9 @@ struct AdminView: View {
                         girlfriendMessagesCard
                         giftSendCard
                         factsManagerCard
+                        scratchCardAdminCard
+                        rewardAdminCard
+                        experienceAdminCard
                         sendNowCard
                         createMessageCard
                         messagesListCard
@@ -621,5 +638,95 @@ struct AdminView: View {
         } catch {
             showTemporaryToast("Error: \(error.localizedDescription)")
         }
+    }
+    
+    // MARK: - Scratch Card Admin
+    private var scratchCardAdminCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Crear Raspa y Gana", systemImage: "gift.fill")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(.orange)
+            HStack {
+                TextField("Emoji", text: $scratchEmoji).textFieldStyle(.roundedBorder).frame(width: 60)
+                TextField("Premio (ej: Masajito de 10 min)", text: $scratchPrize).textFieldStyle(.roundedBorder)
+            }
+            Button {
+                guard !scratchPrize.isEmpty else { return }
+                Task {
+                    try? await APIService.shared.createScratchCard(prize: scratchPrize, emoji: scratchEmoji)
+                    scratchPrize = ""
+                    showTemporaryToast("Tarjeta creada 🎁")
+                }
+            } label: {
+                Text("Crear tarjeta")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(Capsule().fill(.orange))
+            }
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .orange.opacity(0.1), radius: 8, y: 4))
+    }
+    
+    // MARK: - Reward Admin
+    private var rewardAdminCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Crear Recompensa", systemImage: "star.fill")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(.yellow)
+            HStack {
+                TextField("Emoji", text: $rewardEmoji).textFieldStyle(.roundedBorder).frame(width: 60)
+                TextField("Título", text: $rewardTitle).textFieldStyle(.roundedBorder)
+                TextField("Puntos", text: $rewardCost).textFieldStyle(.roundedBorder).frame(width: 70).keyboardType(.numberPad)
+            }
+            Button {
+                guard !rewardTitle.isEmpty else { return }
+                Task {
+                    try? await APIService.shared.createReward(title: rewardTitle, emoji: rewardEmoji, cost: Int(rewardCost) ?? 10)
+                    rewardTitle = ""
+                    showTemporaryToast("Recompensa creada ⭐")
+                }
+            } label: {
+                Text("Crear recompensa")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(Capsule().fill(.yellow.opacity(0.8)))
+            }
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .yellow.opacity(0.1), radius: 8, y: 4))
+    }
+    
+    // MARK: - Experience Admin
+    private var experienceAdminCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Agregar Experiencia", systemImage: "checklist")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(Theme.rosePrimary)
+            HStack {
+                TextField("Emoji", text: $expEmoji).textFieldStyle(.roundedBorder).frame(width: 60)
+                TextField("Título", text: $expTitle).textFieldStyle(.roundedBorder)
+            }
+            TextField("Descripción (opcional)", text: $expDescription).textFieldStyle(.roundedBorder)
+            Button {
+                guard !expTitle.isEmpty else { return }
+                Task {
+                    try? await APIService.shared.createExperience(title: expTitle, description: expDescription, emoji: expEmoji)
+                    expTitle = ""
+                    expDescription = ""
+                    showTemporaryToast("Experiencia creada ✨")
+                }
+            } label: {
+                Text("Agregar experiencia")
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(Capsule().fill(Theme.rosePrimary))
+            }
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
     }
 }

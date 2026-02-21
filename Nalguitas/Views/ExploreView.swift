@@ -59,6 +59,25 @@ struct ExploreView: View {
     @State private var showAnswerHistory = false
     @State private var showGallery = false
     
+    // New features state
+    @State private var todayWord: EnglishWord?
+    @State private var aiWordExample: String?
+    @State private var scratchCard: ScratchCard?
+    @State private var showScratchSheet = false
+    @State private var isScratched = false
+    @State private var rouletteOptions: [RouletteOption] = []
+    @State private var showRouletteSheet = false
+    @State private var rouletteResult: String?
+    @State private var isSpinning = false
+    @State private var showDiarySheet = false
+    @State private var diaryText: String = ""
+    @State private var partnerDiary: [DiaryEntry] = []
+    @State private var pointsBalance: Int = 0
+    @State private var rewards: [Reward] = []
+    @State private var showRewardsSheet = false
+    @State private var experiences: [Experience] = []
+    @State private var showExperiencesSheet = false
+    
     @State private var toastText: String?
     
     var body: some View {
@@ -112,6 +131,30 @@ struct ExploreView: View {
                             recentSongsCard
                         }
                         
+                        // Palabra del Día
+                        if let word = todayWord {
+                            wordOfDayCard(word)
+                        }
+                        
+                        // Raspa y Gana
+                        if scratchCard != nil {
+                            scratchCardPreview
+                        }
+                        
+                        // Ruleta de Decisiones
+                        roulettePreviewCard
+                        
+                        // Diario Compartido
+                        diaryPreviewCard
+                        
+                        // Puntos y Recompensas
+                        pointsPreviewCard
+                        
+                        // Lista de Experiencias
+                        if !experiences.isEmpty {
+                            experiencesPreviewCard
+                        }
+                        
                         // Admin: Mood History
                         if isAdmin && !moodHistory.isEmpty {
                             adminMoodHistoryCard
@@ -153,6 +196,11 @@ struct ExploreView: View {
             .sheet(isPresented: $showMoodHistory) { moodHistorySheet }
             .sheet(isPresented: $showAnswerHistory) { answerHistorySheet }
             .sheet(isPresented: $showGallery) { fullGallerySheet }
+            .sheet(isPresented: $showScratchSheet) { scratchCardSheet }
+            .sheet(isPresented: $showRouletteSheet) { rouletteSheet }
+            .sheet(isPresented: $showDiarySheet) { diarySheet }
+            .sheet(isPresented: $showRewardsSheet) { rewardsSheet }
+            .sheet(isPresented: $showExperiencesSheet) { experiencesSheet }
             .task { await loadData() }
         }
     }
@@ -874,6 +922,14 @@ struct ExploreView: View {
         moodHistory = moods ?? []
         answeredQuestions = answered ?? []
         customFact = try? await APIService.shared.fetchRandomFact()
+        todayWord = try? await APIService.shared.fetchTodayWord()
+        scratchCard = try? await APIService.shared.fetchAvailableScratchCard()
+        rouletteOptions = (try? await APIService.shared.fetchRouletteOptions(category: "general")) ?? []
+        let ptsResult = try? await APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+        pointsBalance = ptsResult?.balance ?? 0
+        rewards = (try? await APIService.shared.fetchRewards()) ?? []
+        experiences = (try? await APIService.shared.fetchExperiences()) ?? []
+        partnerDiary = (try? await APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")) ?? []
     }
     
     private func selectMood(_ option: MoodOption) async {
@@ -1047,6 +1103,428 @@ struct AchievementsSheetView: View {
             .navigationTitle("Logros 🏆")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } } }
+        }
+    }
+    // MARK: - Word of the Day Card
+    private func wordOfDayCard(_ word: EnglishWord) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Palabra del Día 🇺🇸", systemImage: "textformat.abc")
+                    .font(.system(.headline, design: .rounded, weight: .bold))
+                    .foregroundStyle(Theme.rosePrimary)
+                Spacer()
+                Text("Day \(word.dayOfYear)")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(word.word)
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                    Text(word.translation)
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    Text("/\(word.pronunciation)/")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+                Text("📚").font(.system(size: 44))
+            }
+            Divider()
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🇺🇸 \(word.exampleEn)").font(.system(.caption, design: .rounded)).foregroundStyle(.primary)
+                Text("🇪🇸 \(word.exampleEs)").font(.system(.caption, design: .rounded)).foregroundStyle(.secondary)
+            }
+            if let ai = aiWordExample ?? word.aiExample, !ai.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Rork AI dice:", systemImage: "sparkles")
+                        .font(.system(.caption2, design: .rounded, weight: .bold))
+                        .foregroundStyle(.purple)
+                    Text(ai).font(.system(.caption, design: .rounded)).foregroundStyle(.primary)
+                }
+            }
+            Button {
+                Task {
+                    aiWordExample = try? await APIService.shared.fetchAiExample(word: word.word, translation: word.translation, dayOfYear: word.dayOfYear)
+                }
+            } label: {
+                Label("Generar ejemplo con IA", systemImage: "sparkles")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Capsule().fill(LinearGradient(colors: [.purple, Theme.rosePrimary], startPoint: .leading, endPoint: .trailing)))
+            }
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
+    }
+    
+    // MARK: - Scratch Card Preview
+    private var scratchCardPreview: some View {
+        Button { showScratchSheet = true } label: {
+            HStack {
+                Text(scratchCard?.emoji ?? "🎁").font(.system(size: 36))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("¡Raspa y Gana!")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Text("Tienes una tarjeta por rascar")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "hand.draw.fill").font(.title2).foregroundStyle(.orange)
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .orange.opacity(0.15), radius: 8, y: 4))
+        }
+    }
+    
+    // MARK: - Scratch Card Sheet
+    private var scratchCardSheet: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Text(scratchCard?.emoji ?? "🎁").font(.system(size: 80))
+                if isScratched {
+                    Text("🎉 ¡Ganaste!").font(.system(.title, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
+                    Text(scratchCard?.prize ?? "").font(.system(.title3, design: .rounded, weight: .semibold)).multilineTextAlignment(.center)
+                } else {
+                    Text("Toca para rascar").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                    Button {
+                        Task {
+                            if let id = scratchCard?.id {
+                                try? await APIService.shared.scratchCard(id: id)
+                                withAnimation(.spring()) { isScratched = true }
+                            }
+                        }
+                    } label: {
+                        Text("🤞 ¡Rascar!")
+                            .font(.system(.title3, design: .rounded, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 40).padding(.vertical, 16)
+                            .background(Capsule().fill(LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)))
+                    }
+                }
+            }.padding(40)
+            .navigationTitle("Raspa y Gana")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showScratchSheet = false; isScratched = false; Task { await loadData() } } } }
+        }
+    }
+    
+    // MARK: - Roulette Preview
+    private var roulettePreviewCard: some View {
+        Button { showRouletteSheet = true } label: {
+            HStack {
+                Text("🎲").font(.system(size: 36))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ruleta de Decisiones")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Text(rouletteOptions.isEmpty ? "Agrega opciones para girar" : "\(rouletteOptions.count) opciones disponibles")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90").font(.title2).foregroundStyle(.blue)
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .blue.opacity(0.15), radius: 8, y: 4))
+        }
+    }
+    
+    // MARK: - Roulette Sheet
+    @State private var newRouletteOption = ""
+    private var rouletteSheet: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                if let result = rouletteResult {
+                    VStack(spacing: 12) {
+                        Text("🎯").font(.system(size: 60))
+                        Text(result)
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(30)
+                    .background(RoundedRectangle(cornerRadius: 20).fill(Theme.rosePrimary.opacity(0.1)))
+                }
+                
+                Button {
+                    guard !rouletteOptions.isEmpty else { return }
+                    withAnimation { isSpinning = true; rouletteResult = nil }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        let random = rouletteOptions.randomElement()!
+                        withAnimation(.spring()) { rouletteResult = random.optionText; isSpinning = false }
+                    }
+                } label: {
+                    HStack {
+                        if isSpinning { ProgressView().tint(.white) }
+                        Text(isSpinning ? "Girando..." : "🎲 ¡Girar!")
+                    }
+                    .font(.system(.headline, design: .rounded, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 40).padding(.vertical, 14)
+                    .background(Capsule().fill(LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)))
+                }
+                .disabled(isSpinning || rouletteOptions.isEmpty)
+                
+                Divider()
+                HStack {
+                    TextField("Nueva opción...", text: $newRouletteOption)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        guard !newRouletteOption.isEmpty else { return }
+                        Task {
+                            try? await APIService.shared.createRouletteOption(category: "general", optionText: newRouletteOption, addedBy: isAdmin ? "admin" : "girlfriend")
+                            newRouletteOption = ""
+                            rouletteOptions = (try? await APIService.shared.fetchRouletteOptions(category: "general")) ?? []
+                        }
+                    } label: { Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Theme.rosePrimary) }
+                }
+                
+                List {
+                    ForEach(rouletteOptions) { opt in
+                        HStack {
+                            Text(opt.optionText)
+                            Spacer()
+                            Text(opt.addedBy == "admin" ? "👨" : "👩").font(.caption)
+                        }
+                    }
+                }.listStyle(.plain)
+            }.padding(20)
+            .navigationTitle("Ruleta 🎲")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showRouletteSheet = false; rouletteResult = nil } } }
+        }
+    }
+    
+    // MARK: - Diary Preview
+    private var diaryPreviewCard: some View {
+        Button { showDiarySheet = true } label: {
+            HStack {
+                Text("📖").font(.system(size: 36))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Diario Compartido")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Text(partnerDiary.isEmpty ? "Escribe sobre tu día" : "\(partnerDiary.count) entradas de tu pareja")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "pencil.line").font(.title2).foregroundStyle(.green)
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .green.opacity(0.15), radius: 8, y: 4))
+        }
+    }
+    
+    // MARK: - Diary Sheet
+    private var diarySheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("¿Qué pasó hoy?").font(.system(.headline, design: .rounded, weight: .bold))
+                        TextEditor(text: $diaryText)
+                            .frame(minHeight: 120)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2)))
+                        Button {
+                            Task {
+                                try? await APIService.shared.writeDiaryEntry(author: isAdmin ? "admin" : "girlfriend", content: diaryText)
+                                showToast("Diario guardado 📖")
+                                diaryText = ""
+                            }
+                        } label: {
+                            Text("Guardar")
+                                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 24).padding(.vertical, 10)
+                                .background(Capsule().fill(Theme.rosePrimary))
+                        }
+                        .disabled(diaryText.isEmpty)
+                    }
+                    
+                    if !partnerDiary.isEmpty {
+                        Divider()
+                        Text("Entradas de tu pareja").font(.system(.headline, design: .rounded, weight: .bold))
+                        ForEach(partnerDiary) { entry in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(entry.entryDate ?? "").font(.caption).foregroundStyle(.tertiary)
+                                Text(entry.content ?? "").font(.system(.body, design: .rounded))
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.rosePrimary.opacity(0.05)))
+                        }
+                    }
+                }.padding(20)
+            }
+            .navigationTitle("Diario 📖")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showDiarySheet = false } } }
+        }
+    }
+    
+    // MARK: - Points Preview
+    private var pointsPreviewCard: some View {
+        Button { showRewardsSheet = true } label: {
+            HStack {
+                Text("🏆").font(.system(size: 36))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mis Puntos")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Text("\(pointsBalance) puntos disponibles")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(pointsBalance)")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundStyle(.yellow)
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .yellow.opacity(0.15), radius: 8, y: 4))
+        }
+    }
+    
+    // MARK: - Rewards Sheet
+    private var rewardsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    HStack {
+                        Text("🏆").font(.system(size: 50))
+                        VStack(alignment: .leading) {
+                            Text("\(pointsBalance)").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundStyle(.yellow)
+                            Text("puntos disponibles").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(20)
+                    .background(RoundedRectangle(cornerRadius: 20).fill(Theme.rosePrimary.opacity(0.05)))
+                    
+                    ForEach(rewards.filter { !$0.redeemed }) { reward in
+                        HStack {
+                            Text(reward.emoji).font(.title)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(reward.title).font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                Text("\(reward.cost) puntos").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button {
+                                Task {
+                                    try? await APIService.shared.redeemReward(id: reward.id, redeemedBy: isAdmin ? "admin" : "girlfriend")
+                                    rewards = (try? await APIService.shared.fetchRewards()) ?? []
+                                    let pts = try? await APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+                                    pointsBalance = pts?.balance ?? 0
+                                    showToast("¡Canjeado! 🎉")
+                                }
+                            } label: {
+                                Text("Canjear")
+                                    .font(.system(.caption, design: .rounded, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(Capsule().fill(pointsBalance >= reward.cost ? Theme.rosePrimary : Color.gray))
+                            }
+                            .disabled(pointsBalance < reward.cost)
+                        }
+                        .padding(14)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial))
+                    }
+                }.padding(20)
+            }
+            .navigationTitle("Recompensas 🎁")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showRewardsSheet = false } } }
+        }
+    }
+    
+    // MARK: - Experiences Preview
+    private var experiencesPreviewCard: some View {
+        Button { showExperiencesSheet = true } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("Lista de Experiencias", systemImage: "checklist")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Spacer()
+                    let done = experiences.filter { $0.completed }.count
+                    Text("\(done)/\(experiences.count)")
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(experiences.prefix(6)) { exp in
+                        VStack(spacing: 4) {
+                            Text(exp.emoji).font(.system(size: 28)).opacity(exp.completed ? 1 : 0.4)
+                            Text(exp.title)
+                                .font(.system(.caption2, design: .rounded, weight: .medium))
+                                .foregroundStyle(exp.completed ? .primary : .secondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(exp.completed ? Theme.rosePrimary.opacity(0.08) : Color.gray.opacity(0.05)))
+                    }
+                }
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
+        }
+    }
+    
+    // MARK: - Experiences Sheet
+    private var experiencesSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 12) {
+                    let done = experiences.filter { $0.completed }.count
+                    Text("\(done) de \(experiences.count) completadas")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    
+                    ForEach(experiences) { exp in
+                        HStack {
+                            Text(exp.emoji).font(.title2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(exp.title)
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                    .strikethrough(exp.completed)
+                                if !exp.description.isEmpty {
+                                    Text(exp.description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                }
+                            }
+                            Spacer()
+                            if exp.completed {
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title3)
+                            } else {
+                                Button {
+                                    Task {
+                                        try? await APIService.shared.completeExperience(id: exp.id, photo: nil)
+                                        experiences = (try? await APIService.shared.fetchExperiences()) ?? []
+                                        showToast("¡Experiencia completada! 🎉")
+                                    }
+                                } label: {
+                                    Text("Hecho")
+                                        .font(.system(.caption, design: .rounded, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 12).padding(.vertical, 6)
+                                        .background(Capsule().fill(Theme.rosePrimary))
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(exp.completed ? Theme.rosePrimary.opacity(0.05) : .ultraThinMaterial))
+                    }
+                }.padding(20)
+            }
+            .navigationTitle("Experiencias ✨")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showExperiencesSheet = false } } }
         }
     }
 }

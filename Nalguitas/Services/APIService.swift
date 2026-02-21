@@ -471,6 +471,163 @@ extension APIService {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
+    
+    // MARK: - English Word of the Day
+    func fetchTodayWord() async throws -> EnglishWord {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/words/today")!)
+        try checkResponse(data, response)
+        return try decoder.decode(EnglishWord.self, from: data)
+    }
+    func fetchAiExample(word: String, translation: String, dayOfYear: Int) async throws -> String {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/words/ai-example")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["word": word, "translation": translation, "dayOfYear": "\(dayOfYear)"])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+        let result = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return result?["aiExample"] as? String ?? ""
+    }
+    
+    // MARK: - Scratch Cards
+    func fetchScratchCards() async throws -> [ScratchCard] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/scratch-cards")!)
+        try checkResponse(data, response)
+        return try decoder.decode([ScratchCard].self, from: data)
+    }
+    func fetchAvailableScratchCard() async throws -> ScratchCard? {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/scratch-cards/available")!)
+        try checkResponse(data, response)
+        struct AvailableResponse: Codable { let available: Bool; let card: ScratchCard? }
+        let result = try decoder.decode(AvailableResponse.self, from: data)
+        return result.card
+    }
+    func createScratchCard(prize: String, emoji: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/scratch-cards")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["prize": prize, "emoji": emoji])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func scratchCard(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/scratch-cards/\(id)/scratch")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = "{}".data(using: .utf8)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Roulette
+    func fetchRouletteOptions(category: String) async throws -> [RouletteOption] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/roulette/\(category)")!)
+        try checkResponse(data, response)
+        return try decoder.decode([RouletteOption].self, from: data)
+    }
+    func createRouletteOption(category: String, optionText: String, addedBy: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/roulette")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["category": category, "optionText": optionText, "addedBy": addedBy])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func deleteRouletteOption(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/roulette/\(id)")!)
+        request.httpMethod = "DELETE"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Diary
+    func writeDiaryEntry(author: String, content: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/diary")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["author": author, "content": content])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func fetchTodayDiary(author: String) async throws -> DiaryEntry {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/diary/\(author)/today")!)
+        try checkResponse(data, response)
+        return try decoder.decode(DiaryEntry.self, from: data)
+    }
+    func fetchPartnerDiary(author: String) async throws -> [DiaryEntry] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/diary/\(author)/partner")!)
+        try checkResponse(data, response)
+        return try decoder.decode([DiaryEntry].self, from: data)
+    }
+    
+    // MARK: - Points
+    func fetchPoints(username: String) async throws -> PointsBalance {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/points/\(username)")!)
+        try checkResponse(data, response)
+        return try decoder.decode(PointsBalance.self, from: data)
+    }
+    func addPoints(username: String, points: Int, reason: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/points")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        struct PointsInput: Encodable { let username: String; let points: Int; let reason: String }
+        request.httpBody = try JSONEncoder().encode(PointsInput(username: username, points: points, reason: reason))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Rewards
+    func fetchRewards() async throws -> [Reward] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/rewards")!)
+        try checkResponse(data, response)
+        return try decoder.decode([Reward].self, from: data)
+    }
+    func createReward(title: String, emoji: String, cost: Int) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/rewards")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        struct RewardInput: Encodable { let title: String; let emoji: String; let cost: Int }
+        request.httpBody = try JSONEncoder().encode(RewardInput(title: title, emoji: emoji, cost: cost))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func redeemReward(id: String, redeemedBy: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/rewards/\(id)/redeem")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["redeemedBy": redeemedBy])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Experiences
+    func fetchExperiences() async throws -> [Experience] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/experiences")!)
+        try checkResponse(data, response)
+        return try decoder.decode([Experience].self, from: data)
+    }
+    func createExperience(title: String, description: String, emoji: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/experiences")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["title": title, "description": description, "emoji": emoji])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func completeExperience(id: String, photo: String?) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/experiences/\(id)/complete")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["photo": photo ?? ""])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func deleteExperience(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/experiences/\(id)")!)
+        request.httpMethod = "DELETE"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
 }
 
 nonisolated struct CustomFact: Codable, Identifiable, Sendable {
