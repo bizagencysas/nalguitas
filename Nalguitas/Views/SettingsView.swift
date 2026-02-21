@@ -6,10 +6,10 @@ struct SettingsView: View {
     @State private var showWidgetInstructions = false
     @State private var secretTapCount: Int = 0
     @State private var showAdminLogin: Bool = false
-    @State private var showAdmin: Bool = false
     @State private var adminUser: String = ""
     @State private var adminPass: String = ""
     @State private var loginError: Bool = false
+    @AppStorage("isAdminDevice") private var isAdminDevice = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +20,9 @@ struct SettingsView: View {
                     VStack(spacing: 24) {
                         notificationsSection
                         widgetSection
+                        if isAdminDevice {
+                            adminSection
+                        }
                         aboutSection
                     }
                     .padding(.horizontal, 20)
@@ -41,9 +44,8 @@ struct SettingsView: View {
                 Button("Entrar") {
                     if adminUser == "admin" && adminPass == "admin" {
                         loginError = false
-                        UserDefaults.standard.set(true, forKey: "isAdminDevice")
+                        isAdminDevice = true
                         UIApplication.shared.registerForRemoteNotifications()
-                        showAdmin = true
                     } else {
                         loginError = true
                     }
@@ -57,9 +59,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text(loginError ? "Credenciales incorrectas" : "Ingresa tus credenciales")
-            }
-            .fullScreenCover(isPresented: $showAdmin) {
-                AdminView()
             }
         }
     }
@@ -200,6 +199,50 @@ struct SettingsView: View {
                         Capsule()
                             .stroke(Theme.rosePrimary.opacity(0.3), lineWidth: 1)
                     }
+                }
+            }
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.white.opacity(0.75))
+                    .shadow(color: Theme.rosePrimary.opacity(0.06), radius: 10, y: 4)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.roseLight.opacity(0.4), lineWidth: 0.5)
+                    }
+            }
+        }
+    }
+
+    private var adminSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(icon: "crown.fill", title: "Admin")
+
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text("Modo admin activo")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                }
+
+                Divider().overlay(Theme.roseLight.opacity(0.5))
+
+                Button {
+                    isAdminDevice = false
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("Cerrar sesi\u{00F3}n admin")
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                    }
+                    .foregroundStyle(.red.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
             }
             .padding(16)

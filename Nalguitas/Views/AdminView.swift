@@ -2,7 +2,6 @@ import SwiftUI
 import Combine
 
 struct AdminView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var messageText: String = ""
     @State private var newContent: String = ""
     @State private var newSubtitle: String = "Para ti"
@@ -38,16 +37,6 @@ struct AdminView: View {
             .navigationTitle("Admin")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(Theme.textSecondary.opacity(0.5))
-                            .font(.title3)
-                    }
-                }
-
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
                         Task { await loadMessages() }

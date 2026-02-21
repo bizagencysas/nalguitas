@@ -172,26 +172,44 @@ struct AccessoryRectangularView: View {
 
     var body: some View {
         if entry.message.isEmpty {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Image(systemName: "heart.fill")
-                    .font(.caption)
-                Text("Esperando mensaje...")
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 9))
+                    .font(.system(size: 14, weight: .medium))
+                    .widgetAccentable()
+                VStack(alignment: .leading, spacing: 1) {
                     Text("Nalguitas")
-                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .widgetAccentable()
+                    Text("Esperando mensaje...")
+                        .font(.system(.caption2, design: .rounded, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .widgetAccentable()
+                    Text("Nalguitas")
+                        .font(.system(.caption2, design: .rounded, weight: .bold))
+                        .widgetAccentable()
+                    Text("\u{2022}")
+                        .font(.system(size: 6))
+                        .foregroundStyle(.secondary)
+                    Text(entry.subtitle)
+                        .font(.system(.caption2, design: .rounded, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
 
                 Text(entry.message)
-                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
                     .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.75)
+                    .lineSpacing(1)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
     }
 }
@@ -204,10 +222,34 @@ struct AccessoryCircularView: View {
             AccessoryWidgetBackground()
             if entry.message.isEmpty {
                 Image(systemName: "heart")
-                    .font(.title3)
+                    .font(.system(size: 20, weight: .medium))
+                    .widgetAccentable()
             } else {
+                VStack(spacing: 1) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .widgetAccentable()
+                    Text("new")
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .textCase(.uppercase)
+                }
+            }
+        }
+    }
+}
+
+struct AccessoryInlineView: View {
+    let entry: LoveEntry
+
+    var body: some View {
+        if entry.message.isEmpty {
+            Label("Nalguitas", systemImage: "heart.fill")
+        } else {
+            Label {
+                Text(entry.message)
+                    .lineLimit(1)
+            } icon: {
                 Image(systemName: "heart.fill")
-                    .font(.title3)
             }
         }
     }
@@ -227,6 +269,8 @@ struct LoveWidgetView: View {
             AccessoryRectangularView(entry: entry)
         case .accessoryCircular:
             AccessoryCircularView(entry: entry)
+        case .accessoryInline:
+            AccessoryInlineView(entry: entry)
         default:
             SmallWidgetView(entry: entry)
         }
@@ -253,6 +297,6 @@ struct AmorRosaWidget: Widget {
         }
         .configurationDisplayName("Nalguitas")
         .description("Mensajes de amor en tu pantalla")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }
