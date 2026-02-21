@@ -305,7 +305,15 @@ interface DailyQuestion {
 }
 
 export async function getTodayQuestion(): Promise<DailyQuestion | null> {
-  const today = new Date().toISOString().split("T")[0];
+  // Use 10AM EST as the day boundary — before 10AM, use "yesterday"
+  const now = new Date();
+  const estOffset = -5 * 60; // EST = UTC-5
+  const localMs = now.getTime() + (estOffset + now.getTimezoneOffset()) * 60000;
+  const localDate = new Date(localMs);
+  if (localDate.getHours() < 10) {
+    localDate.setDate(localDate.getDate() - 1);
+  }
+  const today = localDate.toISOString().split("T")[0];
   // Check if there's already a question for today
   let rows = await sql`SELECT * FROM daily_questions WHERE shown_date = ${today} LIMIT 1`;
   if (rows.length > 0) {
@@ -562,4 +570,32 @@ export async function saveAISticker(s: { id: string; prompt: string; imageData: 
 export async function loadAIStickers(): Promise<AISticker[]> {
   const rows = await sql`SELECT * FROM ai_stickers ORDER BY created_at DESC LIMIT 50`;
   return rows.map((r: any) => ({ id: r.id, prompt: r.prompt, imageData: r.image_data, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+// --- Custom Facts (admin-editable "sabías qué") ---
+
+export async function saveCustomFact(id: string, fact: string) {
+  await sql`INSERT INTO custom_facts (id, fact) VALUES (${id}, ${fact})`;
+}
+
+export async function loadCustomFacts(): Promise<{ id: string; fact: string; createdAt: string }[]> {
+  const rows = await sql`SELECT * FROM custom_facts ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, fact: r.fact, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function loadRandomFact(): Promise<{ id: string; fact: string } | null> {
+  const rows = await sql`SELECT * FROM custom_facts ORDER BY RANDOM() LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, fact: r.fact };
+}
+
+export async function deleteCustomFact(id: string) {
+  await sql`DELETE FROM custom_facts WHERE id = ${id}`;
+}
+
+// --- Delete Device ---
+
+export async function deleteDevice(deviceId: string) {
+  await sql`DELETE FROM devices WHERE device_id = ${deviceId}`;
 }

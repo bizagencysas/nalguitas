@@ -21,6 +21,7 @@ struct ExploreView: View {
     @State private var questionAnswer = ""
     @State private var isAnswering = false
     @State private var moodNote = ""
+    @State private var customFact: CustomFact?
     
     // Song sharing
     @State private var showSongSheet = false
@@ -279,12 +280,12 @@ struct ExploreView: View {
     
     // MARK: - Romantic Fact
     private var romanticFactCard: some View {
-        let fact = RomanticFact.todayFact()
+        let factText = customFact?.fact ?? RomanticFact.todayFact().fact
         return VStack(alignment: .leading, spacing: 8) {
             Label("¿Sabías que...?", systemImage: "lightbulb.fill")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .foregroundStyle(.purple)
-            Text(fact.fact)
+            Text(factText)
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
         }
@@ -791,6 +792,7 @@ struct ExploreView: View {
         photos = phs ?? []
         moodHistory = moods ?? []
         answeredQuestions = answered ?? []
+        customFact = try? await APIService.shared.fetchRandomFact()
     }
     
     private func selectMood(_ option: MoodOption) async {

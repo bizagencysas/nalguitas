@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice } from "./storage";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
 
@@ -615,6 +615,46 @@ app.get("/characters", async (c) => {
     const files = fs.readdirSync(dir).filter((f: string) => f.endsWith(".png"));
     return c.json(files.map((f: string) => ({ name: f.replace(".png", ""), url: `/characters/${f}` })));
   } catch { return c.json([], 200); }
+});
+
+// --- Custom Facts (admin-editable "sabías qué") ---
+
+app.get("/facts/random", async (c) => {
+  try {
+    const fact = await loadRandomFact();
+    if (!fact) return c.json({ id: "default", fact: "El amor verdadero crece cada día más fuerte 💕" });
+    return c.json(fact);
+  } catch { return c.json({ id: "default", fact: "El amor verdadero crece cada día más fuerte 💕" }); }
+});
+
+app.get("/facts", async (c) => {
+  try { return c.json(await loadCustomFacts()); } catch { return c.json([], 200); }
+});
+
+app.post("/facts", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.fact) return c.json({ error: "fact required" }, 400);
+    const id = Date.now().toString();
+    await saveCustomFact(id, body.fact);
+    return c.json({ id, fact: body.fact });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/facts/:id", async (c) => {
+  try {
+    await deleteCustomFact(c.req.param("id"));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Device Management ---
+
+app.delete("/devices/:deviceId", async (c) => {
+  try {
+    await deleteDevice(c.req.param("deviceId"));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 app.get("/characters/:name", async (c) => {

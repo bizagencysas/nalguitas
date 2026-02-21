@@ -104,14 +104,8 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
                 }
 
-                Divider().overlay(Theme.roseLight.opacity(0.5))
 
-                scheduleRow(time: "8:00 AM", label: "Buenos días")
-                scheduleRow(time: "12:30 PM", label: "Mediodía")
-                scheduleRow(time: "5:00 PM", label: "Tarde")
-                scheduleRow(time: "9:30 PM", label: "Buenas noches")
 
-                Divider().overlay(Theme.roseLight.opacity(0.5))
 
                 Button {
                     Task { await viewModel.testNotification() }

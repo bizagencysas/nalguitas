@@ -443,3 +443,38 @@ nonisolated struct GirlfriendMessage: Codable, Identifiable, Sendable {
     let sentAt: Date?
     let read: Bool?
 }
+
+// MARK: - Custom Facts
+extension APIService {
+    func fetchRandomFact() async throws -> CustomFact {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/facts/random")!)
+        try checkResponse(data, response)
+        return try decoder.decode(CustomFact.self, from: data)
+    }
+    func fetchAllFacts() async throws -> [CustomFact] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/facts")!)
+        try checkResponse(data, response)
+        return try decoder.decode([CustomFact].self, from: data)
+    }
+    func createFact(fact: String) async throws -> CustomFact {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/facts")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["fact": fact])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+        return try decoder.decode(CustomFact.self, from: data)
+    }
+    func deleteFact(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/facts/\(id)")!)
+        request.httpMethod = "DELETE"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+}
+
+nonisolated struct CustomFact: Codable, Identifiable, Sendable {
+    let id: String
+    let fact: String
+    var createdAt: String?
+}

@@ -309,5 +309,14 @@ export async function migrate() {
     )
   `;
 
+  // Custom Facts (admin-editable "sabías qué")
+  await sql`
+    CREATE TABLE IF NOT EXISTS custom_facts (
+      id TEXT PRIMARY KEY,
+      fact TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
   console.log("[DB] Migrations complete");
 }

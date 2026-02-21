@@ -19,6 +19,11 @@ struct AdminView: View {
     @State private var giftMessage: String = ""
     @State private var giftSubtitle: String = "Para ti"
     @State private var sendingGift: Bool = false
+    
+    // Facts management
+    @State private var customFacts: [CustomFact] = []
+    @State private var newFactText: String = ""
+    @State private var isCreatingFact: Bool = false
 
     private let tones = ["tierno", "romántico", "profundo", "divertido"]
 
@@ -31,6 +36,7 @@ struct AdminView: View {
                     VStack(spacing: 20) {
                         girlfriendMessagesCard
                         giftSendCard
+                        factsManagerCard
                         sendNowCard
                         createMessageCard
                         messagesListCard
@@ -64,6 +70,7 @@ struct AdminView: View {
         .task {
             await loadMessages()
             await loadGirlfriendMessages()
+            customFacts = (try? await APIService.shared.fetchAllFacts()) ?? []
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             Task {
@@ -503,6 +510,94 @@ struct AdminView: View {
                 .shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4)
         )
         .padding(.horizontal) 
+    }
+    
+    // MARK: - Facts Manager Card
+    private var factsManagerCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("¿Sabías que...?", systemImage: "lightbulb.fill")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(.purple)
+            
+            Text("Agrega datos curiosos personalizados para tu novia")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+            
+            HStack {
+                TextField("Nuevo dato curioso...", text: $newFactText, axis: .vertical)
+                    .lineLimit(2...4)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.6)))
+                
+                Button {
+                    Task { await createFact() }
+                } label: {
+                    if isCreatingFact {
+                        ProgressView().tint(.purple)
+                    } else {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.purple)
+                    }
+                }
+                .disabled(newFactText.trimmingCharacters(in: .whitespaces).isEmpty || isCreatingFact)
+            }
+            
+            if !customFacts.isEmpty {
+                Divider()
+                ForEach(customFacts) { fact in
+                    HStack {
+                        Text("\ud83d\udca1")
+                        Text(fact.fact)
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
+                        Spacer()
+                        Button {
+                            Task { await deleteFact(id: fact.id) }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.caption)
+                                .foregroundStyle(.red.opacity(0.6))
+                        }
+                    }
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(.ultraThinMaterial))
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.purple.opacity(0.15), lineWidth: 1))
+                .shadow(color: Color.purple.opacity(0.1), radius: 8, y: 4)
+        )
+        .padding(.horizontal)
+    }
+    
+    private func createFact() async {
+        let text = newFactText.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        isCreatingFact = true
+        defer { isCreatingFact = false }
+        do {
+            let fact = try await APIService.shared.createFact(fact: text)
+            customFacts.insert(fact, at: 0)
+            newFactText = ""
+            showTemporaryToast("¡Dato curioso agregado! \ud83d\udca1")
+        } catch {
+            showTemporaryToast("Error: \(error.localizedDescription)")
+        }
+    }
+    
+    private func deleteFact(id: String) async {
+        do {
+            try await APIService.shared.deleteFact(id: id)
+            customFacts.removeAll { $0.id == id }
+            showTemporaryToast("Dato eliminado")
+        } catch {
+            showTemporaryToast("Error al eliminar")
+        }
     }
     
     private func sendGift() async {

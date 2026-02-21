@@ -52,7 +52,7 @@ struct ChatView: View {
                     chatInputBar
                 }
             }
-            .navigationTitle(isAdmin ? "Chat con Mi Amor 💕" : "Chat con Isacc 💕")
+            .navigationTitle(isAdmin ? "Chat con Tucancita 💕" : "Chat con Isacc 💕")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showStickerPicker) { stickerPickerSheet }
             .sheet(isPresented: $showAIGenerator) { aiGeneratorSheet }
