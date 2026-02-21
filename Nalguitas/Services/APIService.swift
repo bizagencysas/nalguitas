@@ -99,24 +99,20 @@ nonisolated final class APIService: Sendable {
     }
 
     func createMessage(content: String, subtitle: String, tone: String) async throws {
-        let url = URL(string: "\(baseURL)/api/trpc/messages.create")!
+        let url = URL(string: "\(baseURL)/api/messages")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let input = CreateMessageInput(content: content, subtitle: subtitle, tone: tone, isSpecial: false, priority: 1)
-        let body = CreateMessagePayload(json: input)
-        request.httpBody = try JSONEncoder().encode(body)
+        request.httpBody = try JSONEncoder().encode(input)
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
 
     func deleteMessage(id: String) async throws {
-        let url = URL(string: "\(baseURL)/api/trpc/messages.delete")!
+        let url = URL(string: "\(baseURL)/api/messages/\(id)")!
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body = DeleteMessagePayload(json: DeleteMessageInput(id: id))
-        request.httpBody = try JSONEncoder().encode(body)
+        request.httpMethod = "DELETE"
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
