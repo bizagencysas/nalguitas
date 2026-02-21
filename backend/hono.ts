@@ -617,6 +617,18 @@ app.get("/characters", async (c) => {
   } catch { return c.json([], 200); }
 });
 
+app.get("/characters/:name", async (c) => {
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const name = c.req.param("name");
+    const filePath = path.join(process.cwd(), "characters", name.endsWith(".png") ? name : `${name}.png`);
+    if (!fs.existsSync(filePath)) return c.json({ error: "not found" }, 404);
+    const data = fs.readFileSync(filePath);
+    return new Response(data, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" } });
+  } catch { return c.json({ error: "not found" }, 404); }
+});
+
 app.get("/admin", (c) => {
   return c.html(adminHTML());
 });
