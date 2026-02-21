@@ -302,3 +302,12 @@ nonisolated struct Experience: Codable, Identifiable, Sendable {
     let completedAt: String?
     let createdAt: String?
 }
+
+// MARK: - User Profile (BBM-style)
+nonisolated struct UserProfile: Codable, Sendable {
+    let username: String
+    let displayName: String
+    let avatar: String
+    let statusMessage: String
+    var updatedAt: String?
+}

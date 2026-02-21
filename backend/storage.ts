@@ -744,3 +744,37 @@ export async function completeExperience(id: string, photo: string | null) {
 export async function deleteExperience(id: string) {
   await sql`DELETE FROM experiences WHERE id = ${id}`;
 }
+
+// ===== PROFILES =====
+
+export async function getProfile(username: string) {
+  const rows = await sql`SELECT * FROM profiles WHERE username = ${username}`;
+  return rows.length ? toCamel(rows[0]) : null;
+}
+
+export async function saveProfile(username: string, displayName: string, avatar: string, statusMessage: string) {
+  await sql`
+    INSERT INTO profiles (username, display_name, avatar, status_message, updated_at)
+    VALUES (${username}, ${displayName}, ${avatar}, ${statusMessage}, NOW())
+    ON CONFLICT (username) DO UPDATE
+    SET display_name = ${displayName}, avatar = ${avatar}, status_message = ${statusMessage}, updated_at = NOW()
+  `;
+}
+
+export async function updateAvatar(username: string, avatar: string) {
+  await sql`
+    INSERT INTO profiles (username, avatar, updated_at)
+    VALUES (${username}, ${avatar}, NOW())
+    ON CONFLICT (username) DO UPDATE
+    SET avatar = ${avatar}, updated_at = NOW()
+  `;
+}
+
+export async function updateStatus(username: string, statusMessage: string) {
+  await sql`
+    INSERT INTO profiles (username, status_message, updated_at)
+    VALUES (${username}, ${statusMessage}, NOW())
+    ON CONFLICT (username) DO UPDATE
+    SET status_message = ${statusMessage}, updated_at = NOW()
+  `;
+}

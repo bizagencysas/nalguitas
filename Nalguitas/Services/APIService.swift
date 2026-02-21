@@ -628,6 +628,37 @@ extension APIService {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
+    
+    // MARK: - Profiles (BBM-style)
+    func fetchProfile(username: String) async throws -> UserProfile {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/profiles/\(username)")!)
+        try checkResponse(data, response)
+        return try decoder.decode(UserProfile.self, from: data)
+    }
+    func updateProfile(username: String, displayName: String, avatar: String, statusMessage: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/profiles/\(username)")!)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["displayName": displayName, "avatar": avatar, "statusMessage": statusMessage])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func updateAvatar(username: String, avatar: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/profiles/\(username)/avatar")!)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["avatar": avatar])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func updateStatus(username: String, statusMessage: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/profiles/\(username)/status")!)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["statusMessage": statusMessage])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
 }
 
 nonisolated struct CustomFact: Codable, Identifiable, Sendable {

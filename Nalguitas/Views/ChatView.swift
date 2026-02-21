@@ -16,6 +16,15 @@ struct ChatView: View {
     @State private var scrollProxy: ScrollViewProxy?
     @State private var pollTimer: Timer?
     
+    // BBM-style profiles
+    @State private var myProfile: UserProfile?
+    @State private var partnerProfile: UserProfile?
+    @State private var showProfileSheet = false
+    @State private var editDisplayName = ""
+    @State private var editStatus = ""
+    @State private var editAvatarItem: PhotosPickerItem?
+    @State private var editAvatarData: Data?
+    
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
     var body: some View {
@@ -52,12 +61,60 @@ struct ChatView: View {
                     chatInputBar
                 }
             }
-            .navigationTitle(isAdmin ? "Chat con Tucancita 💕" : "Chat con Isacc 💕")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Button { showProfileSheet = true } label: {
+                        chatHeaderView
+                    }
+                }
+            }
             .sheet(isPresented: $showStickerPicker) { stickerPickerSheet }
             .sheet(isPresented: $showAIGenerator) { aiGeneratorSheet }
-            .task { await loadMessages(); startPolling() }
+            .sheet(isPresented: $showProfileSheet) { profileEditSheet }
+            .task { await loadProfiles(); await loadMessages(); startPolling() }
             .onDisappear { pollTimer?.invalidate() }
+        }
+    }
+    
+    // MARK: - BBM Chat Header
+    private var chatHeaderView: some View {
+        HStack(spacing: 10) {
+            // Partner avatar
+            if let partnerAvatar = partnerProfile?.avatar, !partnerAvatar.isEmpty,
+               let imgData = Data(base64Encoded: partnerAvatar),
+               let uiImage = UIImage(data: imgData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 36, height: 36)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Theme.rosePrimary.opacity(0.3), lineWidth: 1.5))
+            } else {
+                Circle()
+                    .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.3), Theme.rosePrimary.opacity(0.1)], startPoint: .top, endPoint: .bottom))
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Text(isAdmin ? "\u{1F469}" : "\u{1F468}")
+                            .font(.system(size: 18))
+                    )
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(partnerProfile?.displayName.isEmpty == false ? partnerProfile!.displayName : (isAdmin ? "Tucancita" : "Isacc"))
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(.primary)
+                if let status = partnerProfile?.statusMessage, !status.isEmpty {
+                    Text(status)
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Text("\u{1F49D}")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Spacer()
         }
     }
     
@@ -65,9 +122,13 @@ struct ChatView: View {
     private func messageBubble(_ msg: ChatMessage) -> some View {
         let isMe = msg.sender == mySender
         
-        return HStack {
+        return HStack(alignment: .bottom, spacing: 6) {
             if isMe { Spacer(minLength: 50) }
             
+            // Partner avatar (left side)
+            if !isMe {
+                avatarCircle(for: partnerProfile, fallback: isAdmin ? "\u{1F469}" : "\u{1F468}")
+            }
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
                 // Content based on type
                 switch msg.type {
@@ -417,4 +478,122 @@ struct ChatView: View {
         let df = DateFormatter(); df.dateFormat = "h:mm a"
         return df.string(from: date)
     }
+    
+    // MARK: - Avatar Circle
+    private func avatarCircle(for profile: UserProfile?, fallback: String) -> some View {
+        Group {
+            if let av = profile?.avatar, !av.isEmpty,
+               let imgData = Data(base64Encoded: av),
+               let uiImage = UIImage(data: imgData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 24, height: 24)
+                    .clipShape(Circle())
+            } else {
+                Text(fallback)
+                    .font(.system(size: 12))
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.gray.opacity(0.1)))
+            }
+        }
+    }
+    
+    // MARK: - Load Profiles
+    private func loadProfiles() async {
+        myProfile = try? await APIService.shared.fetchProfile(username: mySender)
+        let partner = isAdmin ? "girlfriend" : "admin"
+        partnerProfile = try? await APIService.shared.fetchProfile(username: partner)
+    }
+    
+    // MARK: - Profile Edit Sheet
+    private var profileEditSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Current avatar
+                    VStack(spacing: 12) {
+                        if let data = editAvatarData ?? (myProfile?.avatar.isEmpty == false ? Data(base64Encoded: myProfile!.avatar) : nil),
+                           let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Theme.rosePrimary, lineWidth: 2))
+                        } else {
+                            Circle()
+                                .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.3), Theme.rosePrimary.opacity(0.1)], startPoint: .top, endPoint: .bottom))
+                                .frame(width: 100, height: 100)
+                                .overlay(Text(isAdmin ? "\u{1F468}" : "\u{1F469}").font(.system(size: 44)))
+                        }
+                        PhotosPicker(selection: $editAvatarItem, matching: .images) {
+                            Label("Cambiar foto", systemImage: "camera.fill")
+                                .font(.system(.caption, design: .rounded, weight: .semibold))
+                                .foregroundStyle(Theme.rosePrimary)
+                        }
+                        .onChange(of: editAvatarItem) { _, newItem in
+                            Task {
+                                if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                    // Compress to JPEG
+                                    if let uiImage = UIImage(data: data),
+                                       let jpeg = uiImage.jpegData(compressionQuality: 0.3) {
+                                        editAvatarData = jpeg
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Nombre").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                        TextField("Tu nombre...", text: $editDisplayName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Estado (como en BBM \u{1F609})").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                        TextField("Ej: Pensando en ti...", text: $editStatus)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    Button {
+                        Task {
+                            let avatarStr: String
+                            if let data = editAvatarData {
+                                avatarStr = data.base64EncodedString()
+                            } else {
+                                avatarStr = myProfile?.avatar ?? ""
+                            }
+                            try? await APIService.shared.updateProfile(
+                                username: mySender,
+                                displayName: editDisplayName,
+                                avatar: avatarStr,
+                                statusMessage: editStatus
+                            )
+                            await loadProfiles()
+                            showProfileSheet = false
+                        }
+                    } label: {
+                        Text("Guardar")
+                            .font(.system(.headline, design: .rounded, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Capsule().fill(Theme.rosePrimary))
+                    }
+                }.padding(24)
+            }
+            .navigationTitle("Mi Perfil")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showProfileSheet = false } }
+            }
+            .onAppear {
+                editDisplayName = myProfile?.displayName ?? (isAdmin ? "Isacc" : "Tucancita")
+                editStatus = myProfile?.statusMessage ?? ""
+            }
+        }
+    }
 }
+

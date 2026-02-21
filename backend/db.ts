@@ -407,5 +407,15 @@ export async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS profiles (
+      username TEXT PRIMARY KEY,
+      display_name TEXT NOT NULL DEFAULT '',
+      avatar TEXT DEFAULT '',
+      status_message TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
   console.log("[DB] Migrations complete");
 }

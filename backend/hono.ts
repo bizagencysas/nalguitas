@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice, getTodayWord, seedEnglishWords, updateWordAiExample, saveScratchCard, loadScratchCards, getUnscratched, scratchCard, saveRouletteOption, loadRouletteOptions, loadRouletteCategories, deleteRouletteOption, saveDiaryEntry, getDiaryEntry, loadDiaryEntries, addPoints, getPointsBalance, getPointsHistory, saveReward, loadRewards, redeemReward, deleteReward, saveExperience, loadExperiences, completeExperience, deleteExperience } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice, getTodayWord, seedEnglishWords, updateWordAiExample, saveScratchCard, loadScratchCards, getUnscratched, scratchCard, saveRouletteOption, loadRouletteOptions, loadRouletteCategories, deleteRouletteOption, saveDiaryEntry, getDiaryEntry, loadDiaryEntries, addPoints, getPointsBalance, getPointsHistory, saveReward, loadRewards, redeemReward, deleteReward, saveExperience, loadExperiences, completeExperience, deleteExperience, getProfile, saveProfile, updateAvatar, updateStatus } from "./storage";
 import { ENGLISH_WORDS } from "./words";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
@@ -1109,6 +1109,39 @@ app.post("/experiences/:id/complete", async (c: any) => {
 
 app.delete("/experiences/:id", async (c: any) => {
   try { await deleteExperience(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+// ===== PROFILES (BBM-style) =====
+
+app.get("/profiles/:username", async (c: any) => {
+  try {
+    const profile = await getProfile(c.req.param("username"));
+    if (!profile) return c.json({ username: c.req.param("username"), displayName: "", avatar: "", statusMessage: "" });
+    return c.json(profile);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.put("/profiles/:username", async (c: any) => {
+  try {
+    const { displayName, avatar, statusMessage } = await c.req.json();
+    await saveProfile(c.req.param("username"), displayName || "", avatar || "", statusMessage || "");
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.put("/profiles/:username/avatar", async (c: any) => {
+  try {
+    const { avatar } = await c.req.json();
+    await updateAvatar(c.req.param("username"), avatar || "");
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.put("/profiles/:username/status", async (c: any) => {
+  try {
+    const { statusMessage } = await c.req.json();
+    await updateStatus(c.req.param("username"), statusMessage || "");
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 export default app;
