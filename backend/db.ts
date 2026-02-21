@@ -270,6 +270,20 @@ export async function migrate() {
       ('q30', '¿Qué te hace sonreír cuando piensas en mí?', 'amor')
     ON CONFLICT (id) DO NOTHING
   `;
+  // Plans
+  await sql`
+    CREATE TABLE IF NOT EXISTS plans (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      category TEXT NOT NULL DEFAULT 'cita',
+      proposed_date TEXT NOT NULL DEFAULT '',
+      proposed_time TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pendiente',
+      proposed_by TEXT NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 
   console.log("[DB] Migrations complete");
 }

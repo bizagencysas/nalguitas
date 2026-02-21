@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan } from "./storage";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
 
@@ -499,6 +499,41 @@ app.get("/photos/:id", async (c) => {
 
 app.delete("/photos/:id", async (c) => {
   try { await deletePhoto(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Plans Endpoints ---
+
+app.post("/plans", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.title) return c.json({ error: "title is required" }, 400);
+    const p = { id: Date.now().toString(), title: body.title, description: body?.description || "", category: body?.category || "cita", proposedDate: body?.proposedDate || "", proposedTime: body?.proposedTime || "", proposedBy: body?.proposedBy || "admin" };
+    await savePlan(p);
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const targets = p.proposedBy === "admin" ? girlfriendDevices : adminDevices;
+    const pushTitle = p.proposedBy === "admin" ? "📍 Isacc propone un plan" : "📍 Tu novia propone un plan";
+    await Promise.all(targets.map(d => sendPushNotification(d.token, pushTitle, `${body.title} - ${body?.proposedDate || ""}`)));
+    return c.json(p);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/plans", async (c) => {
+  try { return c.json(await loadPlans()); } catch { return c.json([], 200); }
+});
+
+app.post("/plans/:id/status", async (c) => {
+  try {
+    const body = await c.req.json();
+    await updatePlanStatus(c.req.param("id"), body?.status || "aceptado");
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const all = [...adminDevices, ...girlfriendDevices];
+    await Promise.all(all.map(d => sendPushNotification(d.token, `Plan ${body?.status || "actualizado"} ✅`, "")));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/plans/:id", async (c) => {
+  try { await deletePlan(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 app.get("/admin", (c) => {

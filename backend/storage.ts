@@ -472,3 +472,34 @@ export async function loadPhotoById(id: string): Promise<Photo | null> {
 export async function deletePhoto(id: string) {
   await sql`DELETE FROM photos WHERE id = ${id}`;
 }
+
+// --- Plans ---
+
+interface Plan {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  proposedDate: string;
+  proposedTime: string;
+  status: string;
+  proposedBy: string;
+  createdAt: string;
+}
+
+export async function savePlan(p: { id: string; title: string; description: string; category: string; proposedDate: string; proposedTime: string; proposedBy: string }) {
+  await sql`INSERT INTO plans (id, title, description, category, proposed_date, proposed_time, proposed_by) VALUES (${p.id}, ${p.title}, ${p.description}, ${p.category}, ${p.proposedDate}, ${p.proposedTime}, ${p.proposedBy})`;
+}
+
+export async function loadPlans(): Promise<Plan[]> {
+  const rows = await sql`SELECT * FROM plans ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, description: r.description, category: r.category, proposedDate: r.proposed_date, proposedTime: r.proposed_time, status: r.status, proposedBy: r.proposed_by, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function updatePlanStatus(id: string, status: string) {
+  await sql`UPDATE plans SET status = ${status} WHERE id = ${id}`;
+}
+
+export async function deletePlan(id: string) {
+  await sql`DELETE FROM plans WHERE id = ${id}`;
+}

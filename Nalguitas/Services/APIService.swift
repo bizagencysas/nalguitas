@@ -335,6 +335,29 @@ nonisolated final class APIService: Sendable {
         try checkResponse(data, response)
         return try decoder.decode(SharedPhoto.self, from: data)
     }
+    
+    // MARK: - Plans
+    func fetchPlans() async throws -> [DatePlan] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/plans")!)
+        try checkResponse(data, response)
+        return try decoder.decode([DatePlan].self, from: data)
+    }
+    func createPlan(title: String, description: String, category: String, date: String, time: String, proposedBy: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/plans")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["title": title, "description": description, "category": category, "proposedDate": date, "proposedTime": time, "proposedBy": proposedBy])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func updatePlanStatus(id: String, status: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/plans/\(id)/status")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["status": status])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
 }
 
 nonisolated struct CreateMessageInput: Codable, Sendable {
