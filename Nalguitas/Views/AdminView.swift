@@ -13,6 +13,12 @@ struct AdminView: View {
     @State private var sendingNotification: Bool = false
     @State private var creatingMessage: Bool = false
     @State private var girlfriendMessages: [GirlfriendMessage] = []
+    
+    // Gift states
+    @State private var selectedCharacter: GiftCharacter = GiftCharacter.characters[0]
+    @State private var giftMessage: String = ""
+    @State private var giftSubtitle: String = "Para ti"
+    @State private var sendingGift: Bool = false
 
     private let tones = ["tierno", "romántico", "profundo", "divertido"]
 
@@ -24,6 +30,7 @@ struct AdminView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         girlfriendMessagesCard
+                        giftSendCard
                         sendNowCard
                         createMessageCard
                         messagesListCard
@@ -395,6 +402,129 @@ struct AdminView: View {
             await loadMessages()
         } catch {
             showTemporaryToast("Error al eliminar")
+        }
+    }
+    
+    // MARK: - Gift Send Card
+    
+    private var giftSendCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Enviar Sorpresa", systemImage: "gift.fill")
+                .font(.system(.headline, design: .rounded, weight: .bold))
+                .foregroundStyle(Theme.rosePrimary)
+            
+            Text("Elige un muñequito y escribe tu mensaje")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+            
+            // Character picker - horizontal scroll
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(GiftCharacter.characters) { character in
+                        VStack(spacing: 4) {
+                            Text(character.emoji)
+                                .font(.system(size: 28))
+                                .frame(width: 50, height: 50)
+                                .background(
+                                    Circle()
+                                        .fill(selectedCharacter.id == character.id ? Theme.rosePrimary.opacity(0.2) : Color.gray.opacity(0.1))
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(selectedCharacter.id == character.id ? Theme.rosePrimary : Color.clear, lineWidth: 2)
+                                )
+                            
+                            Text(character.name.split(separator: " ").first.map(String.init) ?? character.name)
+                                .font(.system(.caption2, design: .rounded, weight: .medium))
+                                .foregroundStyle(selectedCharacter.id == character.id ? Theme.rosePrimary : .secondary)
+                        }
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3)) {
+                                selectedCharacter = character
+                            }
+                        }
+                    }
+                }
+            }
+            
+            TextField("Mensaje para tu novia...", text: $giftMessage, axis: .vertical)
+                .lineLimit(2...4)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.6))
+                )
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Subtítulo")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    TextField("Para ti", text: $giftSubtitle)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.6))
+                        )
+                }
+            }
+            
+            Button(action: { Task { await sendGift() } }) {
+                HStack(spacing: 8) {
+                    if sendingGift {
+                        ProgressView().tint(.white)
+                    } else {
+                        Image(systemName: "gift.fill")
+                        Text("Enviar Sorpresa")
+                    }
+                }
+                .font(.system(.body, design: .rounded, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [Theme.rosePrimary, Theme.roseQuartz],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                )
+            }
+            .disabled(sendingGift || giftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(giftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4)
+        )
+        .padding(.horizontal) 
+    }
+    
+    private func sendGift() async {
+        let message = giftMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty else { return }
+        
+        sendingGift = true
+        defer { sendingGift = false }
+        
+        do {
+            let characterUrl = GiftCharacter.imageURL(for: selectedCharacter.id)?.absoluteString ?? ""
+            try await APIService.shared.createGift(
+                characterUrl: characterUrl,
+                characterName: selectedCharacter.id,
+                message: message,
+                subtitle: giftSubtitle.isEmpty ? "Para ti" : giftSubtitle,
+                giftType: "surprise"
+            )
+            giftMessage = ""
+            showTemporaryToast("¡Sorpresa enviada! 🎁💕")
+        } catch {
+            showTemporaryToast("Error: \(error.localizedDescription)")
         }
     }
 }

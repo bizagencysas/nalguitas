@@ -197,3 +197,72 @@ export async function saveSchedule(config: { morning?: string; midday?: string; 
   `;
   return updated;
 }
+
+// --- Gifts ---
+
+interface Gift {
+  id: string;
+  characterUrl: string;
+  characterName: string;
+  message: string;
+  subtitle: string;
+  giftType: string;
+  createdAt: string;
+  seen: boolean;
+}
+
+export async function saveGift(gift: Gift) {
+  await sql`
+    INSERT INTO gifts (id, character_url, character_name, message, subtitle, gift_type, created_at, seen)
+    VALUES (${gift.id}, ${gift.characterUrl}, ${gift.characterName}, ${gift.message}, ${gift.subtitle}, ${gift.giftType}, ${gift.createdAt}, ${gift.seen})
+  `;
+  console.log(`[Gifts] Saved gift: "${gift.message.substring(0, 40)}"`);
+}
+
+export async function loadGifts(): Promise<Gift[]> {
+  const rows = await sql`SELECT * FROM gifts ORDER BY created_at DESC`;
+  return rows.map(r => ({
+    id: r.id,
+    characterUrl: r.character_url,
+    characterName: r.character_name,
+    message: r.message,
+    subtitle: r.subtitle,
+    giftType: r.gift_type,
+    createdAt: r.created_at.toISOString(),
+    seen: r.seen,
+  }));
+}
+
+export async function loadLatestGift(): Promise<Gift | null> {
+  const rows = await sql`SELECT * FROM gifts ORDER BY created_at DESC LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    characterUrl: r.character_url,
+    characterName: r.character_name,
+    message: r.message,
+    subtitle: r.subtitle,
+    giftType: r.gift_type,
+    createdAt: r.created_at.toISOString(),
+    seen: r.seen,
+  };
+}
+
+export async function loadUnseenGifts(): Promise<Gift[]> {
+  const rows = await sql`SELECT * FROM gifts WHERE seen = FALSE ORDER BY created_at DESC`;
+  return rows.map(r => ({
+    id: r.id,
+    characterUrl: r.character_url,
+    characterName: r.character_name,
+    message: r.message,
+    subtitle: r.subtitle,
+    giftType: r.gift_type,
+    createdAt: r.created_at.toISOString(),
+    seen: r.seen,
+  }));
+}
+
+export async function markGiftSeen(id: string) {
+  await sql`UPDATE gifts SET seen = TRUE WHERE id = ${id}`;
+}

@@ -14,6 +14,8 @@ struct TodayView: View {
     @State private var girlfriendMessage: String = ""
     @State private var isSendingGirlfriendMsg = false
     @State private var showGirlfriendSentConfirmation = false
+    @State private var currentGift: Gift? = nil
+    @State private var showGiftOverlay = false
 
     var body: some View {
         ZStack {
@@ -46,8 +48,18 @@ struct TodayView: View {
                 savedConfirmationOverlay
             }
         }
+        .overlay {
+            if showGiftOverlay, let gift = currentGift {
+                GiftOverlayView(gift: gift) {
+                    showGiftOverlay = false
+                    currentGift = nil
+                }
+                .transition(.opacity)
+            }
+        }
         .task {
             await viewModel.loadTodayMessage(context: modelContext)
+            await checkForGifts()
             withAnimation(.easeOut(duration: 0.8)) {
                 appeared = true
             }
@@ -381,6 +393,23 @@ struct TodayView: View {
                     viewModel.showSavedConfirmation = false
                 }
             }
+        }
+    }
+    
+    private func checkForGifts() async {
+        do {
+            let gifts = try await APIService.shared.fetchUnseenGifts()
+            if let gift = gifts.first {
+                try? await Task.sleep(for: .seconds(1.5))
+                await MainActor.run {
+                    currentGift = gift
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        showGiftOverlay = true
+                    }
+                }
+            }
+        } catch {
+            // Silent fail - gifts are optional
         }
     }
 }

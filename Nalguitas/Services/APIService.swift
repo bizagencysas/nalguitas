@@ -160,6 +160,47 @@ nonisolated final class APIService: Sendable {
         try checkResponse(data, response)
         return try decoder.decode([GirlfriendMessage].self, from: data)
     }
+
+    // MARK: - Gifts
+    
+    func fetchUnseenGifts() async throws -> [Gift] {
+        let url = URL(string: "\(baseURL)/api/gifts/unseen")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        return try decoder.decode([Gift].self, from: data)
+    }
+    
+    func fetchGifts() async throws -> [Gift] {
+        let url = URL(string: "\(baseURL)/api/gifts")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        try checkResponse(data, response)
+        return try decoder.decode([Gift].self, from: data)
+    }
+    
+    func createGift(characterUrl: String, characterName: String, message: String, subtitle: String, giftType: String) async throws {
+        let url = URL(string: "\(baseURL)/api/gifts")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "characterUrl": characterUrl,
+            "characterName": characterName,
+            "message": message,
+            "subtitle": subtitle,
+            "giftType": giftType,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    func markGiftSeen(id: String) async throws {
+        let url = URL(string: "\(baseURL)/api/gifts/\(id)/seen")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
 }
 
 nonisolated struct CreateMessageInput: Codable, Sendable {

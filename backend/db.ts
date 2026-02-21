@@ -74,6 +74,19 @@ export async function migrate() {
   `;
 
   await sql`
+    CREATE TABLE IF NOT EXISTS gifts (
+      id TEXT PRIMARY KEY,
+      character_url TEXT NOT NULL,
+      character_name TEXT NOT NULL DEFAULT 'capibara',
+      message TEXT NOT NULL,
+      subtitle TEXT NOT NULL DEFAULT 'Para ti',
+      gift_type TEXT NOT NULL DEFAULT 'surprise',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      seen BOOLEAN NOT NULL DEFAULT FALSE
+    )
+  `;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS schedule_config (
       id INTEGER PRIMARY KEY DEFAULT 1,
       morning TEXT NOT NULL DEFAULT '08:00',

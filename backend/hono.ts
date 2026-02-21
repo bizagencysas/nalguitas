@@ -4,7 +4,9 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen } from "./storage";
+import { sendPushNotification } from "./apns-service";
+import { loadDevices } from "./storage";
 import { migrate } from "./db";
 
 const app = new Hono();
@@ -239,6 +241,74 @@ app.get("/role/:deviceId", async (c) => {
     return c.json({ role: found?.role || null });
   } catch (e: any) {
     return c.json({ role: null }, 200);
+  }
+});
+
+// --- Gift Endpoints ---
+
+app.post("/gifts", async (c) => {
+  try {
+    const body = await c.req.json();
+    const message = body?.message;
+    if (!message || typeof message !== "string" || message.trim() === "") {
+      return c.json({ error: "message is required" }, 400);
+    }
+    const gift = {
+      id: Date.now().toString(),
+      characterUrl: body?.characterUrl || "",
+      characterName: body?.characterName || "capibara",
+      message: message.trim(),
+      subtitle: body?.subtitle || "Para ti",
+      giftType: body?.giftType || "surprise",
+      createdAt: new Date().toISOString(),
+      seen: false,
+    };
+    await saveGift(gift);
+    console.log(`[Gifts] Created: "${gift.message.substring(0, 40)}" with ${gift.characterName}`);
+
+    // Send push notification to girlfriend
+    const { girlfriendDevices } = await loadDevices();
+    if (girlfriendDevices.length > 0) {
+      const pushTitle = "Isacc te envió algo... 💝";
+      const pushBody = "Abre la app para ver tu sorpresa";
+      await Promise.all(
+        girlfriendDevices.map(d => sendPushNotification(d.token, pushTitle, pushBody))
+      );
+      console.log(`[Gifts] Push sent to ${girlfriendDevices.length} devices`);
+    }
+
+    return c.json(gift);
+  } catch (e: any) {
+    console.error("Error creating gift:", e);
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+app.get("/gifts/unseen", async (c) => {
+  try {
+    const gifts = await loadUnseenGifts();
+    return c.json(gifts);
+  } catch (e: any) {
+    return c.json([], 200);
+  }
+});
+
+app.get("/gifts", async (c) => {
+  try {
+    const gifts = await loadGifts();
+    return c.json(gifts);
+  } catch (e: any) {
+    return c.json([], 200);
+  }
+});
+
+app.post("/gifts/:id/seen", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await markGiftSeen(id);
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
   }
 });
 
