@@ -228,7 +228,7 @@ struct ChatView: View {
                 Theme.meshBackground
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Stickers de la App").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
+                        Text("Stickers de la App").font(.system(.headline, weight: .bold, design: .rounded)).foregroundStyle(Theme.rosePrimary)
                         
                         let emojis = ["🐹", "🐰", "🐻", "🐱", "🐶", "🐧", "🦄", "🦊", "🐥", "🐼", "🐨", "🦥", "🦉", "🐹", "🦌", "🦝", "🐘", "🐢", "🦁", "🐯", "🐷", "🐸", "🦖", "🐙"]
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 70))], spacing: 10) {
@@ -246,7 +246,7 @@ struct ChatView: View {
                         
                         if !cachedStickers.isEmpty {
                             Divider().padding(.vertical, 8)
-                            Text("Stickers IA Generados").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(.purple)
+                            Text("Stickers IA Generados").font(.system(.headline, weight: .bold, design: .rounded)).foregroundStyle(.purple)
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 10) {
                                 ForEach(cachedStickers) { sticker in
                                     Button {
@@ -286,7 +286,7 @@ struct ChatView: View {
                         .foregroundStyle(LinearGradient(colors: [.purple, Theme.rosePrimary], startPoint: .topLeading, endPoint: .bottomTrailing))
                     
                     Text("Generador de Stickers IA")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .font(.system(.title2, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.rosePrimary)
                     
                     Text("Describe el sticker que quieres crear, ¡será único!")
@@ -311,7 +311,7 @@ struct ChatView: View {
                                 Text("Generar Sticker ✨")
                             }
                         }
-                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .font(.system(.body, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		23081C792F49D6BE00EC2308 /* NalguitasShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 23081C6F2F49D6BE00EC2308 /* NalguitasShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		XX6A2DA38D30489B87B443XX /* AmorRosaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -25,13 +26,19 @@
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
 			remoteInfo = Nalguitas;
 		};
+		23081C772F49D6BE00EC2308 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 23081C6E2F49D6BE00EC2308;
+			remoteInfo = NalguitasShare;
+		};
 		XX11287293F984A2FAEC71XX /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = XXCD38C6510CD25D4D602DXX;
 			remoteInfo = AmorRosaWidget;
-
 		};
 /* End PBXContainerItemProxy section */
 
@@ -43,6 +50,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				XX6A2DA38D30489B87B443XX /* AmorRosaWidget.appex in Embed Foundation Extensions */,
+				23081C792F49D6BE00EC2308 /* NalguitasShare.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -53,16 +61,24 @@
 		105FC57A2E9EAD3100EA8BCF /* Nalguitas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nalguitas.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NalguitasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NalguitasUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		23081C6F2F49D6BE00EC2308 /* NalguitasShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NalguitasShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AmorRosaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		XXADC9F1B033AAE19AAD8FXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		23081C7C2F49D6BE00EC2308 /* Exceptions for "NalguitasShare" folder in "NalguitasShare" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = XXCD38C6510CD25D4D602DXX /* Nalguitas */;
+			target = 23081C6E2F49D6BE00EC2308 /* NalguitasShare */;
+		};
+		XXADC9F1B033AAE19AAD8FXX /* Exceptions for "AmorRosaWidget" folder in "AmorRosaWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -82,13 +98,21 @@
 			path = AmorRosaAppUITests;
 			sourceTree = "<group>";
 		};
+		23081C702F49D6BE00EC2308 /* NalguitasShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				23081C7C2F49D6BE00EC2308 /* Exceptions for "NalguitasShare" folder in "NalguitasShare" target */,
+			);
+			path = NalguitasShare;
+			sourceTree = "<group>";
+		};
 		XX29113970093F38B6474CXX /* AmorRosaWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				XXADC9F1B033AAE19AAD8FXX /* Exceptions for "AmorRosaWidget" folder in "AmorRosaWidget" target */,
+			);
 			path = AmorRosaWidget;
 			sourceTree = "<group>";
-			exceptions = (
-				XXADC9F1B033AAE19AAD8FXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
-			);
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -114,6 +138,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		23081C6C2F49D6BE00EC2308 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		XX75B8358D2242CEB782C5XX /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -130,6 +161,7 @@
 				105FC57C2E9EAD3100EA8BCF /* Nalguitas */,
 				105FC58C2E9EAD3200EA8BCF /* AmorRosaAppTests */,
 				105FC5962E9EAD3200EA8BCF /* AmorRosaAppUITests */,
+				23081C702F49D6BE00EC2308 /* NalguitasShare */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
 				XX29113970093F38B6474CXX /* AmorRosaWidget */,
 			);
@@ -142,6 +174,7 @@
 				105FC5892E9EAD3200EA8BCF /* NalguitasTests.xctest */,
 				105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */,
 				XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */,
+				23081C6F2F49D6BE00EC2308 /* NalguitasShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -162,6 +195,7 @@
 			);
 			dependencies = (
 				XX8563CEB98856474C63ADXX /* PBXTargetDependency */,
+				23081C782F49D6BE00EC2308 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				105FC57C2E9EAD3100EA8BCF /* Nalguitas */,
@@ -219,6 +253,28 @@
 			productReference = 105FC5932E9EAD3200EA8BCF /* NalguitasUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		23081C6E2F49D6BE00EC2308 /* NalguitasShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 23081C7D2F49D6BE00EC2308 /* Build configuration list for PBXNativeTarget "NalguitasShare" */;
+			buildPhases = (
+				23081C6B2F49D6BE00EC2308 /* Sources */,
+				23081C6C2F49D6BE00EC2308 /* Frameworks */,
+				23081C6D2F49D6BE00EC2308 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				23081C702F49D6BE00EC2308 /* NalguitasShare */,
+			);
+			name = NalguitasShare;
+			packageProductDependencies = (
+			);
+			productName = NalguitasShare;
+			productReference = 23081C6F2F49D6BE00EC2308 /* NalguitasShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = XX034A7E9FDF8A22CA6330XX /* Build configuration list for PBXNativeTarget "AmorRosaWidget" */;
@@ -231,13 +287,13 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				XX29113970093F38B6474CXX /* AmorRosaWidget */,
+			);
 			name = AmorRosaWidget;
 			productName = AmorRosaWidget;
 			productReference = XX9E47FFC27386AF9F3D27XX /* AmorRosaWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
-			fileSystemSynchronizedGroups = (
-				XX29113970093F38B6474CXX /* AmorRosaWidget */,
-			);
 		};
 /* End PBXNativeTarget section */
 
@@ -260,6 +316,9 @@
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = 105FC5792E9EAD3100EA8BCF;
 					};
+					23081C6E2F49D6BE00EC2308 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 				};
 			};
 			buildConfigurationList = 105FC5752E9EAD3100EA8BCF /* Build configuration list for PBXProject "Nalguitas" */;
@@ -280,6 +339,7 @@
 				105FC5882E9EAD3200EA8BCF /* NalguitasTests */,
 				105FC5922E9EAD3200EA8BCF /* NalguitasUITests */,
 				XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */,
+				23081C6E2F49D6BE00EC2308 /* NalguitasShare */,
 			);
 		};
 /* End PBXProject section */
@@ -300,6 +360,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		105FC5912E9EAD3200EA8BCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		23081C6D2F49D6BE00EC2308 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -337,6 +404,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		23081C6B2F49D6BE00EC2308 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		XXE0FD6AFA7551401BFCEBXX /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -357,9 +431,14 @@
 			target = 105FC5792E9EAD3100EA8BCF /* Nalguitas */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
 		};
+		23081C782F49D6BE00EC2308 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 23081C6E2F49D6BE00EC2308 /* NalguitasShare */;
+			targetProxy = 23081C772F49D6BE00EC2308 /* PBXContainerItemProxy */;
+		};
 		XX8563CEB98856474C63ADXX /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = XXCD38C6510CD25D4D602DXX /* Nalguitas */;
+			target = XXCD38C6510CD25D4D602DXX /* AmorRosaWidget */;
 			targetProxy = XX11287293F984A2FAEC71XX /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -644,27 +723,89 @@
 			};
 			name = Release;
 		};
+		23081C7A2F49D6BE00EC2308 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NalguitasShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NalguitasShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.NalguitasShare";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		23081C7B2F49D6BE00EC2308 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NalguitasShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NalguitasShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.NalguitasShare";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		XX1B4863104EFC9B4CB07CXX /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = AmorRosaWidget/AmorRosaWidget.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.amorrosawidget";
-				PRODUCT_NAME = AmorRosaWidget;
-				SWIFT_VERSION = 5.0;
-				SDKROOT = iphoneos;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AmorRosaWidget/Info.plist;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				MARKETING_VERSION = 1.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AmorRosaWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nalguitas;
 				INFOPLIST_KEY_CFBundleName = Nalguitas;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.amorrosawidget";
+				PRODUCT_NAME = AmorRosaWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -672,23 +813,27 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = AmorRosaWidget/AmorRosaWidget.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.amorrosawidget";
-				PRODUCT_NAME = AmorRosaWidget;
-				SWIFT_VERSION = 5.0;
-				SDKROOT = iphoneos;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AmorRosaWidget/Info.plist;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				MARKETING_VERSION = 1.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AmorRosaWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Nalguitas;
 				INFOPLIST_KEY_CFBundleName = Nalguitas;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.amor-rosa-app.amorrosawidget";
+				PRODUCT_NAME = AmorRosaWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -727,6 +872,15 @@
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
 				105FC5A52E9EAD3200EA8BCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		23081C7D2F49D6BE00EC2308 /* Build configuration list for PBXNativeTarget "NalguitasShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				23081C7A2F49D6BE00EC2308 /* Debug */,
+				23081C7B2F49D6BE00EC2308 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

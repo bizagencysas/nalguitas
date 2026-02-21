@@ -1,7 +1,5 @@
 import UIKit
-import Social
 import UniformTypeIdentifiers
-import MobileCoreServices
 
 class ShareViewController: UIViewController {
     
@@ -112,14 +110,13 @@ class ShareViewController: UIViewController {
             }
         }
         
-        // If nothing matched, close
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             self?.close()
         }
     }
     
     private func sendToChat(type: String, content: String, mediaData: String? = nil, mediaUrl: String? = nil) {
-        let role = UserDefaults(suiteName: "group.com.nalguitas.shared")?.string(forKey: "userRole") ?? "girlfriend"
+        let role = UserDefaults.standard.string(forKey: "isAdminDevice") == "true" ? "admin" : "girlfriend"
         
         var body: [String: Any] = ["sender": role, "type": type, "content": content]
         if let md = mediaData { body["mediaData"] = md }
@@ -143,16 +140,30 @@ class ShareViewController: UIViewController {
     }
     
     private func showSuccess() {
-        let successLabel = UILabel()
-        successLabel.text = "✅ Enviado a tu chat 💕"
-        successLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        successLabel.textAlignment = .center
-        successLabel.textColor = UIColor(red: 0.94, green: 0.32, blue: 0.53, alpha: 1.0)
-        successLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(successLabel)
+        // Clear existing UI
+        view.subviews.forEach { $0.removeFromSuperview() }
+        
+        let successStack = UIStackView()
+        successStack.axis = .vertical
+        successStack.alignment = .center
+        successStack.spacing = 8
+        successStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        let checkLabel = UILabel()
+        checkLabel.text = "✅"
+        checkLabel.font = .systemFont(ofSize: 50)
+        successStack.addArrangedSubview(checkLabel)
+        
+        let sentLabel = UILabel()
+        sentLabel.text = "Enviado a tu chat 💕"
+        sentLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        sentLabel.textColor = UIColor(red: 0.94, green: 0.32, blue: 0.53, alpha: 1.0)
+        successStack.addArrangedSubview(sentLabel)
+        
+        view.addSubview(successStack)
         NSLayoutConstraint.activate([
-            successLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            successLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            successStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            successStack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in

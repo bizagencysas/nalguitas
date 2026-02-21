@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Love Coupon
-struct LoveCoupon: Codable, Identifiable, Sendable {
+nonisolated struct LoveCoupon: Codable, Identifiable, Sendable {
     let id: String
     let title: String
     let description: String
@@ -12,7 +12,7 @@ struct LoveCoupon: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Daily Question
-struct DailyQuestion: Codable, Identifiable, Sendable {
+nonisolated struct DailyQuestion: Codable, Identifiable, Sendable {
     let id: String?
     let question: String
     let category: String?
@@ -23,7 +23,7 @@ struct DailyQuestion: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Mood
-struct MoodEntry: Codable, Identifiable, Sendable {
+nonisolated struct MoodEntry: Codable, Identifiable, Sendable {
     let id: String?
     let mood: String
     let emoji: String
@@ -54,7 +54,7 @@ struct MoodOption: Identifiable, Sendable {
 }
 
 // MARK: - Special Date
-struct SpecialDate: Codable, Identifiable, Sendable {
+nonisolated struct SpecialDate: Codable, Identifiable, Sendable {
     let id: String
     let title: String
     let date: String
@@ -63,7 +63,7 @@ struct SpecialDate: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Days Together
-struct DaysTogether: Codable, Sendable {
+nonisolated struct DaysTogether: Codable, Sendable {
     let totalDays: Int
     let years: Int
     let months: Int
@@ -72,7 +72,7 @@ struct DaysTogether: Codable, Sendable {
 }
 
 // MARK: - Song
-struct Song: Codable, Identifiable, Sendable {
+nonisolated struct Song: Codable, Identifiable, Sendable {
     let id: String
     let youtubeUrl: String
     let title: String
@@ -83,7 +83,7 @@ struct Song: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Achievement
-struct Achievement: Codable, Identifiable, Sendable {
+nonisolated struct Achievement: Codable, Identifiable, Sendable {
     let id: String
     let title: String
     let description: String
@@ -101,7 +101,7 @@ struct Achievement: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Photo
-struct SharedPhoto: Codable, Identifiable, Sendable {
+nonisolated struct SharedPhoto: Codable, Identifiable, Sendable {
     let id: String
     let imageData: String?
     let caption: String
@@ -110,7 +110,7 @@ struct SharedPhoto: Codable, Identifiable, Sendable {
 }
 
 // MARK: - Plan
-struct DatePlan: Codable, Identifiable, Sendable {
+nonisolated struct DatePlan: Codable, Identifiable, Sendable {
     let id: String
     let title: String
     let description: String
@@ -213,7 +213,7 @@ struct RomanticFact: Identifiable, Sendable {
 }
 
 // MARK: - Chat Message
-struct ChatMessage: Codable, Identifiable, Sendable {
+nonisolated struct ChatMessage: Codable, Identifiable, Sendable {
     let id: String
     let sender: String
     let type: String
@@ -226,7 +226,7 @@ struct ChatMessage: Codable, Identifiable, Sendable {
 }
 
 // MARK: - AI Sticker
-struct AISticker: Codable, Identifiable, Sendable {
+nonisolated struct AISticker: Codable, Identifiable, Sendable {
     let id: String
     let prompt: String
     let imageData: String
