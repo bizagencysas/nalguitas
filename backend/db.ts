@@ -102,5 +102,174 @@ export async function migrate() {
     ON CONFLICT (id) DO NOTHING
   `;
 
+  // Love Coupons
+  await sql`
+    CREATE TABLE IF NOT EXISTS love_coupons (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      emoji TEXT NOT NULL DEFAULT '🎟️',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      redeemed BOOLEAN NOT NULL DEFAULT FALSE,
+      redeemed_at TIMESTAMPTZ
+    )
+  `;
+
+  // Daily Questions
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_questions (
+      id TEXT PRIMARY KEY,
+      question TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'amor',
+      answered BOOLEAN NOT NULL DEFAULT FALSE,
+      answer TEXT,
+      answered_at TIMESTAMPTZ,
+      shown_date TEXT
+    )
+  `;
+
+  // Moods
+  await sql`
+    CREATE TABLE IF NOT EXISTS moods (
+      id TEXT PRIMARY KEY,
+      mood TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Special Dates
+  await sql`
+    CREATE TABLE IF NOT EXISTS special_dates (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,
+      emoji TEXT NOT NULL DEFAULT '💕',
+      reminder_days_before INTEGER NOT NULL DEFAULT 7,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Songs
+  await sql`
+    CREATE TABLE IF NOT EXISTS songs (
+      id TEXT PRIMARY KEY,
+      youtube_url TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      artist TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      seen BOOLEAN NOT NULL DEFAULT FALSE
+    )
+  `;
+
+  // Achievements
+  await sql`
+    CREATE TABLE IF NOT EXISTS achievements (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      unlocked BOOLEAN NOT NULL DEFAULT FALSE,
+      unlocked_at TIMESTAMPTZ,
+      progress INTEGER NOT NULL DEFAULT 0,
+      target INTEGER NOT NULL DEFAULT 1
+    )
+  `;
+
+  // Photos
+  await sql`
+    CREATE TABLE IF NOT EXISTS photos (
+      id TEXT PRIMARY KEY,
+      image_data TEXT NOT NULL,
+      caption TEXT NOT NULL DEFAULT '',
+      uploaded_by TEXT NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Seed special dates
+  await sql`
+    INSERT INTO special_dates (id, title, date, emoji, reminder_days_before)
+    VALUES 
+      ('anniversary', 'Aniversario 💕', '2021-05-02', '💕', 7),
+      ('valentines', 'San Valentín', '2026-02-14', '❤️', 7)
+    ON CONFLICT (id) DO NOTHING
+  `;
+
+  // Seed achievements
+  await sql`
+    INSERT INTO achievements (id, title, description, emoji, category, target) VALUES
+      ('first_message', 'Primer Mensaje', 'Envía tu primer mensaje de amor', '💌', 'mensajes', 1),
+      ('msg_10', '10 Mensajes', 'Has enviado 10 mensajes', '📨', 'mensajes', 10),
+      ('msg_50', '50 Mensajes', '¡50 mensajes de puro amor!', '💝', 'mensajes', 50),
+      ('msg_100', 'Centenario', '¡100 mensajes de amor!', '🏆', 'mensajes', 100),
+      ('msg_500', 'Leyenda del Amor', '500 mensajes... ¡increíble!', '👑', 'mensajes', 500),
+      ('first_gift', 'Primera Sorpresa', 'Envía tu primera sorpresa con muñequito', '🎁', 'sorpresas', 1),
+      ('gift_10', 'Rey de las Sorpresas', '10 sorpresas enviadas', '🎊', 'sorpresas', 10),
+      ('gift_25', 'Sorpresólogo', '¡25 sorpresas! Eres un máquina', '🎉', 'sorpresas', 25),
+      ('first_coupon', 'Primer Cupón', 'Crea tu primer cupón de amor', '🎟️', 'cupones', 1),
+      ('coupon_5', 'Cupón Manía', '5 cupones creados', '🎫', 'cupones', 5),
+      ('coupon_redeem', 'Cupón Canjeado', 'Tu novia canjeó un cupón', '✅', 'cupones', 1),
+      ('first_song', 'DJ del Amor', 'Comparte tu primera canción', '🎵', 'canciones', 1),
+      ('song_10', 'Playlist del Amor', '10 canciones compartidas', '🎶', 'canciones', 10),
+      ('first_photo', 'Primer Recuerdo', 'Sube tu primera foto', '📸', 'fotos', 1),
+      ('photo_10', 'Álbum de Amor', '10 fotos en tu galería', '📷', 'fotos', 10),
+      ('photo_50', 'Fotógrafo Pro', '50 fotos juntos', '🏞️', 'fotos', 50),
+      ('mood_streak_7', 'Semana Emocional', '7 días seguidos registrando tu mood', '🔥', 'rachas', 7),
+      ('mood_streak_30', 'Mes Emocional', '30 días seguidos de moods', '⭐', 'rachas', 30),
+      ('days_100', '100 Días Juntos', '¡100 días de amor!', '💯', 'tiempo', 100),
+      ('days_365', '1 Año Juntos', '¡Un año completo!', '🎂', 'tiempo', 365),
+      ('days_500', '500 Días', '¡500 días de puro amor!', '🌟', 'tiempo', 500),
+      ('days_1000', '1000 Días', '¡Mil días juntos!', '💎', 'tiempo', 1000),
+      ('days_1500', '1500 Días', '¡Mil quinientos días!', '🏅', 'tiempo', 1500),
+      ('question_answer_1', 'Primera Respuesta', 'Responde tu primera pregunta del día', '❓', 'preguntas', 1),
+      ('question_answer_10', 'Curiosos', '10 preguntas respondidas', '🤔', 'preguntas', 10),
+      ('question_answer_50', 'Conociéndonos', '50 preguntas respondidas', '🧠', 'preguntas', 50),
+      ('saved_msg_1', 'Favorito', 'Guarda tu primer mensaje favorito', '⭐', 'guardados', 1),
+      ('saved_msg_10', 'Coleccionista', '10 mensajes guardados', '📚', 'guardados', 10),
+      ('night_owl', 'Búho Nocturno', 'Usa la app después de las 11pm', '🦉', 'especiales', 1),
+      ('early_bird', 'Madrugador', 'Usa la app antes de las 6am', '🐦', 'especiales', 1)
+    ON CONFLICT (id) DO NOTHING
+  `;
+
+  // Seed daily questions pool
+  await sql`
+    INSERT INTO daily_questions (id, question, category) VALUES
+      ('q1', '¿Qué es lo que más te enamora de mí?', 'amor'),
+      ('q2', '¿Cuál fue nuestro mejor momento juntos?', 'recuerdos'),
+      ('q3', '¿A dónde te gustaría viajar conmigo?', 'sueños'),
+      ('q4', '¿Qué canción te recuerda a nosotros?', 'gustos'),
+      ('q5', '¿Cuál es tu recuerdo favorito de nuestra relación?', 'recuerdos'),
+      ('q6', '¿Qué admiras más de mí?', 'amor'),
+      ('q7', '¿Cómo sería nuestro día perfecto juntos?', 'sueños'),
+      ('q8', '¿Cuál fue la primera vez que supiste que me amabas?', 'recuerdos'),
+      ('q9', '¿Qué cosa nueva te gustaría que hiciéramos juntos?', 'sueños'),
+      ('q10', '¿Cuál es tu comida favorita para compartir conmigo?', 'gustos'),
+      ('q11', '¿Qué es lo más gracioso que hemos vivido juntos?', 'recuerdos'),
+      ('q12', '¿Cómo te imaginas nuestra vida en 5 años?', 'sueños'),
+      ('q13', '¿Cuál es la mejor sorpresa que te he dado?', 'recuerdos'),
+      ('q14', '¿Qué película nos representa como pareja?', 'gustos'),
+      ('q15', '¿Qué es lo primero que notaste de mí?', 'recuerdos'),
+      ('q16', '¿Hay algo que siempre quisiste decirme pero no te atreviste?', 'profundo'),
+      ('q17', '¿Cuál es tu forma favorita de recibir amor?', 'amor'),
+      ('q18', '¿Qué hago que te haga sentir especial?', 'amor'),
+      ('q19', '¿Cuál es tu lugar favorito para estar conmigo?', 'gustos'),
+      ('q20', '¿Qué superpoder te gustaría tener para nuestra relación?', 'divertido'),
+      ('q21', '¿Me amas más que al café?', 'divertido'),
+      ('q22', '¿Qué es lo más romántico que te gustaría vivir?', 'sueños'),
+      ('q23', '¿Cuántos hijos/mascotas te gustaría tener conmigo?', 'futuro'),
+      ('q24', '¿Qué nombre le pondrías a nuestra historia de amor?', 'divertido'),
+      ('q25', '¿Qué es lo que más extrañas cuando no estamos juntos?', 'amor'),
+      ('q26', '¿Cuál es tu foto favorita de nosotros?', 'recuerdos'),
+      ('q27', '¿Qué tradición de pareja te gustaría crear?', 'sueños'),
+      ('q28', '¿Cuál fue nuestra mejor cita?', 'recuerdos'),
+      ('q29', '¿Qué serie o peli te gustaría ver conmigo?', 'gustos'),
+      ('q30', '¿Qué te hace sonreír cuando piensas en mí?', 'amor')
+    ON CONFLICT (id) DO NOTHING
+  `;
+
   console.log("[DB] Migrations complete");
 }

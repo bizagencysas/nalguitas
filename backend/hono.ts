@@ -4,9 +4,8 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices } from "./storage";
 import { sendPushNotification } from "./apns-service";
-import { loadDevices } from "./storage";
 import { migrate } from "./db";
 
 const app = new Hono();
@@ -310,6 +309,196 @@ app.post("/gifts/:id/seen", async (c) => {
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
+});
+
+// --- Coupon Endpoints ---
+
+app.post("/coupons", async (c) => {
+  try {
+    const body = await c.req.json();
+    const title = body?.title;
+    if (!title) return c.json({ error: "title is required" }, 400);
+    const coupon = { id: Date.now().toString(), title, description: body?.description || "", emoji: body?.emoji || "🎟️" };
+    await saveCoupon(coupon);
+    // Push to girlfriend
+    const { girlfriendDevices } = await loadDevices();
+    await Promise.all(girlfriendDevices.map(d => sendPushNotification(d.token, "¡Nuevo cupón de amor! 🎟️", title)));
+    return c.json(coupon);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/coupons", async (c) => {
+  try { return c.json(await loadCoupons()); } catch { return c.json([], 200); }
+});
+
+app.post("/coupons/:id/redeem", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await redeemCoupon(id);
+    // Notify admin
+    const { adminDevices } = await loadDevices();
+    await Promise.all(adminDevices.map(d => sendPushNotification(d.token, "¡Cupón canjeado! ✅", "Tu novia canjeó un cupón")));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Daily Question Endpoints ---
+
+app.get("/questions/today", async (c) => {
+  try {
+    const q = await getTodayQuestion();
+    return c.json(q || { id: null, question: "¡Todas las preguntas fueron respondidas! 🎉" });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/questions/:id/answer", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    if (!body?.answer) return c.json({ error: "answer is required" }, 400);
+    await answerQuestion(id, body.answer);
+    // Notify admin that she answered
+    const { adminDevices } = await loadDevices();
+    await Promise.all(adminDevices.map(d => sendPushNotification(d.token, "📝 Tu novia respondió la pregunta del día", body.answer.substring(0, 50))));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/questions/answered", async (c) => {
+  try { return c.json(await loadAnsweredQuestions()); } catch { return c.json([], 200); }
+});
+
+// --- Mood Endpoints ---
+
+app.post("/moods", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.mood || !body?.emoji) return c.json({ error: "mood and emoji are required" }, 400);
+    const mood = { id: Date.now().toString(), mood: body.mood, emoji: body.emoji, note: body?.note };
+    await saveMood(mood);
+    // Notify admin
+    const { adminDevices } = await loadDevices();
+    await Promise.all(adminDevices.map(d => sendPushNotification(d.token, `Tu novia se siente ${body.emoji}`, body.mood)));
+    return c.json(mood);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/moods", async (c) => {
+  try { return c.json(await loadMoods()); } catch { return c.json([], 200); }
+});
+
+app.get("/moods/today", async (c) => {
+  try { return c.json(await getTodayMood() || { id: null }); } catch { return c.json({ id: null }, 200); }
+});
+
+// --- Special Dates Endpoints ---
+
+app.get("/dates", async (c) => {
+  try { return c.json(await loadSpecialDates()); } catch { return c.json([], 200); }
+});
+
+app.post("/dates", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.title || !body?.date) return c.json({ error: "title and date are required" }, 400);
+    const d = { id: body?.id || Date.now().toString(), title: body.title, date: body.date, emoji: body?.emoji || "💕", reminderDaysBefore: body?.reminderDaysBefore || 7 };
+    await saveSpecialDate(d);
+    return c.json(d);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/dates/:id", async (c) => {
+  try { await deleteSpecialDate(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/days-together", async (c) => {
+  const start = new Date("2021-05-02T00:00:00");
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const years = Math.floor(diff / 365);
+  const months = Math.floor((diff % 365) / 30);
+  const days = diff % 30;
+  return c.json({ totalDays: diff, years, months, days, startDate: "2021-05-02" });
+});
+
+// --- Song Endpoints ---
+
+app.post("/songs", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.youtubeUrl) return c.json({ error: "youtubeUrl is required" }, 400);
+    const s = { id: Date.now().toString(), youtubeUrl: body.youtubeUrl, title: body?.title || "", artist: body?.artist || "", message: body?.message || "" };
+    await saveSong(s);
+    // Push to both (bidirectional)
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const allDevices = [...adminDevices, ...girlfriendDevices];
+    const pushTitle = body?.fromGirlfriend ? "🎵 Tu novia te envió una canción" : "🎵 Isacc te envió una canción";
+    await Promise.all(allDevices.map(d => sendPushNotification(d.token, pushTitle, body?.title || "Escúchala 💕")));
+    return c.json(s);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/songs", async (c) => {
+  try { return c.json(await loadSongs()); } catch { return c.json([], 200); }
+});
+
+app.get("/songs/unseen", async (c) => {
+  try { return c.json(await loadUnseenSongs()); } catch { return c.json([], 200); }
+});
+
+app.post("/songs/:id/seen", async (c) => {
+  try { await markSongSeen(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Achievement Endpoints ---
+
+app.get("/achievements", async (c) => {
+  try { return c.json(await loadAchievements()); } catch { return c.json([], 200); }
+});
+
+app.post("/achievements/:id/unlock", async (c) => {
+  try { await unlockAchievement(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/achievements/:id/progress", async (c) => {
+  try {
+    const body = await c.req.json();
+    await updateAchievementProgress(c.req.param("id"), body?.progress || 0);
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Photo Endpoints ---
+
+app.post("/photos", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.imageData) return c.json({ error: "imageData is required" }, 400);
+    const p = { id: Date.now().toString(), imageData: body.imageData, caption: body?.caption || "", uploadedBy: body?.uploadedBy || "admin" };
+    await savePhoto(p);
+    // Push to the other person
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const targets = p.uploadedBy === "admin" ? girlfriendDevices : adminDevices;
+    const pushTitle = p.uploadedBy === "admin" ? "📸 Isacc compartió una foto" : "📸 Tu novia compartió una foto";
+    await Promise.all(targets.map(d => sendPushNotification(d.token, pushTitle, p.caption || "Mira 💕")));
+    return c.json({ id: p.id, caption: p.caption, uploadedBy: p.uploadedBy });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/photos", async (c) => {
+  try { return c.json(await loadPhotos()); } catch { return c.json([], 200); }
+});
+
+app.get("/photos/:id", async (c) => {
+  try {
+    const photo = await loadPhotoById(c.req.param("id"));
+    if (!photo) return c.json({ error: "not found" }, 404);
+    return c.json(photo);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/photos/:id", async (c) => {
+  try { await deletePhoto(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
 
 app.get("/admin", (c) => {

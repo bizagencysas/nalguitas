@@ -266,3 +266,209 @@ export async function loadUnseenGifts(): Promise<Gift[]> {
 export async function markGiftSeen(id: string) {
   await sql`UPDATE gifts SET seen = TRUE WHERE id = ${id}`;
 }
+
+// --- Love Coupons ---
+
+interface LoveCoupon {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  createdAt: string;
+  redeemed: boolean;
+  redeemedAt: string | null;
+}
+
+export async function saveCoupon(coupon: { id: string; title: string; description: string; emoji: string }) {
+  await sql`INSERT INTO love_coupons (id, title, description, emoji) VALUES (${coupon.id}, ${coupon.title}, ${coupon.description}, ${coupon.emoji})`;
+}
+
+export async function loadCoupons(): Promise<LoveCoupon[]> {
+  const rows = await sql`SELECT * FROM love_coupons ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, description: r.description, emoji: r.emoji, createdAt: r.created_at?.toISOString?.() || r.created_at, redeemed: r.redeemed, redeemedAt: r.redeemed_at?.toISOString?.() || null }));
+}
+
+export async function redeemCoupon(id: string) {
+  await sql`UPDATE love_coupons SET redeemed = TRUE, redeemed_at = NOW() WHERE id = ${id}`;
+}
+
+// --- Daily Questions ---
+
+interface DailyQuestion {
+  id: string;
+  question: string;
+  category: string;
+  answered: boolean;
+  answer: string | null;
+  answeredAt: string | null;
+  shownDate: string | null;
+}
+
+export async function getTodayQuestion(): Promise<DailyQuestion | null> {
+  const today = new Date().toISOString().split("T")[0];
+  // Check if there's already a question for today
+  let rows = await sql`SELECT * FROM daily_questions WHERE shown_date = ${today} LIMIT 1`;
+  if (rows.length > 0) {
+    const r: any = rows[0];
+    return { id: r.id, question: r.question, category: r.category, answered: r.answered, answer: r.answer, answeredAt: r.answered_at?.toISOString?.() || null, shownDate: r.shown_date };
+  }
+  // Pick a random unanswered question
+  rows = await sql`SELECT * FROM daily_questions WHERE shown_date IS NULL ORDER BY RANDOM() LIMIT 1`;
+  if (rows.length === 0) {
+    // All questions used, reset
+    await sql`UPDATE daily_questions SET shown_date = NULL WHERE answered = FALSE`;
+    rows = await sql`SELECT * FROM daily_questions WHERE shown_date IS NULL ORDER BY RANDOM() LIMIT 1`;
+  }
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  await sql`UPDATE daily_questions SET shown_date = ${today} WHERE id = ${r.id}`;
+  return { id: r.id, question: r.question, category: r.category, answered: r.answered, answer: r.answer, answeredAt: null, shownDate: today };
+}
+
+export async function answerQuestion(id: string, answer: string) {
+  await sql`UPDATE daily_questions SET answered = TRUE, answer = ${answer}, answered_at = NOW() WHERE id = ${id}`;
+}
+
+export async function loadAnsweredQuestions(): Promise<DailyQuestion[]> {
+  const rows = await sql`SELECT * FROM daily_questions WHERE answered = TRUE ORDER BY answered_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, question: r.question, category: r.category, answered: r.answered, answer: r.answer, answeredAt: r.answered_at?.toISOString?.() || null, shownDate: r.shown_date }));
+}
+
+// --- Moods ---
+
+interface MoodEntry {
+  id: string;
+  mood: string;
+  emoji: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export async function saveMood(mood: { id: string; mood: string; emoji: string; note?: string }) {
+  await sql`INSERT INTO moods (id, mood, emoji, note) VALUES (${mood.id}, ${mood.mood}, ${mood.emoji}, ${mood.note || null})`;
+}
+
+export async function loadMoods(): Promise<MoodEntry[]> {
+  const rows = await sql`SELECT * FROM moods ORDER BY created_at DESC LIMIT 90`;
+  return rows.map((r: any) => ({ id: r.id, mood: r.mood, emoji: r.emoji, note: r.note, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function getTodayMood(): Promise<MoodEntry | null> {
+  const today = new Date().toISOString().split("T")[0];
+  const rows = await sql`SELECT * FROM moods WHERE created_at::date = ${today}::date ORDER BY created_at DESC LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, mood: r.mood, emoji: r.emoji, note: r.note, createdAt: r.created_at?.toISOString?.() || r.created_at };
+}
+
+// --- Special Dates ---
+
+interface SpecialDate {
+  id: string;
+  title: string;
+  date: string;
+  emoji: string;
+  reminderDaysBefore: number;
+}
+
+export async function loadSpecialDates(): Promise<SpecialDate[]> {
+  const rows = await sql`SELECT * FROM special_dates ORDER BY date ASC`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, date: r.date, emoji: r.emoji, reminderDaysBefore: r.reminder_days_before }));
+}
+
+export async function saveSpecialDate(d: { id: string; title: string; date: string; emoji: string; reminderDaysBefore?: number }) {
+  await sql`INSERT INTO special_dates (id, title, date, emoji, reminder_days_before) VALUES (${d.id}, ${d.title}, ${d.date}, ${d.emoji}, ${d.reminderDaysBefore || 7}) ON CONFLICT (id) DO UPDATE SET title = ${d.title}, date = ${d.date}, emoji = ${d.emoji}`;
+}
+
+export async function deleteSpecialDate(id: string) {
+  await sql`DELETE FROM special_dates WHERE id = ${id}`;
+}
+
+// --- Songs ---
+
+interface Song {
+  id: string;
+  youtubeUrl: string;
+  title: string;
+  artist: string;
+  message: string;
+  createdAt: string;
+  seen: boolean;
+}
+
+export async function saveSong(s: { id: string; youtubeUrl: string; title: string; artist: string; message: string }) {
+  await sql`INSERT INTO songs (id, youtube_url, title, artist, message) VALUES (${s.id}, ${s.youtubeUrl}, ${s.title}, ${s.artist}, ${s.message})`;
+}
+
+export async function loadSongs(): Promise<Song[]> {
+  const rows = await sql`SELECT * FROM songs ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, youtubeUrl: r.youtube_url, title: r.title, artist: r.artist, message: r.message, createdAt: r.created_at?.toISOString?.() || r.created_at, seen: r.seen }));
+}
+
+export async function loadUnseenSongs(): Promise<Song[]> {
+  const rows = await sql`SELECT * FROM songs WHERE seen = FALSE ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, youtubeUrl: r.youtube_url, title: r.title, artist: r.artist, message: r.message, createdAt: r.created_at?.toISOString?.() || r.created_at, seen: r.seen }));
+}
+
+export async function markSongSeen(id: string) {
+  await sql`UPDATE songs SET seen = TRUE WHERE id = ${id}`;
+}
+
+// --- Achievements ---
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  category: string;
+  unlocked: boolean;
+  unlockedAt: string | null;
+  progress: number;
+  target: number;
+}
+
+export async function loadAchievements(): Promise<Achievement[]> {
+  const rows = await sql`SELECT * FROM achievements ORDER BY category, target`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, description: r.description, emoji: r.emoji, category: r.category, unlocked: r.unlocked, unlockedAt: r.unlocked_at?.toISOString?.() || null, progress: r.progress, target: r.target }));
+}
+
+export async function unlockAchievement(id: string) {
+  await sql`UPDATE achievements SET unlocked = TRUE, unlocked_at = NOW(), progress = target WHERE id = ${id}`;
+}
+
+export async function updateAchievementProgress(id: string, progress: number) {
+  await sql`UPDATE achievements SET progress = ${progress} WHERE id = ${id}`;
+  // Auto-unlock if progress >= target
+  await sql`UPDATE achievements SET unlocked = TRUE, unlocked_at = NOW() WHERE id = ${id} AND progress >= target AND unlocked = FALSE`;
+}
+
+// --- Photos ---
+
+interface Photo {
+  id: string;
+  imageData: string;
+  caption: string;
+  uploadedBy: string;
+  createdAt: string;
+}
+
+export async function savePhoto(p: { id: string; imageData: string; caption: string; uploadedBy: string }) {
+  await sql`INSERT INTO photos (id, image_data, caption, uploaded_by) VALUES (${p.id}, ${p.imageData}, ${p.caption}, ${p.uploadedBy})`;
+}
+
+export async function loadPhotos(): Promise<Photo[]> {
+  const rows = await sql`SELECT id, caption, uploaded_by, created_at FROM photos ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, imageData: "", caption: r.caption, uploadedBy: r.uploaded_by, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function loadPhotoById(id: string): Promise<Photo | null> {
+  const rows = await sql`SELECT * FROM photos WHERE id = ${id}`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, imageData: r.image_data, caption: r.caption, uploadedBy: r.uploaded_by, createdAt: r.created_at?.toISOString?.() || r.created_at };
+}
+
+export async function deletePhoto(id: string) {
+  await sql`DELETE FROM photos WHERE id = ${id}`;
+}
