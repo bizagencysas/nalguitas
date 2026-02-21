@@ -358,6 +358,57 @@ nonisolated final class APIService: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
+    
+    // MARK: - Chat
+    func fetchChatMessages(limit: Int = 50, before: String? = nil) async throws -> [ChatMessage] {
+        var urlStr = "\(baseURL)/api/chat/messages?limit=\(limit)"
+        if let b = before { urlStr += "&before=\(b)" }
+        let (data, response) = try await URLSession.shared.data(from: URL(string: urlStr)!)
+        try checkResponse(data, response)
+        return try decoder.decode([ChatMessage].self, from: data)
+    }
+    func sendChatMessage(sender: String, type: String, content: String, mediaData: String? = nil, mediaUrl: String? = nil, replyTo: String? = nil) async throws -> ChatMessage {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/chat/send")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["sender": sender, "type": type, "content": content]
+        if let md = mediaData { body["mediaData"] = md }
+        if let mu = mediaUrl { body["mediaUrl"] = mu }
+        if let rt = replyTo { body["replyTo"] = rt }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+        return try decoder.decode(ChatMessage.self, from: data)
+    }
+    func markChatSeen(sender: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/chat/seen")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["sender": sender])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func fetchUnseenChatCount(sender: String) async throws -> Int {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/chat/unseen?sender=\(sender)")!)
+        try checkResponse(data, response)
+        struct R: Decodable { let count: Int }
+        return try decoder.decode(R.self, from: data).count
+    }
+    func generateAISticker(prompt: String) async throws -> AISticker {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/stickers/generate")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["prompt": prompt])
+        request.timeoutInterval = 60
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+        return try decoder.decode(AISticker.self, from: data)
+    }
+    func fetchAIStickers() async throws -> [AISticker] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/stickers")!)
+        try checkResponse(data, response)
+        return try decoder.decode([AISticker].self, from: data)
+    }
 }
 
 nonisolated struct CreateMessageInput: Codable, Sendable {

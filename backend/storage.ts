@@ -503,3 +503,63 @@ export async function updatePlanStatus(id: string, status: string) {
 export async function deletePlan(id: string) {
   await sql`DELETE FROM plans WHERE id = ${id}`;
 }
+
+// --- Chat Messages ---
+
+interface ChatMessage {
+  id: string;
+  sender: string;
+  type: string;
+  content: string;
+  mediaData: string | null;
+  mediaUrl: string | null;
+  replyTo: string | null;
+  seen: boolean;
+  createdAt: string;
+}
+
+export async function saveChatMessage(m: { id: string; sender: string; type: string; content: string; mediaData?: string; mediaUrl?: string; replyTo?: string }) {
+  await sql`INSERT INTO chat_messages (id, sender, type, content, media_data, media_url, reply_to) VALUES (${m.id}, ${m.sender}, ${m.type}, ${m.content}, ${m.mediaData || null}, ${m.mediaUrl || null}, ${m.replyTo || null})`;
+}
+
+export async function loadChatMessages(limit = 50, before?: string): Promise<ChatMessage[]> {
+  let rows;
+  if (before) {
+    rows = await sql`SELECT * FROM chat_messages WHERE created_at < ${before}::timestamptz ORDER BY created_at DESC LIMIT ${limit}`;
+  } else {
+    rows = await sql`SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`;
+  }
+  return rows.map((r: any) => ({ id: r.id, sender: r.sender, type: r.type, content: r.content, mediaData: r.media_data, mediaUrl: r.media_url, replyTo: r.reply_to, seen: r.seen, createdAt: r.created_at?.toISOString?.() || r.created_at })).reverse();
+}
+
+export async function loadUnseenChatMessages(sender: string): Promise<ChatMessage[]> {
+  const rows = await sql`SELECT * FROM chat_messages WHERE sender != ${sender} AND seen = FALSE ORDER BY created_at ASC`;
+  return rows.map((r: any) => ({ id: r.id, sender: r.sender, type: r.type, content: r.content, mediaData: r.media_data, mediaUrl: r.media_url, replyTo: r.reply_to, seen: r.seen, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function markChatMessagesSeen(sender: string) {
+  await sql`UPDATE chat_messages SET seen = TRUE WHERE sender != ${sender} AND seen = FALSE`;
+}
+
+export async function countUnseenMessages(forSender: string): Promise<number> {
+  const rows = await sql`SELECT COUNT(*) as count FROM chat_messages WHERE sender != ${forSender} AND seen = FALSE`;
+  return parseInt(rows[0]?.count || "0");
+}
+
+// --- AI Stickers ---
+
+interface AISticker {
+  id: string;
+  prompt: string;
+  imageData: string;
+  createdAt: string;
+}
+
+export async function saveAISticker(s: { id: string; prompt: string; imageData: string }) {
+  await sql`INSERT INTO ai_stickers (id, prompt, image_data) VALUES (${s.id}, ${s.prompt}, ${s.imageData})`;
+}
+
+export async function loadAIStickers(): Promise<AISticker[]> {
+  const rows = await sql`SELECT * FROM ai_stickers ORDER BY created_at DESC LIMIT 50`;
+  return rows.map((r: any) => ({ id: r.id, prompt: r.prompt, imageData: r.image_data, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}

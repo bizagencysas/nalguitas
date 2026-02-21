@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers } from "./storage";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
 
@@ -534,6 +534,87 @@ app.post("/plans/:id/status", async (c) => {
 
 app.delete("/plans/:id", async (c) => {
   try { await deletePlan(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Chat Endpoints ---
+
+app.post("/chat/send", async (c) => {
+  try {
+    const body = await c.req.json();
+    const msg = { id: Date.now().toString(), sender: body?.sender || "admin", type: body?.type || "text", content: body?.content || "", mediaData: body?.mediaData, mediaUrl: body?.mediaUrl, replyTo: body?.replyTo };
+    await saveChatMessage(msg);
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const targets = msg.sender === "admin" ? girlfriendDevices : adminDevices;
+    const pushTitle = msg.sender === "admin" ? "💬 Isacc" : "💬 Mi amor";
+    let pushBody = msg.content;
+    if (msg.type === "image") pushBody = "📷 Foto";
+    if (msg.type === "video") pushBody = "🎬 Video";
+    if (msg.type === "sticker") pushBody = "🎨 Sticker";
+    if (msg.type === "link") pushBody = `🔗 ${msg.content || "Link"}`;
+    await Promise.all(targets.map((d: any) => sendPushNotification(d.token, pushTitle, pushBody)));
+    return c.json(msg);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/chat/messages", async (c) => {
+  try {
+    const limit = parseInt(c.req.query("limit") || "50");
+    const before = c.req.query("before");
+    return c.json(await loadChatMessages(limit, before || undefined));
+  } catch { return c.json([], 200); }
+});
+
+app.post("/chat/seen", async (c) => {
+  try {
+    const body = await c.req.json();
+    await markChatMessagesSeen(body?.sender || "admin");
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/chat/unseen", async (c) => {
+  try {
+    const sender = c.req.query("sender") || "admin";
+    return c.json({ count: await countUnseenMessages(sender) });
+  } catch { return c.json({ count: 0 }, 200); }
+});
+
+// --- AI Sticker Generation (Rork Toolkit DALL-E 3) ---
+
+app.post("/stickers/generate", async (c) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.prompt) return c.json({ error: "prompt required" }, 400);
+    const res = await fetch("https://toolkit.rork.com/images/generate/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: `Cute 3D kawaii ${body.prompt}, transparent background, no background, PNG cutout style, Pixar quality 3D render, big sparkling eyes, blushing cheeks, isolated character only`, size: "1024x1024" })
+    });
+    const data = await res.json();
+    if (data?.image) {
+      const sticker = { id: Date.now().toString(), prompt: body.prompt, imageData: data.image };
+      await saveAISticker(sticker);
+      return c.json(sticker);
+    }
+    return c.json({ error: "Failed to generate" }, 500);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/stickers", async (c) => {
+  try { return c.json(await loadAIStickers()); } catch { return c.json([], 200); }
+});
+
+// --- Character Images List ---
+
+app.get("/characters", async (c) => {
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const dir = path.join(process.cwd(), "characters");
+    if (!fs.existsSync(dir)) return c.json([]);
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith(".png"));
+    return c.json(files.map((f: string) => ({ name: f.replace(".png", ""), url: `/characters/${f}` })));
+  } catch { return c.json([], 200); }
 });
 
 app.get("/admin", (c) => {

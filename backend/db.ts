@@ -284,6 +284,30 @@ export async function migrate() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  // Chat Messages
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      sender TEXT NOT NULL DEFAULT 'admin',
+      type TEXT NOT NULL DEFAULT 'text',
+      content TEXT NOT NULL DEFAULT '',
+      media_data TEXT,
+      media_url TEXT,
+      reply_to TEXT,
+      seen BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // AI Stickers (cached generated stickers)
+  await sql`
+    CREATE TABLE IF NOT EXISTS ai_stickers (
+      id TEXT PRIMARY KEY,
+      prompt TEXT NOT NULL,
+      image_data TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 
   console.log("[DB] Migrations complete");
 }

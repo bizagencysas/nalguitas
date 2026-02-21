@@ -211,3 +211,24 @@ struct RomanticFact: Identifiable, Sendable {
         return facts[(day - 1) % facts.count]
     }
 }
+
+// MARK: - Chat Message
+struct ChatMessage: Codable, Identifiable, Sendable {
+    let id: String
+    let sender: String
+    let type: String
+    let content: String
+    let mediaData: String?
+    let mediaUrl: String?
+    let replyTo: String?
+    let seen: Bool?
+    let createdAt: String?
+}
+
+// MARK: - AI Sticker
+struct AISticker: Codable, Identifiable, Sendable {
+    let id: String
+    let prompt: String
+    let imageData: String
+    let createdAt: String?
+}
