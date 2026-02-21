@@ -1206,7 +1206,7 @@ extension ExploreView {
                             let rect = CGRect(origin: .zero, size: size)
                             context.fill(Path(roundedRect: rect, cornerRadius: 24), with: .linearGradient(
                                 Gradient(colors: [Color(red: 0.85, green: 0.65, blue: 0.13), Color(red: 0.93, green: 0.79, blue: 0.28), Color(red: 0.85, green: 0.65, blue: 0.13)]),
-                                startPoint: .topLeading, endPoint: .bottomTrailing
+                                startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: size.width, y: size.height)
                             ))
                             
                             // Draw decorative pattern
