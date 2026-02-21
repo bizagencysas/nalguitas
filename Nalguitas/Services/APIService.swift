@@ -201,6 +201,140 @@ nonisolated final class APIService: Sendable {
         let (data, response) = try await URLSession.shared.data(for: request)
         try checkResponse(data, response)
     }
+    
+    // MARK: - Coupons
+    func fetchCoupons() async throws -> [LoveCoupon] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/coupons")!)
+        try checkResponse(data, response)
+        return try decoder.decode([LoveCoupon].self, from: data)
+    }
+    func createCoupon(title: String, description: String, emoji: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/coupons")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["title": title, "description": description, "emoji": emoji])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func redeemCoupon(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/coupons/\(id)/redeem")!)
+        request.httpMethod = "POST"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Daily Questions
+    func fetchTodayQuestion() async throws -> DailyQuestion {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/questions/today")!)
+        try checkResponse(data, response)
+        return try decoder.decode(DailyQuestion.self, from: data)
+    }
+    func answerQuestion(id: String, answer: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/questions/\(id)/answer")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["answer": answer])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func fetchAnsweredQuestions() async throws -> [DailyQuestion] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/questions/answered")!)
+        try checkResponse(data, response)
+        return try decoder.decode([DailyQuestion].self, from: data)
+    }
+    
+    // MARK: - Moods
+    func saveMood(mood: String, emoji: String, note: String?) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/moods")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["mood": mood, "emoji": emoji]
+        if let note = note, !note.isEmpty { body["note"] = note }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func fetchTodayMood() async throws -> MoodEntry? {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/moods/today")!)
+        try checkResponse(data, response)
+        let result = try decoder.decode(MoodEntry.self, from: data)
+        return result.id == nil ? nil : result
+    }
+    func fetchMoods() async throws -> [MoodEntry] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/moods")!)
+        try checkResponse(data, response)
+        return try decoder.decode([MoodEntry].self, from: data)
+    }
+    
+    // MARK: - Special Dates
+    func fetchSpecialDates() async throws -> [SpecialDate] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/dates")!)
+        try checkResponse(data, response)
+        return try decoder.decode([SpecialDate].self, from: data)
+    }
+    func createSpecialDate(title: String, date: String, emoji: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/dates")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["title": title, "date": date, "emoji": emoji])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Days Together
+    func fetchDaysTogether() async throws -> DaysTogether {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/days-together")!)
+        try checkResponse(data, response)
+        return try decoder.decode(DaysTogether.self, from: data)
+    }
+    
+    // MARK: - Songs
+    func fetchSongs() async throws -> [Song] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/songs")!)
+        try checkResponse(data, response)
+        return try decoder.decode([Song].self, from: data)
+    }
+    func sendSong(youtubeUrl: String, title: String, artist: String, message: String, fromGirlfriend: Bool = false) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/songs")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["youtubeUrl": youtubeUrl, "title": title, "artist": artist, "message": message, "fromGirlfriend": fromGirlfriend])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func markSongSeen(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/songs/\(id)/seen")!)
+        request.httpMethod = "POST"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
+    // MARK: - Achievements
+    func fetchAchievements() async throws -> [Achievement] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/achievements")!)
+        try checkResponse(data, response)
+        return try decoder.decode([Achievement].self, from: data)
+    }
+    
+    // MARK: - Photos
+    func fetchPhotos() async throws -> [SharedPhoto] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/photos")!)
+        try checkResponse(data, response)
+        return try decoder.decode([SharedPhoto].self, from: data)
+    }
+    func uploadPhoto(imageData: String, caption: String, uploadedBy: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/photos")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["imageData": imageData, "caption": caption, "uploadedBy": uploadedBy])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    func fetchPhotoById(id: String) async throws -> SharedPhoto {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/photos/\(id)")!)
+        try checkResponse(data, response)
+        return try decoder.decode(SharedPhoto.self, from: data)
+    }
 }
 
 nonisolated struct CreateMessageInput: Codable, Sendable {

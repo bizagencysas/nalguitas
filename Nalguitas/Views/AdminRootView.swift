@@ -11,19 +11,23 @@ struct AdminRootView: View {
                 AdminView()
             }
 
-            Tab("Vista Novia", systemImage: "heart.fill", value: 1) {
+            Tab("Explorar", systemImage: "sparkles", value: 1) {
+                ExploreView(isAdmin: true)
+            }
+
+            Tab("Vista Novia", systemImage: "heart.fill", value: 2) {
                 TodayView(viewModel: viewModel)
             }
 
-            Tab("Guardados", systemImage: "bookmark.fill", value: 2) {
+            Tab("Guardados", systemImage: "bookmark.fill", value: 3) {
                 SavedView()
             }
 
-            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 3) {
+            Tab("Historial", systemImage: "clock.arrow.circlepath", value: 4) {
                 HistoryView()
             }
 
-            Tab("Ajustes", systemImage: "gearshape.fill", value: 4) {
+            Tab("Ajustes", systemImage: "gearshape.fill", value: 5) {
                 SettingsView(notificationService: notificationService, viewModel: viewModel)
             }
         }
