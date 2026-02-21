@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct AdminView: View {
     @Environment(\.dismiss) private var dismiss
@@ -67,6 +68,23 @@ struct AdminView: View {
         .task {
             await loadMessages()
             await loadGirlfriendMessages()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task {
+                await loadMessages()
+                await loadGirlfriendMessages()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didReceiveRemoteMessage)) { _ in
+            Task {
+                await loadMessages()
+                await loadGirlfriendMessages()
+            }
+        }
+        .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
+            Task {
+                await loadGirlfriendMessages()
+            }
         }
     }
 
@@ -347,6 +365,7 @@ struct AdminView: View {
             try await APIService.shared.sendNotification(message: messageText.trimmingCharacters(in: .whitespacesAndNewlines))
             messageText = ""
             showTemporaryToast("Mensaje enviado 💕")
+            await loadMessages()
         } catch {
             showTemporaryToast("Error: \(error.localizedDescription)")
         }

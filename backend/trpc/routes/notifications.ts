@@ -23,10 +23,10 @@ interface GirlfriendMessage {
   read: boolean;
 }
 
-let registeredDevice: DeviceInfo | null = null;
+let girlfriendDevice: DeviceInfo | null = null;
+let adminDevice: DeviceInfo | null = null;
 let notificationHistory: NotificationLog[] = [];
 let girlfriendMessages: GirlfriendMessage[] = [];
-let adminDeviceToken: string | null = null;
 
 const scheduleConfig = {
   morning: "08:00",
@@ -43,21 +43,26 @@ export const notificationsRouter = createTRPCRouter({
       isAdmin: z.boolean().optional(),
     }))
     .mutation(({ input }) => {
-      registeredDevice = {
+      const device: DeviceInfo = {
         token: input.token,
         deviceId: input.deviceId,
         registeredAt: new Date().toISOString(),
       };
       if (input.isAdmin) {
-        adminDeviceToken = input.token;
+        adminDevice = device;
         console.log("Admin device registered:", input.token.substring(0, 20) + "...");
+      } else {
+        girlfriendDevice = device;
+        console.log("Girlfriend device registered:", input.token.substring(0, 20) + "...");
       }
-      console.log("Device registered:", input.token.substring(0, 20) + "...");
       return { success: true, message: "Device registered" };
     }),
 
   getDevice: publicProcedure.query(() => {
-    return registeredDevice;
+    return {
+      girlfriend: girlfriendDevice,
+      admin: adminDevice,
+    };
   }),
 
   sendNow: publicProcedure
@@ -69,14 +74,16 @@ export const notificationsRouter = createTRPCRouter({
 
       let pushStatus = "no_device";
 
-      if (registeredDevice) {
+      if (girlfriendDevice) {
         const result = await sendPushNotification(
-          registeredDevice.token,
-          "Nalguitas 💕",
+          girlfriendDevice.token,
+          "Nalguitas \u{1F495}",
           input.message
         );
         pushStatus = result.success ? "sent" : `failed: ${result.error}`;
-        console.log("Push result:", pushStatus);
+        console.log("Push to girlfriend:", pushStatus);
+      } else {
+        console.log("No girlfriend device registered");
       }
 
       const log: NotificationLog = {
@@ -95,14 +102,14 @@ export const notificationsRouter = createTRPCRouter({
     }),
 
   testNotification: publicProcedure.mutation(async () => {
-    if (!registeredDevice) {
-      throw new Error("No device registered");
+    if (!girlfriendDevice) {
+      throw new Error("No girlfriend device registered");
     }
 
     const result = await sendPushNotification(
-      registeredDevice.token,
-      "Nalguitas 💕",
-      "Esta es una notificación de prueba 💗"
+      girlfriendDevice.token,
+      "Nalguitas \u{1F495}",
+      "Esta es una notificación de prueba \u{1F497}"
     );
 
     const log: NotificationLog = {
@@ -113,7 +120,7 @@ export const notificationsRouter = createTRPCRouter({
     };
     notificationHistory.unshift(log);
 
-    return { success: result.success, status: log.status, deviceToken: registeredDevice.token };
+    return { success: result.success, status: log.status, deviceToken: girlfriendDevice.token };
   }),
 
   history: publicProcedure.query(() => {
@@ -137,9 +144,9 @@ export const notificationsRouter = createTRPCRouter({
       };
       girlfriendMessages.unshift(msg);
 
-      if (adminDeviceToken) {
+      if (adminDevice) {
         const result = await sendPushNotification(
-          adminDeviceToken,
+          adminDevice.token,
           "Nalguitas \u{1F49D}",
           `Tu novia dice: ${input.content}`
         );

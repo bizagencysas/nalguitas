@@ -58,6 +58,12 @@ struct TodayView: View {
         .task {
             await checkWidgetInstalled()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await viewModel.loadTodayMessage(context: modelContext) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .didReceiveRemoteMessage)) { _ in
+            Task { await viewModel.loadTodayMessage(context: modelContext) }
+        }
     }
 
     private var headerSection: some View {

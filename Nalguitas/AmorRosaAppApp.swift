@@ -46,9 +46,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        Task { @MainActor in
+            NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
+        }
         return [.banner, .badge, .sound]
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        Task { @MainActor in
+            NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
+        }
     }
+}
+
+extension Notification.Name {
+    static let didReceiveRemoteMessage = Notification.Name("didReceiveRemoteMessage")
 }
