@@ -131,31 +131,12 @@ struct ExploreView: View {
                         if !songs.isEmpty {
                             recentSongsCard
                         }
-                        
-                        // Palabra del Día
-                        if let word = todayWord {
-                            wordOfDayCard(word)
-                        }
-                        
-                        // Raspa y Gana
-                        if scratchCard != nil {
-                            scratchCardPreview
-                        }
-                        
-                        // Ruleta de Decisiones
-                        roulettePreviewCard
-                        
-                        // Diario Compartido
-                        diaryPreviewCard
-                        
-                        // Puntos y Recompensas
-                        pointsPreviewCard
-                        
-                        // Lista de Experiencias
-                        if !experiences.isEmpty {
-                            experiencesPreviewCard
-                        }
-                        
+                    }
+                    
+                    // New features in separate VStack to help compiler
+                    newFeaturesSection
+                    
+                    VStack(spacing: 20) {
                         // Admin: Mood History
                         if isAdmin && !moodHistory.isEmpty {
                             adminMoodHistoryCard
@@ -1016,6 +997,37 @@ struct ExploreView: View {
     private func showToast(_ text: String) {
         withAnimation { toastText = text }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { withAnimation { toastText = nil } }
+    }
+    
+    // MARK: - New Features Section (split to help compiler)
+    @ViewBuilder
+    private var newFeaturesSection: some View {
+        VStack(spacing: 20) {
+            // Palabra del Día
+            if let word = todayWord {
+                wordOfDayCard(word)
+            }
+            
+            // Raspa y Gana
+            if scratchCard != nil {
+                scratchCardPreview
+            }
+            
+            // Ruleta de Decisiones
+            roulettePreviewCard
+            
+            // Diario Compartido
+            diaryPreviewCard
+            
+            // Puntos y Recompensas
+            pointsPreviewCard
+            
+            // Lista de Experiencias
+            if !experiences.isEmpty {
+                experiencesPreviewCard
+            }
+        }
+        .padding(.horizontal, 20)
     }
 }
 
