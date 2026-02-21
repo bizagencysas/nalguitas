@@ -600,3 +600,147 @@ export async function deleteDevice(deviceId: string) {
   await sql`DELETE FROM devices WHERE device_id LIKE ${deviceId + '%'}`;
   await sql`DELETE FROM roles WHERE device_id LIKE ${deviceId + '%'}`;
 }
+
+// --- English Word of the Day ---
+
+export async function getTodayWord() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const rows = await sql`SELECT * FROM english_words WHERE day_of_year = ${dayOfYear} LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, word: r.word, translation: r.translation, exampleEn: r.example_en, exampleEs: r.example_es, pronunciation: r.pronunciation, dayOfYear: r.day_of_year, aiExample: r.ai_example };
+}
+
+export async function saveWord(w: { id: string; word: string; translation: string; exampleEn: string; exampleEs: string; pronunciation: string; dayOfYear: number }) {
+  await sql`INSERT INTO english_words (id, word, translation, example_en, example_es, pronunciation, day_of_year) VALUES (${w.id}, ${w.word}, ${w.translation}, ${w.exampleEn}, ${w.exampleEs}, ${w.pronunciation}, ${w.dayOfYear}) ON CONFLICT (day_of_year) DO NOTHING`;
+}
+
+export async function updateWordAiExample(dayOfYear: number, aiExample: string) {
+  await sql`UPDATE english_words SET ai_example = ${aiExample} WHERE day_of_year = ${dayOfYear}`;
+}
+
+export async function seedEnglishWords(words: { word: string; translation: string; exampleEn: string; exampleEs: string; pronunciation: string }[]) {
+  const existing = await sql`SELECT COUNT(*) as c FROM english_words`;
+  if (Number((existing[0] as any).c) >= 365) return;
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    await sql`INSERT INTO english_words (id, word, translation, example_en, example_es, pronunciation, day_of_year) VALUES (${`word-${i + 1}`}, ${w.word}, ${w.translation}, ${w.exampleEn}, ${w.exampleEs}, ${w.pronunciation}, ${i + 1}) ON CONFLICT (day_of_year) DO NOTHING`;
+  }
+}
+
+// --- Scratch Cards ---
+
+export async function saveScratchCard(id: string, prize: string, emoji: string) {
+  await sql`INSERT INTO scratch_cards (id, prize, emoji) VALUES (${id}, ${prize}, ${emoji})`;
+}
+
+export async function loadScratchCards() {
+  const rows = await sql`SELECT * FROM scratch_cards ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, prize: r.prize, emoji: r.emoji, scratched: r.scratched, scratchedAt: r.scratched_at?.toISOString?.() || null, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function getUnscratched() {
+  const rows = await sql`SELECT * FROM scratch_cards WHERE scratched = FALSE ORDER BY created_at ASC LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, prize: r.prize, emoji: r.emoji, scratched: r.scratched, scratchedAt: null, createdAt: r.created_at?.toISOString?.() || r.created_at };
+}
+
+export async function scratchCard(id: string) {
+  await sql`UPDATE scratch_cards SET scratched = TRUE, scratched_at = NOW() WHERE id = ${id}`;
+}
+
+// --- Roulette ---
+
+export async function saveRouletteOption(id: string, category: string, optionText: string, addedBy: string) {
+  await sql`INSERT INTO roulette_options (id, category, option_text, added_by) VALUES (${id}, ${category}, ${optionText}, ${addedBy})`;
+}
+
+export async function loadRouletteOptions(category: string) {
+  const rows = await sql`SELECT * FROM roulette_options WHERE category = ${category} ORDER BY created_at`;
+  return rows.map((r: any) => ({ id: r.id, category: r.category, optionText: r.option_text, addedBy: r.added_by, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function loadRouletteCategories() {
+  const rows = await sql`SELECT DISTINCT category FROM roulette_options ORDER BY category`;
+  return rows.map((r: any) => r.category as string);
+}
+
+export async function deleteRouletteOption(id: string) {
+  await sql`DELETE FROM roulette_options WHERE id = ${id}`;
+}
+
+// --- Diary ---
+
+export async function saveDiaryEntry(id: string, author: string, content: string, entryDate: string) {
+  await sql`INSERT INTO diary_entries (id, author, content, entry_date) VALUES (${id}, ${author}, ${content}, ${entryDate}) ON CONFLICT (author, entry_date) DO UPDATE SET content = ${content}`;
+}
+
+export async function getDiaryEntry(author: string, entryDate: string) {
+  const rows = await sql`SELECT * FROM diary_entries WHERE author = ${author} AND entry_date = ${entryDate} LIMIT 1`;
+  if (rows.length === 0) return null;
+  const r: any = rows[0];
+  return { id: r.id, author: r.author, content: r.content, entryDate: r.entry_date, createdAt: r.created_at?.toISOString?.() || r.created_at };
+}
+
+export async function loadDiaryEntries(author: string, limit: number = 30) {
+  const rows = await sql`SELECT * FROM diary_entries WHERE author = ${author} ORDER BY entry_date DESC LIMIT ${limit}`;
+  return rows.map((r: any) => ({ id: r.id, author: r.author, content: r.content, entryDate: r.entry_date, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+// --- Points ---
+
+export async function addPoints(id: string, username: string, points: number, reason: string) {
+  await sql`INSERT INTO points_ledger (id, username, points, reason) VALUES (${id}, ${username}, ${points}, ${reason})`;
+}
+
+export async function getPointsBalance(username: string): Promise<number> {
+  const rows = await sql`SELECT COALESCE(SUM(points), 0) as total FROM points_ledger WHERE username = ${username}`;
+  return Number((rows[0] as any).total);
+}
+
+export async function getPointsHistory(username: string) {
+  const rows = await sql`SELECT * FROM points_ledger WHERE username = ${username} ORDER BY created_at DESC LIMIT 50`;
+  return rows.map((r: any) => ({ id: r.id, username: r.username, points: r.points, reason: r.reason, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+// --- Rewards ---
+
+export async function saveReward(id: string, title: string, emoji: string, cost: number) {
+  await sql`INSERT INTO rewards (id, title, emoji, cost) VALUES (${id}, ${title}, ${emoji}, ${cost})`;
+}
+
+export async function loadRewards() {
+  const rows = await sql`SELECT * FROM rewards ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, emoji: r.emoji, cost: r.cost, redeemed: r.redeemed, redeemedBy: r.redeemed_by, redeemedAt: r.redeemed_at?.toISOString?.() || null, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function redeemReward(id: string, redeemedBy: string) {
+  await sql`UPDATE rewards SET redeemed = TRUE, redeemed_by = ${redeemedBy}, redeemed_at = NOW() WHERE id = ${id}`;
+}
+
+export async function deleteReward(id: string) {
+  await sql`DELETE FROM rewards WHERE id = ${id}`;
+}
+
+// --- Experiences ---
+
+export async function saveExperience(id: string, title: string, description: string, emoji: string) {
+  await sql`INSERT INTO experiences (id, title, description, emoji) VALUES (${id}, ${title}, ${description}, ${emoji})`;
+}
+
+export async function loadExperiences() {
+  const rows = await sql`SELECT * FROM experiences ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({ id: r.id, title: r.title, description: r.description, emoji: r.emoji, completed: r.completed, completedPhoto: r.completed_photo || null, completedAt: r.completed_at?.toISOString?.() || null, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+}
+
+export async function completeExperience(id: string, photo: string | null) {
+  await sql`UPDATE experiences SET completed = TRUE, completed_photo = ${photo}, completed_at = NOW() WHERE id = ${id}`;
+}
+
+export async function deleteExperience(id: string) {
+  await sql`DELETE FROM experiences WHERE id = ${id}`;
+}

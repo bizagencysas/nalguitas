@@ -318,5 +318,94 @@ export async function migrate() {
     )
   `;
 
+  // English Word of the Day (365 words)
+  await sql`
+    CREATE TABLE IF NOT EXISTS english_words (
+      id TEXT PRIMARY KEY,
+      word TEXT NOT NULL,
+      translation TEXT NOT NULL,
+      example_en TEXT NOT NULL DEFAULT '',
+      example_es TEXT NOT NULL DEFAULT '',
+      pronunciation TEXT NOT NULL DEFAULT '',
+      day_of_year INT UNIQUE NOT NULL,
+      ai_example TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Scratch Cards (admin creates prizes)
+  await sql`
+    CREATE TABLE IF NOT EXISTS scratch_cards (
+      id TEXT PRIMARY KEY,
+      prize TEXT NOT NULL,
+      emoji TEXT NOT NULL DEFAULT '🎁',
+      scratched BOOLEAN NOT NULL DEFAULT FALSE,
+      scratched_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Roulette Options
+  await sql`
+    CREATE TABLE IF NOT EXISTS roulette_options (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL DEFAULT 'general',
+      option_text TEXT NOT NULL,
+      added_by TEXT NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Diary Entries
+  await sql`
+    CREATE TABLE IF NOT EXISTS diary_entries (
+      id TEXT PRIMARY KEY,
+      author TEXT NOT NULL,
+      content TEXT NOT NULL,
+      entry_date TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(author, entry_date)
+    )
+  `;
+
+  // Points Ledger
+  await sql`
+    CREATE TABLE IF NOT EXISTS points_ledger (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      points INT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Rewards Catalog
+  await sql`
+    CREATE TABLE IF NOT EXISTS rewards (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      emoji TEXT NOT NULL DEFAULT '🎁',
+      cost INT NOT NULL DEFAULT 10,
+      redeemed BOOLEAN NOT NULL DEFAULT FALSE,
+      redeemed_by TEXT,
+      redeemed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Experiences (Bucket List)
+  await sql`
+    CREATE TABLE IF NOT EXISTS experiences (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      emoji TEXT NOT NULL DEFAULT '✨',
+      completed BOOLEAN NOT NULL DEFAULT FALSE,
+      completed_photo TEXT,
+      completed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
   console.log("[DB] Migrations complete");
 }

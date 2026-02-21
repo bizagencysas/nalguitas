@@ -4,7 +4,8 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice, getTodayWord, seedEnglishWords, updateWordAiExample, saveScratchCard, loadScratchCards, getUnscratched, scratchCard, saveRouletteOption, loadRouletteOptions, loadRouletteCategories, deleteRouletteOption, saveDiaryEntry, getDiaryEntry, loadDiaryEntries, addPoints, getPointsBalance, getPointsHistory, saveReward, loadRewards, redeemReward, deleteReward, saveExperience, loadExperiences, completeExperience, deleteExperience } from "./storage";
+import { ENGLISH_WORDS } from "./words";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
 
@@ -910,5 +911,204 @@ loadSchedule();
 </body>
 </html>`;
 }
+
+// ===== ENGLISH WORD OF THE DAY =====
+
+app.get("/words/today", async (c: any) => {
+  try {
+    await seedEnglishWords(ENGLISH_WORDS);
+    const word = await getTodayWord();
+    if (!word) return c.json({ error: "No word for today" }, 404);
+    return c.json(word);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/words/ai-example", async (c: any) => {
+  try {
+    const { word, translation, dayOfYear } = await c.req.json();
+    const resp = await fetch("https://toolkit.rork.com/agent/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: `Create a fun, romantic, and short example sentence using the English word "${word}" (which means "${translation}" in Spanish). The sentence should be playful and cute, as if a boyfriend wrote it for his girlfriend. Reply with ONLY the sentence in English, then a line break, then the Spanish translation. Keep it under 15 words each.` })
+    });
+    const data: any = await resp.json();
+    const aiText = data.response || data.text || data.message || "";
+    if (aiText) await updateWordAiExample(dayOfYear, aiText);
+    return c.json({ aiExample: aiText });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== SCRATCH CARDS =====
+
+app.get("/scratch-cards", async (c: any) => {
+  try { return c.json(await loadScratchCards()); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/scratch-cards/available", async (c: any) => {
+  try {
+    const card = await getUnscratched();
+    if (!card) return c.json({ available: false });
+    return c.json({ available: true, card });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/scratch-cards", async (c: any) => {
+  try {
+    const { prize, emoji } = await c.req.json();
+    const id = `sc-${Date.now()}`;
+    await saveScratchCard(id, prize, emoji || "🎁");
+    return c.json({ success: true, id });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/scratch-cards/:id/scratch", async (c: any) => {
+  try {
+    await scratchCard(c.req.param("id"));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== ROULETTE =====
+
+app.get("/roulette/categories", async (c: any) => {
+  try { return c.json(await loadRouletteCategories()); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/roulette/:category", async (c: any) => {
+  try { return c.json(await loadRouletteOptions(c.req.param("category"))); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/roulette", async (c: any) => {
+  try {
+    const { category, optionText, addedBy } = await c.req.json();
+    const id = `ro-${Date.now()}`;
+    await saveRouletteOption(id, category || "general", optionText, addedBy || "admin");
+    return c.json({ success: true, id });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/roulette/:id", async (c: any) => {
+  try { await deleteRouletteOption(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== DIARY =====
+
+app.get("/diary/:author", async (c: any) => {
+  try { return c.json(await loadDiaryEntries(c.req.param("author"))); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/diary/:author/today", async (c: any) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const entry = await getDiaryEntry(c.req.param("author"), today);
+    return c.json(entry || { content: null });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/diary/:author/partner", async (c: any) => {
+  try {
+    const author = c.req.param("author");
+    const partner = author === "admin" ? "girlfriend" : "admin";
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const entries = await loadDiaryEntries(partner, 30);
+    const visible = entries.filter((e: any) => e.entryDate <= yesterday);
+    return c.json(visible);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/diary", async (c: any) => {
+  try {
+    const { author, content } = await c.req.json();
+    const today = new Date().toISOString().split("T")[0];
+    const id = `de-${Date.now()}`;
+    await saveDiaryEntry(id, author, content, today);
+    return c.json({ success: true, id, entryDate: today });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== POINTS =====
+
+app.get("/points/:username", async (c: any) => {
+  try {
+    const username = c.req.param("username");
+    const balance = await getPointsBalance(username);
+    return c.json({ username, balance });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.get("/points/:username/history", async (c: any) => {
+  try { return c.json(await getPointsHistory(c.req.param("username"))); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/points", async (c: any) => {
+  try {
+    const { username, points, reason } = await c.req.json();
+    const id = `pt-${Date.now()}`;
+    await addPoints(id, username, points, reason || "");
+    const balance = await getPointsBalance(username);
+    return c.json({ success: true, balance });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== REWARDS =====
+
+app.get("/rewards", async (c: any) => {
+  try { return c.json(await loadRewards()); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/rewards", async (c: any) => {
+  try {
+    const { title, emoji, cost } = await c.req.json();
+    const id = `rw-${Date.now()}`;
+    await saveReward(id, title, emoji || "🎁", cost || 10);
+    return c.json({ success: true, id });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/rewards/:id/redeem", async (c: any) => {
+  try {
+    const { redeemedBy } = await c.req.json();
+    const balance = await getPointsBalance(redeemedBy);
+    const rewards = await loadRewards();
+    const reward = rewards.find((r: any) => r.id === c.req.param("id"));
+    if (!reward) return c.json({ error: "Reward not found" }, 404);
+    if (reward.redeemed) return c.json({ error: "Already redeemed" }, 400);
+    if (balance < reward.cost) return c.json({ error: "Not enough points" }, 400);
+    await redeemReward(c.req.param("id"), redeemedBy);
+    await addPoints(`pt-${Date.now()}`, redeemedBy, -reward.cost, `Canjeado: ${reward.title}`);
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/rewards/:id", async (c: any) => {
+  try { await deleteReward(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ===== EXPERIENCES (BUCKET LIST) =====
+
+app.get("/experiences", async (c: any) => {
+  try { return c.json(await loadExperiences()); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/experiences", async (c: any) => {
+  try {
+    const { title, description, emoji } = await c.req.json();
+    const id = `exp-${Date.now()}`;
+    await saveExperience(id, title, description || "", emoji || "✨");
+    return c.json({ success: true, id });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.post("/experiences/:id/complete", async (c: any) => {
+  try {
+    const { photo } = await c.req.json();
+    await completeExperience(c.req.param("id"), photo || null);
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/experiences/:id", async (c: any) => {
+  try { await deleteExperience(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
 
 export default app;
