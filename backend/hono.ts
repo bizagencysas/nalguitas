@@ -31,29 +31,35 @@ app.onError((err, c) => {
   return c.json({ error: err.message || "Internal Server Error" }, 500);
 });
 
-// Middleware: auto-wrap flat JSON for tRPC mutations
-// The iOS app may send {"content":"..."} instead of {"json":{"content":"..."}}
-app.use("/trpc/*", async (c, next) => {
-  if (c.req.method === "POST") {
-    try {
-      const body = await c.req.json();
-      // If body doesn't have a "json" wrapper, wrap it
-      if (body && typeof body === "object" && !body.json) {
-        const wrapped = JSON.stringify({ json: body });
-        // Create a new request with the wrapped body
-        const newReq = new Request(c.req.url, {
-          method: c.req.method,
-          headers: c.req.raw.headers,
-          body: wrapped,
-        });
-        // Replace the raw request
-        (c.req as any).raw = newReq;
-      }
-    } catch {
-      // If JSON parsing fails, let tRPC handle the error
+// Direct handler for messages.create - bypasses tRPC to handle both flat and wrapped JSON
+// This runs BEFORE the tRPC middleware because it's registered first
+app.post("/trpc/messages.create", async (c) => {
+  try {
+    const body = await c.req.json();
+    // Accept both flat {"content":"..."} and tRPC-wrapped {"json":{"content":"..."}}
+    const input = body?.json ?? body;
+    const content = input?.content;
+    if (!content || typeof content !== "string" || content.trim() === "") {
+      return c.json({ error: { message: "content is required", code: -32600 } }, 400);
     }
+    const msg = {
+      id: Date.now().toString(),
+      content: content.trim(),
+      subtitle: input?.subtitle || "Para ti",
+      tone: input?.tone || "tierno",
+      createdAt: new Date().toISOString(),
+      isSpecial: input?.isSpecial ?? false,
+      scheduledDate: input?.scheduledDate,
+      priority: input?.priority ?? 1,
+    };
+    await saveMessage(msg);
+    console.log(`[Messages] Created via tRPC bypass: "${msg.content.substring(0, 40)}"`);
+    // Return tRPC-compatible response format
+    return c.json({ result: { data: { json: msg } } });
+  } catch (e: any) {
+    console.error("Error creating message (tRPC bypass):", e);
+    return c.json({ error: { message: e.message } }, 500);
   }
-  await next();
 });
 
 app.use(
