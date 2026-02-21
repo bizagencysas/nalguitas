@@ -26,7 +26,7 @@ app.use(
 );
 
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "Nalguitas API (PostgreSQL)" });
+  return c.json({ status: "ok", message: "Nalguitas API (PostgreSQL)", v: "2.1" });
 });
 
 app.get("/messages/today", async (c) => {
