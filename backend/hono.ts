@@ -1032,6 +1032,18 @@ app.post("/diary", async (c: any) => {
     const today = new Date().toISOString().split("T")[0];
     const id = `de-${Date.now()}`;
     await saveDiaryEntry(id, author, content, today);
+
+    // Notify the partner
+    const { adminDevices, girlfriendDevices } = await loadDevices();
+    const isAdmin = author === "admin" || author === "isacc";
+    const targets = isAdmin ? girlfriendDevices : adminDevices;
+    const senderName = isAdmin ? "Isacc" : "Tu novia";
+    if (targets.length > 0) {
+      await Promise.all(
+        targets.map((d: any) => sendPushNotification(d.token, `📖 ${senderName} escribió en su diario`, "Abre la app para leerlo 💕"))
+      );
+    }
+
     return c.json({ success: true, id, entryDate: today });
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
