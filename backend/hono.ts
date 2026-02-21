@@ -69,19 +69,21 @@ app.get("/messages", async (c) => {
 app.post("/messages", async (c) => {
   try {
     const body = await c.req.json();
-    const content = body?.content;
+    // Accept both flat JSON {"content":"..."} and tRPC-wrapped {"json":{"content":"..."}}
+    const input = body?.json ?? body;
+    const content = input?.content;
     if (!content || typeof content !== "string" || content.trim() === "") {
       return c.json({ error: "content is required" }, 400);
     }
     const msg = {
       id: Date.now().toString(),
       content: content.trim(),
-      subtitle: body?.subtitle || "Para ti",
-      tone: body?.tone || "tierno",
+      subtitle: input?.subtitle || "Para ti",
+      tone: input?.tone || "tierno",
       createdAt: new Date().toISOString(),
-      isSpecial: body?.isSpecial ?? false,
-      scheduledDate: body?.scheduledDate,
-      priority: body?.priority ?? 1,
+      isSpecial: input?.isSpecial ?? false,
+      scheduledDate: input?.scheduledDate,
+      priority: input?.priority ?? 1,
     };
     await saveMessage(msg);
     console.log(`[Messages] Created: "${msg.content.substring(0, 40)}"`);
