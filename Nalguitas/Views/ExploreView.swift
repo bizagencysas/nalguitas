@@ -57,6 +57,7 @@ struct ExploreView: View {
     // Admin monitoring
     @State private var showMoodHistory = false
     @State private var showAnswerHistory = false
+    @State private var showGallery = false
     
     @State private var toastText: String?
     
@@ -151,6 +152,7 @@ struct ExploreView: View {
             .sheet(isPresented: $showPhotoSheet) { photoUploadSheet }
             .sheet(isPresented: $showMoodHistory) { moodHistorySheet }
             .sheet(isPresented: $showAnswerHistory) { answerHistorySheet }
+            .sheet(isPresented: $showGallery) { fullGallerySheet }
             .task { await loadData() }
         }
     }
@@ -378,17 +380,31 @@ struct ExploreView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(photos.prefix(6)) { photo in
-                        VStack(spacing: 4) {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .frame(width: 90, height: 90)
-                                .overlay(Image(systemName: "photo.fill").font(.title2).foregroundStyle(Theme.rosePrimary.opacity(0.5)))
-                            if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
+                        Button { showGallery = true } label: {
+                            VStack(spacing: 4) {
+                                if let imgData = photo.imageData, !imgData.isEmpty,
+                                   let data = Data(base64Encoded: imgData),
+                                   let uiImage = UIImage(data: data) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 90, height: 90)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                } else {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 90, height: 90)
+                                        .overlay(Image(systemName: "photo.fill").font(.title2).foregroundStyle(Theme.rosePrimary.opacity(0.5)))
+                                }
+                                if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
+                            }
                         }
                     }
                 }
             }
-            Text("\(photos.count) fotos compartidas").font(.caption).foregroundStyle(.tertiary)
+            Button { showGallery = true } label: {
+                Text("Ver todas (\(photos.count) fotos) →").font(.system(.caption, design: .rounded, weight: .semibold)).foregroundStyle(Theme.rosePrimary)
+            }
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 3))
@@ -648,15 +664,25 @@ struct ExploreView: View {
                 Theme.meshBackground
                 ScrollView {
                     VStack(spacing: 16) {
-                        // Existing photos grid
+                        // Existing photos grid with actual images
                         if !photos.isEmpty {
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                 ForEach(photos) { photo in
                                     VStack(spacing: 2) {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                            .frame(height: 80)
-                                            .overlay(Image(systemName: "photo.fill").foregroundStyle(Theme.rosePrimary.opacity(0.4)))
+                                        if let imgData = photo.imageData, !imgData.isEmpty,
+                                           let data = Data(base64Encoded: imgData),
+                                           let uiImage = UIImage(data: data) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(height: 80)
+                                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                                .frame(height: 80)
+                                                .overlay(Image(systemName: "photo.fill").foregroundStyle(Theme.rosePrimary.opacity(0.4)))
+                                        }
                                         if !photo.caption.isEmpty { Text(photo.caption).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1) }
                                         Text(photo.uploadedBy == "admin" ? "Isacc" : "Tú").font(.system(size: 8, weight: .medium, design: .rounded)).foregroundStyle(.tertiary)
                                     }
@@ -685,10 +711,18 @@ struct ExploreView: View {
                             }
                         }
                         
-                        if selectedImageData != nil {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                                Text("Foto seleccionada").font(.subheadline).foregroundStyle(.secondary)
+                        // Show preview of selected photo
+                        if let imgData = selectedImageData, let uiImage = UIImage(data: imgData) {
+                            VStack(spacing: 6) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxHeight: 200)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                                    Text("Foto seleccionada").font(.subheadline).foregroundStyle(.secondary)
+                                }
                             }
                         }
                         
@@ -705,6 +739,53 @@ struct ExploreView: View {
             .navigationTitle("Galería de Fotos 📸")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showPhotoSheet = false } } }
+        }
+    }
+    
+    // MARK: - Full Gallery Sheet
+    private var fullGallerySheet: some View {
+        NavigationStack {
+            ZStack {
+                Theme.meshBackground
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(photos) { photo in
+                            VStack(spacing: 4) {
+                                if let imgData = photo.imageData, !imgData.isEmpty,
+                                   let data = Data(base64Encoded: imgData),
+                                   let uiImage = UIImage(data: data) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(minHeight: 140, maxHeight: 180)
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                                } else {
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(height: 140)
+                                        .overlay(Image(systemName: "photo.fill").font(.title).foregroundStyle(Theme.rosePrimary.opacity(0.4)))
+                                }
+                                if !photo.caption.isEmpty {
+                                    Text(photo.caption)
+                                        .font(.system(.caption, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                Text(photo.uploadedBy == "admin" ? "📸 Isacc" : "📸 Tú")
+                                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Todas las Fotos (\(photos.count))")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showGallery = false } }
+                ToolbarItem(placement: .confirmationAction) { Button { showPhotoSheet = true } label: { Image(systemName: "plus.circle.fill").foregroundStyle(Theme.rosePrimary) } }
+            }
         }
     }
     

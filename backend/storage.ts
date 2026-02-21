@@ -466,8 +466,8 @@ export async function savePhoto(p: { id: string; imageData: string; caption: str
 }
 
 export async function loadPhotos(): Promise<Photo[]> {
-  const rows = await sql`SELECT id, caption, uploaded_by, created_at FROM photos ORDER BY created_at DESC`;
-  return rows.map((r: any) => ({ id: r.id, imageData: "", caption: r.caption, uploadedBy: r.uploaded_by, createdAt: r.created_at?.toISOString?.() || r.created_at }));
+  const rows = await sql`SELECT id, image_data, caption, uploaded_by, created_at FROM photos ORDER BY created_at DESC LIMIT 30`;
+  return rows.map((r: any) => ({ id: r.id, imageData: r.image_data || "", caption: r.caption, uploadedBy: r.uploaded_by, createdAt: r.created_at?.toISOString?.() || r.created_at }));
 }
 
 export async function loadPhotoById(id: string): Promise<Photo | null> {
