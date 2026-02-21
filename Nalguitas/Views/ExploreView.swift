@@ -1473,51 +1473,72 @@ extension ExploreView {
     // MARK: - Experiences Sheet
     private var experiencesSheet: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 12) {
-                    let done = experiences.filter { $0.completed }.count
-                    Text("\(done) de \(experiences.count) completadas")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    
-                    ForEach(experiences) { exp in
-                        HStack {
-                            Text(exp.emoji).font(.title2)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(exp.title)
-                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                    .strikethrough(exp.completed)
-                                if !exp.description.isEmpty {
-                                    Text(exp.description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                                }
-                            }
-                            Spacer()
-                            if exp.completed {
-                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title3)
-                            } else {
-                                Button {
-                                    Task {
-                                        try? await APIService.shared.completeExperience(id: exp.id, photo: nil)
-                                        experiences = (try? await APIService.shared.fetchExperiences()) ?? []
-                                        showToast("¡Experiencia completada! 🎉")
-                                    }
-                                } label: {
-                                    Text("Hecho")
-                                        .font(.system(.caption, design: .rounded, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 12).padding(.vertical, 6)
-                                        .background(Capsule().fill(Theme.rosePrimary))
-                                }
-                            }
-                        }
-                        .padding(14)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(exp.completed ? Theme.rosePrimary.opacity(0.05) : .ultraThinMaterial))
+            experiencesSheetContent
+                .navigationTitle("Experiencias ✨")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cerrar") { showExperiencesSheet = false }
                     }
-                }.padding(20)
+                }
+        }
+    }
+
+    private var experiencesSheetContent: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                let done = experiences.filter { $0.completed }.count
+                Text("\(done) de \(experiences.count) completadas")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(experiences) { exp in
+                    experienceRow(exp)
+                }
             }
-            .navigationTitle("Experiencias ✨")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showExperiencesSheet = false } } }
+            .padding(20)
+        }
+    }
+
+    private func experienceRow(_ exp: Experience) -> some View {
+        HStack {
+            Text(exp.emoji).font(.title2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(exp.title)
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .strikethrough(exp.completed)
+                if !exp.description.isEmpty {
+                    Text(exp.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer()
+            if exp.completed {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.title3)
+            } else {
+                Button {
+                    Task {
+                        try? await APIService.shared.completeExperience(id: exp.id, photo: nil)
+                        experiences = (try? await APIService.shared.fetchExperiences()) ?? []
+                        showToast("¡Experiencia completada! 🎉")
+                    }
+                } label: {
+                    Text("Hecho")
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Theme.rosePrimary))
+                }
+            }
+        }
+        .padding(14)
+        .background {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(exp.completed ? AnyShapeStyle(Theme.rosePrimary.opacity(0.05)) : AnyShapeStyle(.ultraThinMaterial))
         }
     }
 }

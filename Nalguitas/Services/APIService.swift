@@ -24,15 +24,15 @@ nonisolated final class APIService: Sendable {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let fallback = ISO8601DateFormatter()
-        fallback.formatOptions = [.withInternetDateTime]
         d.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let str = try container.decode(String.self)
             if str.isEmpty { throw DecodingError.dataCorruptedError(in: container, debugDescription: "Empty date") }
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             if let date = formatter.date(from: str) { return date }
+            let fallback = ISO8601DateFormatter()
+            fallback.formatOptions = [.withInternetDateTime]
             if let date = fallback.date(from: str) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date: \(str)")
         }
@@ -71,7 +71,7 @@ nonisolated final class APIService: Sendable {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let deviceId = await UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         let body = DeviceRegistrationFull(token: token, deviceId: deviceId, isAdmin: isAdmin)
         request.httpBody = try JSONEncoder().encode(body)
 
