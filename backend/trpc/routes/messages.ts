@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
+import { loadMessages, saveMessages } from "../../storage";
 
 interface LoveMessage {
   id: string;
@@ -12,12 +13,15 @@ interface LoveMessage {
   priority: number;
 }
 
-let messages: LoveMessage[] = [];
+let messages: LoveMessage[] = loadMessages();
+
+function persist() {
+  saveMessages(messages);
+}
 
 function getTodayMessage(): LoveMessage | null {
   if (messages.length === 0) return null;
-  const lastMessage = messages[messages.length - 1];
-  return lastMessage;
+  return messages[messages.length - 1];
 }
 
 export function addMessageFromNotification(content: string): LoveMessage {
@@ -31,6 +35,7 @@ export function addMessageFromNotification(content: string): LoveMessage {
     priority: 1,
   };
   messages.push(msg);
+  persist();
   return msg;
 }
 
@@ -64,6 +69,8 @@ export const messagesRouter = createTRPCRouter({
         priority: input.priority,
       };
       messages.push(msg);
+      persist();
+      console.log(`[Messages] Created message: "${msg.content.substring(0, 40)}..." (total: ${messages.length})`);
       return msg;
     }),
 
@@ -81,6 +88,7 @@ export const messagesRouter = createTRPCRouter({
       const index = messages.findIndex((m) => m.id === input.id);
       if (index === -1) throw new Error("Message not found");
       messages[index] = { ...messages[index], ...input };
+      persist();
       return messages[index];
     }),
 
@@ -88,6 +96,8 @@ export const messagesRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(({ input }) => {
       messages = messages.filter((m) => m.id !== input.id);
+      persist();
+      console.log(`[Messages] Deleted message ${input.id} (remaining: ${messages.length})`);
       return { success: true };
     }),
 });

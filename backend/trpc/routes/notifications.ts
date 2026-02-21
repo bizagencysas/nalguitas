@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
 import { sendPushNotification } from "../../apns-service";
-import { loadDevices, saveDevices } from "../../storage";
+import { loadDevices, saveDevices, loadNotificationHistory, saveNotificationHistory, loadGirlfriendMessages, saveGirlfriendMessages } from "../../storage";
 
 interface DeviceInfo {
   token: string;
@@ -27,8 +27,8 @@ const stored = loadDevices();
 let girlfriendDevices: DeviceInfo[] = stored.girlfriendDevices;
 let adminDevices: DeviceInfo[] = stored.adminDevices;
 const MAX_DEVICES = 10;
-let notificationHistory: NotificationLog[] = [];
-let girlfriendMessages: GirlfriendMessage[] = [];
+let notificationHistory: NotificationLog[] = loadNotificationHistory();
+let girlfriendMessages: GirlfriendMessage[] = loadGirlfriendMessages();
 
 const scheduleConfig = {
   morning: "08:00",
@@ -106,6 +106,7 @@ export const notificationsRouter = createTRPCRouter({
         status: pushStatus,
       };
       notificationHistory.unshift(log);
+      saveNotificationHistory(notificationHistory);
 
       return {
         success: true,
@@ -133,6 +134,7 @@ export const notificationsRouter = createTRPCRouter({
       status: successCount > 0 ? `sent (${successCount}/${girlfriendDevices.length})` : `failed: ${results[0]?.error}`,
     };
     notificationHistory.unshift(log);
+    saveNotificationHistory(notificationHistory);
 
     return { success: successCount > 0, status: log.status };
   }),
@@ -157,6 +159,7 @@ export const notificationsRouter = createTRPCRouter({
         read: false,
       };
       girlfriendMessages.unshift(msg);
+      saveGirlfriendMessages(girlfriendMessages);
 
       if (adminDevices.length > 0) {
         const results = await Promise.all(

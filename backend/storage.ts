@@ -1,14 +1,49 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const DATA_DIR = path.join(__dirname, ".data");
-const DEVICES_FILE = path.join(DATA_DIR, "devices.json");
+const DATA_DIR = "/tmp/nalguitas-data";
 
-interface StoredData {
-  girlfriendDevices: { token: string; deviceId: string; registeredAt: string }[];
-  adminDevices: { token: string; deviceId: string; registeredAt: string }[];
+interface DeviceInfo {
+  token: string;
+  deviceId: string;
+  registeredAt: string;
+}
+
+interface StoredDevices {
+  girlfriendDevices: DeviceInfo[];
+  adminDevices: DeviceInfo[];
+}
+
+interface LoveMessage {
+  id: string;
+  content: string;
+  subtitle: string;
+  tone: string;
+  createdAt: string;
+  isSpecial: boolean;
+  scheduledDate?: string;
+  priority: number;
+}
+
+interface NotificationLog {
+  id: string;
+  message: string;
+  sentAt: string;
+  status: string;
+}
+
+interface GirlfriendMessage {
+  id: string;
+  content: string;
+  sentAt: string;
+  read: boolean;
+}
+
+interface AllData {
+  devices: StoredDevices;
+  messages: LoveMessage[];
+  notificationHistory: NotificationLog[];
+  girlfriendMessages: GirlfriendMessage[];
 }
 
 function ensureDir() {
@@ -19,30 +54,66 @@ function ensureDir() {
   } catch {}
 }
 
-export function loadDevices(): StoredData {
+function readFile<T>(filename: string, fallback: T): T {
   try {
     ensureDir();
-    if (fs.existsSync(DEVICES_FILE)) {
-      const raw = fs.readFileSync(DEVICES_FILE, "utf8");
-      const data = JSON.parse(raw) as StoredData;
-      console.log(`[Storage] Loaded ${data.girlfriendDevices?.length || 0} girlfriend + ${data.adminDevices?.length || 0} admin devices from disk`);
-      return {
-        girlfriendDevices: data.girlfriendDevices || [],
-        adminDevices: data.adminDevices || [],
-      };
+    const filePath = path.join(DATA_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf8");
+      return JSON.parse(raw) as T;
     }
   } catch (e: any) {
-    console.error("[Storage] Error loading devices:", e.message);
+    console.error(`[Storage] Error reading ${filename}:`, e.message);
   }
-  return { girlfriendDevices: [], adminDevices: [] };
+  return fallback;
 }
 
-export function saveDevices(data: StoredData) {
+function writeFile<T>(filename: string, data: T) {
   try {
     ensureDir();
-    fs.writeFileSync(DEVICES_FILE, JSON.stringify(data, null, 2), "utf8");
-    console.log(`[Storage] Saved ${data.girlfriendDevices.length} girlfriend + ${data.adminDevices.length} admin devices to disk`);
+    const filePath = path.join(DATA_DIR, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
   } catch (e: any) {
-    console.error("[Storage] Error saving devices:", e.message);
+    console.error(`[Storage] Error writing ${filename}:`, e.message);
   }
+}
+
+export function loadDevices(): StoredDevices {
+  const data = readFile<StoredDevices>("devices.json", { girlfriendDevices: [], adminDevices: [] });
+  console.log(`[Storage] Loaded ${data.girlfriendDevices?.length || 0} girlfriend + ${data.adminDevices?.length || 0} admin devices`);
+  return {
+    girlfriendDevices: data.girlfriendDevices || [],
+    adminDevices: data.adminDevices || [],
+  };
+}
+
+export function saveDevices(data: StoredDevices) {
+  writeFile("devices.json", data);
+  console.log(`[Storage] Saved ${data.girlfriendDevices.length} girlfriend + ${data.adminDevices.length} admin devices`);
+}
+
+export function loadMessages(): LoveMessage[] {
+  const data = readFile<LoveMessage[]>("messages.json", []);
+  console.log(`[Storage] Loaded ${data.length} messages`);
+  return data;
+}
+
+export function saveMessages(data: LoveMessage[]) {
+  writeFile("messages.json", data);
+}
+
+export function loadNotificationHistory(): NotificationLog[] {
+  return readFile<NotificationLog[]>("notification-history.json", []);
+}
+
+export function saveNotificationHistory(data: NotificationLog[]) {
+  writeFile("notification-history.json", data);
+}
+
+export function loadGirlfriendMessages(): GirlfriendMessage[] {
+  return readFile<GirlfriendMessage[]>("girlfriend-messages.json", []);
+}
+
+export function saveGirlfriendMessages(data: GirlfriendMessage[]) {
+  writeFile("girlfriend-messages.json", data);
 }
