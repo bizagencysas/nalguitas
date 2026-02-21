@@ -63,6 +63,8 @@ struct ExploreView: View {
     @State private var todayWord: EnglishWord?
     @State private var aiWordExample: String?
     @State private var scratchCard: ScratchCard?
+    @State private var scratchPoints: [CGPoint] = []
+    @State private var scratchPercentage: Double = 0
     @State private var showScratchSheet = false
     @State private var isScratched = false
     @State private var rouletteOptions: [RouletteOption] = []
@@ -1176,34 +1178,105 @@ extension ExploreView {
     }
     
     // MARK: - Scratch Card Sheet
+
+    
     private var scratchCardSheet: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                Text(scratchCard?.emoji ?? "🎁").font(.system(size: 80))
-                if isScratched {
-                    Text("🎉 ¡Ganaste!").font(.system(.title, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
-                    Text(scratchCard?.prize ?? "").font(.system(.title3, design: .rounded, weight: .semibold)).multilineTextAlignment(.center)
-                } else {
-                    Text("Toca para rascar").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
-                    Button {
-                        Task {
-                            if let id = scratchCard?.id {
-                                try? await APIService.shared.scratchCard(id: id)
-                                withAnimation(.spring()) { isScratched = true }
+                Text("🎰 Raspa y Gana").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
+                
+                // Scratch card area
+                ZStack {
+                    // Prize layer (hidden underneath)
+                    VStack(spacing: 16) {
+                        Text(scratchCard?.emoji ?? "🎁").font(.system(size: 60))
+                        Text("🎉 ¡Ganaste!").font(.system(.title2, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
+                        Text(scratchCard?.prize ?? "").font(.system(.title3, design: .rounded, weight: .semibold)).foregroundStyle(.primary).multilineTextAlignment(.center).padding(.horizontal, 16)
+                    }
+                    .frame(width: 280, height: 280)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(LinearGradient(colors: [Color(red: 1.0, green: 0.97, blue: 0.95), Color(red: 1.0, green: 0.93, blue: 0.93)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    )
+                    
+                    // Scratch overlay (golden layer)
+                    if !isScratched {
+                        Canvas { context, size in
+                            // Draw golden background
+                            let rect = CGRect(origin: .zero, size: size)
+                            context.fill(Path(roundedRect: rect, cornerRadius: 24), with: .linearGradient(
+                                Gradient(colors: [Color(red: 0.85, green: 0.65, blue: 0.13), Color(red: 0.93, green: 0.79, blue: 0.28), Color(red: 0.85, green: 0.65, blue: 0.13)]),
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                            
+                            // Draw decorative pattern
+                            context.drawLayer { ctx in
+                                for i in stride(from: 0, to: size.width, by: 20) {
+                                    for j in stride(from: 0, to: size.height, by: 20) {
+                                        let dot = Path(ellipseIn: CGRect(x: i + 8, y: j + 8, width: 4, height: 4))
+                                        ctx.fill(dot, with: .color(.white.opacity(0.15)))
+                                    }
+                                }
+                            }
+                            
+                            // Draw "Raspa aquí" text
+                            context.draw(Text("✨ Raspa aquí ✨").font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white), at: CGPoint(x: size.width / 2, y: size.height / 2 - 10), anchor: .center)
+                            context.draw(Text("👆 Arrastra el dedo").font(.system(.caption, design: .rounded, weight: .medium)).foregroundColor(.white.opacity(0.8)), at: CGPoint(x: size.width / 2, y: size.height / 2 + 20), anchor: .center)
+                            
+                            // Erase scratched areas
+                            context.blendMode = .clear
+                            for point in scratchPoints {
+                                let scratchRect = CGRect(x: point.x - 20, y: point.y - 20, width: 40, height: 40)
+                                context.fill(Path(ellipseIn: scratchRect), with: .color(.black))
                             }
                         }
-                    } label: {
-                        Text("🤞 ¡Rascar!")
-                            .font(.system(.title3, design: .rounded, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 40).padding(.vertical, 16)
-                            .background(Capsule().fill(LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)))
+                        .frame(width: 280, height: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    scratchPoints.append(value.location)
+                                    // Calculate scratch percentage
+                                    let totalArea: Double = 280 * 280
+                                    let scratchedArea = Double(scratchPoints.count) * (40 * 40)
+                                    scratchPercentage = min(scratchedArea / totalArea, 1.0)
+                                    
+                                    // Auto-reveal at 40%
+                                    if scratchPercentage > 0.4 && !isScratched {
+                                        Task {
+                                            if let id = scratchCard?.id {
+                                                try? await APIService.shared.scratchCard(id: id)
+                                                let generator = UINotificationFeedbackGenerator()
+                                                generator.notificationOccurred(.success)
+                                                withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                                                    isScratched = true
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // Haptic on scratch
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                    }
+                                }
+                        )
+                        .shadow(color: Color(red: 0.85, green: 0.65, blue: 0.13).opacity(0.4), radius: 12, y: 6)
                     }
                 }
-            }.padding(40)
-            .navigationTitle("Raspa y Gana")
+                
+                // Progress indicator
+                if !isScratched {
+                    HStack(spacing: 8) {
+                        Image(systemName: "hand.draw.fill").foregroundStyle(.orange)
+                        Text("\(Int(scratchPercentage * 100))% rascado")
+                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(32)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showScratchSheet = false; isScratched = false; Task { await loadData() } } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showScratchSheet = false; isScratched = false; scratchPoints = []; scratchPercentage = 0; Task { await loadData() } } } }
         }
     }
     

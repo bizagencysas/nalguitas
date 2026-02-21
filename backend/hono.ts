@@ -957,6 +957,16 @@ app.post("/scratch-cards", async (c: any) => {
     const { prize, emoji } = await c.req.json();
     const id = `sc-${Date.now()}`;
     await saveScratchCard(id, prize, emoji || "🎁");
+
+    // Send push notification to girlfriend
+    const { girlfriendDevices } = await loadDevices();
+    if (girlfriendDevices.length > 0) {
+      await Promise.all(
+        girlfriendDevices.map((d: any) => sendPushNotification(d.token, "🎰 ¡Tienes una tarjeta para rascar!", "Abre la app para descubrir tu premio"))
+      );
+      console.log(`[Scratch] Push sent to ${girlfriendDevices.length} devices`);
+    }
+
     return c.json({ success: true, id });
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
