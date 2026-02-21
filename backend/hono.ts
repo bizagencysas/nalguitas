@@ -4,9 +4,10 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRoles } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole } from "./storage";
+import { migrate } from "./db";
 
-const app = new Hono(); // v2
+const app = new Hono();
 
 app.use("*", cors());
 
@@ -25,7 +26,7 @@ app.use(
 );
 
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "Nalguitas API" });
+  return c.json({ status: "ok", message: "Nalguitas API (PostgreSQL)" });
 });
 
 app.get("/messages/today", async (c) => {
@@ -108,9 +109,9 @@ app.get("/girlfriend/messages", async (c) => {
   }
 });
 
-app.get("/config", (c) => {
+app.get("/config", async (c) => {
   try {
-    const config = loadRemoteConfig();
+    const config = await loadRemoteConfig();
     return c.json(config);
   } catch (e: any) {
     console.error("Error loading remote config:", e);
@@ -121,7 +122,7 @@ app.get("/config", (c) => {
 app.post("/config", async (c) => {
   try {
     const body = await c.req.json();
-    saveRemoteConfig(body);
+    await saveRemoteConfig(body);
     return c.json({ success: true });
   } catch (e: any) {
     console.error("Error saving remote config:", e);
@@ -136,15 +137,7 @@ app.post("/role/register", async (c) => {
     if (!deviceId || !role) {
       return c.json({ error: "deviceId and role are required" }, 400);
     }
-    const roles = loadRoles();
-    const existing = roles.findIndex((r: any) => r.deviceId === deviceId);
-    const registration = { deviceId, role, registeredAt: new Date().toISOString() };
-    if (existing >= 0) {
-      roles[existing] = registration;
-    } else {
-      roles.push(registration);
-    }
-    saveRoles(roles);
+    await saveRole(deviceId, role);
     console.log(`[Role] Registered ${deviceId.substring(0, 8)}... as ${role}`);
     return c.json({ success: true, role });
   } catch (e: any) {
@@ -153,10 +146,10 @@ app.post("/role/register", async (c) => {
   }
 });
 
-app.get("/role/:deviceId", (c) => {
+app.get("/role/:deviceId", async (c) => {
   try {
     const deviceId = c.req.param("deviceId");
-    const roles = loadRoles();
+    const roles = await loadRoles();
     const found = roles.find((r: any) => r.deviceId === deviceId);
     return c.json({ role: found?.role || null });
   } catch (e: any) {

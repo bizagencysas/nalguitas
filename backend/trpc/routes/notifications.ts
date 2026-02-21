@@ -1,45 +1,9 @@
 import * as z from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
 import { sendPushNotification } from "../../apns-service";
-import { loadDevices, saveDevices, loadNotificationHistory, saveNotificationHistory, loadGirlfriendMessages, saveGirlfriendMessages } from "../../storage";
+import { loadDevices, saveDevice, loadNotificationHistory, saveNotificationLog, loadGirlfriendMessages, saveGirlfriendMessage, loadSchedule, saveSchedule } from "../../storage";
 
-interface DeviceInfo {
-  token: string;
-  deviceId: string;
-  registeredAt: string;
-}
-
-interface NotificationLog {
-  id: string;
-  message: string;
-  sentAt: string;
-  status: string;
-}
-
-interface GirlfriendMessage {
-  id: string;
-  content: string;
-  sentAt: string;
-  read: boolean;
-}
-
-const stored = loadDevices();
-let girlfriendDevices: DeviceInfo[] = stored.girlfriendDevices;
-let adminDevices: DeviceInfo[] = stored.adminDevices;
 const MAX_DEVICES = 10;
-let notificationHistory: NotificationLog[] = loadNotificationHistory();
-let girlfriendMessages: GirlfriendMessage[] = loadGirlfriendMessages();
-
-const scheduleConfig = {
-  morning: "08:00",
-  midday: "12:30",
-  afternoon: "17:00",
-  night: "21:30",
-};
-
-function persistDevices() {
-  saveDevices({ girlfriendDevices, adminDevices });
-}
 
 export const notificationsRouter = createTRPCRouter({
   registerDevice: publicProcedure
@@ -48,28 +12,15 @@ export const notificationsRouter = createTRPCRouter({
       deviceId: z.string(),
       isAdmin: z.boolean().optional(),
     }))
-    .mutation(({ input }) => {
-      const device: DeviceInfo = {
-        token: input.token,
-        deviceId: input.deviceId,
-        registeredAt: new Date().toISOString(),
-      };
-      if (input.isAdmin) {
-        adminDevices = adminDevices.filter(d => d.deviceId !== input.deviceId && d.token !== input.token);
-        adminDevices.push(device);
-        if (adminDevices.length > MAX_DEVICES) adminDevices = adminDevices.slice(-MAX_DEVICES);
-        console.log(`[Register] Admin device: ${input.token.substring(0, 20)}... (total: ${adminDevices.length})`);
-      } else {
-        girlfriendDevices = girlfriendDevices.filter(d => d.deviceId !== input.deviceId && d.token !== input.token);
-        girlfriendDevices.push(device);
-        if (girlfriendDevices.length > MAX_DEVICES) girlfriendDevices = girlfriendDevices.slice(-MAX_DEVICES);
-        console.log(`[Register] Girlfriend device: ${input.token.substring(0, 20)}... (total: ${girlfriendDevices.length})`);
-      }
-      persistDevices();
+    .mutation(async ({ input }) => {
+      const role = input.isAdmin ? "admin" : "girlfriend";
+      await saveDevice(input.token, input.deviceId, role);
+      console.log(`[Register] ${role} device: ${input.token.substring(0, 20)}...`);
       return { success: true, message: "Device registered" };
     }),
 
-  getDevice: publicProcedure.query(() => {
+  getDevice: publicProcedure.query(async () => {
+    const { girlfriendDevices, adminDevices } = await loadDevices();
     return {
       girlfriend: girlfriendDevices.length > 0 ? girlfriendDevices[girlfriendDevices.length - 1] : null,
       admin: adminDevices.length > 0 ? adminDevices[adminDevices.length - 1] : null,
@@ -84,6 +35,7 @@ export const notificationsRouter = createTRPCRouter({
     }))
     .mutation(async ({ input }) => {
       console.log(`[SendNow] Sending notification: "${input.message.substring(0, 50)}..."`);
+      const { girlfriendDevices, adminDevices } = await loadDevices();
       console.log(`[SendNow] Girlfriend devices: ${girlfriendDevices.length}, Admin devices: ${adminDevices.length}`);
 
       let pushStatus = "no_device";
@@ -99,14 +51,13 @@ export const notificationsRouter = createTRPCRouter({
         console.log("[SendNow] No girlfriend devices registered - notification NOT sent");
       }
 
-      const log: NotificationLog = {
+      const log = {
         id: Date.now().toString(),
         message: input.message,
         sentAt: new Date().toISOString(),
         status: pushStatus,
       };
-      notificationHistory.unshift(log);
-      saveNotificationHistory(notificationHistory);
+      await saveNotificationLog(log);
 
       return {
         success: true,
@@ -116,8 +67,9 @@ export const notificationsRouter = createTRPCRouter({
     }),
 
   testNotification: publicProcedure.mutation(async () => {
+    const { girlfriendDevices, adminDevices } = await loadDevices();
     console.log(`[Test] Girlfriend devices: ${girlfriendDevices.length}, Admin devices: ${adminDevices.length}`);
-    
+
     if (girlfriendDevices.length === 0) {
       throw new Error("No girlfriend device registered. La novia debe abrir la app primero para registrar su dispositivo.");
     }
@@ -127,24 +79,23 @@ export const notificationsRouter = createTRPCRouter({
     );
     const successCount = results.filter(r => r.success).length;
 
-    const log: NotificationLog = {
+    const log = {
       id: Date.now().toString(),
       message: "Notificación de prueba",
       sentAt: new Date().toISOString(),
       status: successCount > 0 ? `sent (${successCount}/${girlfriendDevices.length})` : `failed: ${results[0]?.error}`,
     };
-    notificationHistory.unshift(log);
-    saveNotificationHistory(notificationHistory);
+    await saveNotificationLog(log);
 
     return { success: successCount > 0, status: log.status };
   }),
 
-  history: publicProcedure.query(() => {
-    return notificationHistory;
+  history: publicProcedure.query(async () => {
+    return await loadNotificationHistory();
   }),
 
-  getSchedule: publicProcedure.query(() => {
-    return scheduleConfig;
+  getSchedule: publicProcedure.query(async () => {
+    return await loadSchedule();
   }),
 
   girlfriendMessage: publicProcedure
@@ -152,15 +103,15 @@ export const notificationsRouter = createTRPCRouter({
       content: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
-      const msg: GirlfriendMessage = {
+      const msg = {
         id: Date.now().toString(),
         content: input.content,
         sentAt: new Date().toISOString(),
         read: false,
       };
-      girlfriendMessages.unshift(msg);
-      saveGirlfriendMessages(girlfriendMessages);
+      await saveGirlfriendMessage(msg);
 
+      const { adminDevices } = await loadDevices();
       if (adminDevices.length > 0) {
         const results = await Promise.all(
           adminDevices.map(d => sendPushNotification(d.token, "Nalguitas 💝", `Tu novia dice: ${input.content}`))
@@ -172,8 +123,8 @@ export const notificationsRouter = createTRPCRouter({
       return { success: true, message: msg };
     }),
 
-  getGirlfriendMessages: publicProcedure.query(() => {
-    return girlfriendMessages;
+  getGirlfriendMessages: publicProcedure.query(async () => {
+    return await loadGirlfriendMessages();
   }),
 
   updateSchedule: publicProcedure
@@ -183,11 +134,7 @@ export const notificationsRouter = createTRPCRouter({
       afternoon: z.string().optional(),
       night: z.string().optional(),
     }))
-    .mutation(({ input }) => {
-      if (input.morning) scheduleConfig.morning = input.morning;
-      if (input.midday) scheduleConfig.midday = input.midday;
-      if (input.afternoon) scheduleConfig.afternoon = input.afternoon;
-      if (input.night) scheduleConfig.night = input.night;
-      return scheduleConfig;
+    .mutation(async ({ input }) => {
+      return await saveSchedule(input);
     }),
 });

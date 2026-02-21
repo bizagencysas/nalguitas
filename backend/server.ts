@@ -1,21 +1,31 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import app from "./hono";
+import { migrate } from "./db";
 
 const server = new Hono();
 server.route("/api", app);
 
 server.get("/", (c) => {
-  return c.json({ status: "ok", message: "Nalguitas API running" });
+  return c.json({ status: "ok", message: "Nalguitas API running (PostgreSQL)" });
 });
 
 const port = parseInt(process.env.PORT || "3000");
 
-console.log(`Nalguitas API starting on port ${port}...`);
+async function start() {
+  try {
+    await migrate();
+    console.log("[DB] Migration successful");
+  } catch (e: any) {
+    console.error("[DB] Migration failed:", e.message);
+  }
 
-serve({
-  fetch: server.fetch,
-  port,
-});
+  serve({
+    fetch: server.fetch,
+    port,
+  });
 
-console.log(`Server running at http://0.0.0.0:${port}`);
+  console.log(`Nalguitas API running at http://0.0.0.0:${port}`);
+}
+
+start();
