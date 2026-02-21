@@ -30,7 +30,7 @@ struct GiftCharacter: Identifiable, Sendable {
     ]
     
     static func imageURL(for characterId: String) -> URL? {
-        let baseURL = "https://nalguitas.onrender.com/api/characters"
+        let baseURL = "https://raw.githubusercontent.com/bizagencysas/nalguitas/main/backend/characters"
         return URL(string: "\(baseURL)/\(characterId).png")
     }
 }
