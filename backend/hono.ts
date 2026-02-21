@@ -1,6 +1,8 @@
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import * as fs from "fs";
+import * as path from "path";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
@@ -1142,6 +1144,20 @@ app.put("/profiles/:username/status", async (c: any) => {
     await updateStatus(c.req.param("username"), statusMessage || "");
     return c.json({ success: true });
   } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+// Serve character images (repo is private, can't use raw.githubusercontent.com)
+app.get("/characters/:name", async (c: any) => {
+  const name = c.req.param("name");
+  const safeName = name.replace(/[^a-zA-Z0-9_.-]/g, "");
+  const filePath = path.resolve("backend/characters", safeName);
+  try {
+    const data = fs.readFileSync(filePath);
+    c.header("Content-Type", "image/png");
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.body(data);
+  } catch (e: any) {
+    return c.json({ error: "Image not found" }, 404);
+  }
 });
 
 export default app;
