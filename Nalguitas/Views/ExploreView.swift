@@ -87,69 +87,10 @@ struct ExploreView: View {
                 Theme.meshBackground
                 
                 ScrollView {
-                    VStack(spacing: 20) {
-                        Spacer(minLength: 10)
-                        
-                        // Days Together Counter
-                        if let days = daysTogether {
-                            daysCounterCard(days)
-                        }
-                        
-                        // Love Challenge of the Day
-                        loveChallengeCard
-                        
-                        // Mood Tracker
-                        moodCard
-                        
-                        // Daily Question
-                        if let question = todayQuestion, question.id != nil {
-                            questionCard(question)
-                        }
-                        
-                        // Romantic Fact
-                        romanticFactCard
-                        
-                        // Quick Actions Grid
-                        quickActionsGrid
-                        
-                        // Plans section
-                        if !plans.isEmpty {
-                            plansCard
-                        }
-                        
-                        // Photo Gallery Preview
-                        if !photos.isEmpty {
-                            photoGalleryPreview
-                        }
-                        
-                        // Upcoming Dates
-                        if !specialDates.isEmpty {
-                            upcomingDatesCard
-                        }
-                        
-                        // Recent Songs
-                        if !songs.isEmpty {
-                            recentSongsCard
-                        }
-                    }
-                    
-                    // New features in separate VStack to help compiler
+                    topSection
+                    middleSection
                     newFeaturesSection
-                    
-                    VStack(spacing: 20) {
-                        // Admin: Mood History
-                        if isAdmin && !moodHistory.isEmpty {
-                            adminMoodHistoryCard
-                        }
-                        
-                        // Admin: Question Answers
-                        if isAdmin && !answeredQuestions.isEmpty {
-                            adminAnswersCard
-                        }
-                        
-                        Spacer(minLength: 60)
-                    }
-                    .padding(.horizontal, 20)
+                    adminSection
                 }
                 .scrollIndicators(.hidden)
                 
@@ -997,6 +938,42 @@ struct ExploreView: View {
     private func showToast(_ text: String) {
         withAnimation { toastText = text }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { withAnimation { toastText = nil } }
+    }
+    
+    // MARK: - Body Sections (split for compiler performance)
+    @ViewBuilder
+    private var topSection: some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 10)
+            if let days = daysTogether { daysCounterCard(days) }
+            loveChallengeCard
+            moodCard
+            if let question = todayQuestion, question.id != nil { questionCard(question) }
+            romanticFactCard
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    @ViewBuilder
+    private var middleSection: some View {
+        VStack(spacing: 20) {
+            quickActionsGrid
+            if !plans.isEmpty { plansCard }
+            if !photos.isEmpty { photoGalleryPreview }
+            if !specialDates.isEmpty { upcomingDatesCard }
+            if !songs.isEmpty { recentSongsCard }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    @ViewBuilder
+    private var adminSection: some View {
+        VStack(spacing: 20) {
+            if isAdmin && !moodHistory.isEmpty { adminMoodHistoryCard }
+            if isAdmin && !answeredQuestions.isEmpty { adminAnswersCard }
+            Spacer(minLength: 60)
+        }
+        .padding(.horizontal, 20)
     }
     
     // MARK: - New Features Section (split to help compiler)
