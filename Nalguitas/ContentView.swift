@@ -4,7 +4,7 @@ import UIKit
 struct ContentView: View {
     @State private var viewModel = AppViewModel()
     @State private var notificationService = NotificationService()
-    @State private var selectedTab = 0
+    @State private var selectedTab = 2
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("isAdminDevice") private var isAdminDevice = false
     @AppStorage("hasSelectedRole") private var hasSelectedRole = false
