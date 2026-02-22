@@ -106,7 +106,7 @@ struct ContentView: View {
 
     private func reRegisterDeviceWithRole() {
         Task {
-            await notificationService.checkStatus()
+            await notificationService.requestPermission()
         }
     }
 }

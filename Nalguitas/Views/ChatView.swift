@@ -450,14 +450,27 @@ struct ChatView: View {
     }
     
     private func startPolling() {
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
-                let newMsgs = try? await APIService.shared.fetchChatMessages()
-                if let msgs = newMsgs, msgs.count > messages.count {
-                    messages = msgs
-                    try? await APIService.shared.markChatSeen(sender: mySender)
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                }
+                await pollNewMessages()
+            }
+        }
+        // Also listen for push notifications for instant delivery
+        NotificationCenter.default.addObserver(forName: .didReceiveRemoteMessage, object: nil, queue: .main) { _ in
+            Task { @MainActor in
+                await pollNewMessages()
+            }
+        }
+    }
+    
+    private func pollNewMessages() async {
+        guard let newMsgs = try? await APIService.shared.fetchChatMessages() else { return }
+        if newMsgs.count > messages.count {
+            let oldCount = messages.count
+            messages = newMsgs
+            try? await APIService.shared.markChatSeen(sender: mySender)
+            if newMsgs.count > oldCount {
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }
         }
     }
