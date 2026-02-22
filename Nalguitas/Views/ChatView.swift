@@ -233,7 +233,7 @@ struct ChatView: View {
             
             // Amount
             Text(amount)
-                .font(.system(size: 38, design: .rounded, weight: .bold))
+                .font(.system(size: 38, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
@@ -307,10 +307,10 @@ struct ChatView: View {
                     // Amount input
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("$")
-                            .font(.system(size: 44, design: .rounded, weight: .light))
+                            .font(.system(size: 44, weight: .light, design: .rounded))
                             .foregroundStyle(.primary)
                         TextField("0", text: $paymentAmount)
-                            .font(.system(size: 52, design: .rounded, weight: .bold))
+                            .font(.system(size: 52, weight: .bold, design: .rounded))
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: 200)
