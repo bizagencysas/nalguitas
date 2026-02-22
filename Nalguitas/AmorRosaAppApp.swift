@@ -44,16 +44,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        // Small delay to debounce rapid notifications
         Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
         return [.banner, .badge, .sound]
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        // Delay to allow app views to mount on cold start
+        // Longer delay for cold start — gives SwiftUI time to mount views + SwiftData
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
+            try? await Task.sleep(for: .seconds(3.0))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
     }

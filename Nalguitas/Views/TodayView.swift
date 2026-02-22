@@ -74,7 +74,12 @@ struct TodayView: View {
             Task { await viewModel.loadTodayMessage(context: modelContext) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .didReceiveRemoteMessage)) { _ in
-            Task { await viewModel.loadTodayMessage(context: modelContext) }
+            Task {
+                // Don't pass modelContext here — on cold start it may not be ready
+                // and accessing it causes a crash. History save skipped for push-triggered loads.
+                await viewModel.loadTodayMessage()
+                await checkForGifts()
+            }
         }
     }
 

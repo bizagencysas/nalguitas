@@ -143,8 +143,11 @@ struct GirlfriendTabView: View {
             }
         }
         .tint(Theme.rosePrimary)
+        .onChange(of: selectedTab) { _, _ in
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
         .task {
-            await notificationService.checkStatus()
+            await notificationService.requestPermission()
         }
     }
 }

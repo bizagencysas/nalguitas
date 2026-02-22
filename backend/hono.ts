@@ -546,13 +546,14 @@ app.post("/chat/send", async (c) => {
     await saveChatMessage(msg);
     const { adminDevices, girlfriendDevices } = await loadDevices();
     const targets = msg.sender === "admin" ? girlfriendDevices : adminDevices;
-    const pushTitle = msg.sender === "admin" ? "💬 Isacc" : "💬 Mi amor";
+    const senderName = msg.sender === "admin" ? "Isacc" : "Tu novia";
+    let pushTitle = `💬 ${senderName}`;
     let pushBody = msg.content;
-    if (msg.type === "image") pushBody = "📷 Foto";
-    if (msg.type === "video") pushBody = "🎬 Video";
-    if (msg.type === "sticker") pushBody = "🎨 Sticker";
-    if (msg.type === "link") pushBody = `🔗 ${msg.content || "Link"}`;
-    if (msg.type === "payment") pushBody = `💸 Nalguitas Pay: ${msg.content}`;
+    if (msg.type === "image") pushBody = "📷 Te envió una foto";
+    if (msg.type === "video") pushBody = "🎬 Te envió un video";
+    if (msg.type === "sticker") pushBody = "🎨 Te envió un sticker";
+    if (msg.type === "link") pushBody = `🔗 ${msg.content || "Te envió un link"}`;
+    if (msg.type === "payment") { pushTitle = `${senderName} te envió 💸`; pushBody = msg.content; }
     await Promise.all(targets.map((d: any) => sendPushNotification(d.token, pushTitle, pushBody)));
     return c.json(msg);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
