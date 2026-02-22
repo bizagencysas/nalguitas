@@ -27,26 +27,31 @@ struct ChatView: View {
     
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
+    // iMessage colors
+    private let sentGradient = LinearGradient(
+        colors: [Color(red: 0.0, green: 0.48, blue: 1.0), Color(red: 0.0, green: 0.4, blue: 0.9)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+    private let receivedColor = Color(UIColor.systemGray5)
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                // Chat background
-                LinearGradient(
-                    colors: [Color(red: 0.97, green: 0.95, blue: 0.98), Color(red: 0.95, green: 0.93, blue: 0.97)],
-                    startPoint: .top, endPoint: .bottom
-                ).ignoresSafeArea()
+                // iOS-style subtle background
+                Color(UIColor.systemBackground)
+                    .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Messages
+                    // Messages area
                     ScrollViewReader { proxy in
                         ScrollView {
-                            LazyVStack(spacing: 6) {
-                                ForEach(messages) { msg in
-                                    messageBubble(msg)
+                            LazyVStack(spacing: 2) {
+                                ForEach(Array(messages.enumerated()), id: \.element.id) { index, msg in
+                                    iMessageBubble(msg, index: index)
                                         .id(msg.id)
                                 }
                             }
-                            .padding(.horizontal, 12)
+                            .padding(.horizontal, 8)
                             .padding(.top, 8)
                             .padding(.bottom, 8)
                         }
@@ -57,18 +62,21 @@ struct ChatView: View {
                         }
                     }
                     
-                    // Input bar
-                    chatInputBar
+                    // iMessage-style input bar
+                    iMessageInputBar
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
+                    // iMessage-style centered header
                     Button { showProfileSheet = true } label: {
-                        chatHeaderView
+                        iMessageHeader
                     }
                 }
             }
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showStickerPicker) { stickerPickerSheet }
             .sheet(isPresented: $showAIGenerator) { aiGeneratorSheet }
             .sheet(isPresented: $showProfileSheet) { profileEditSheet }
@@ -77,159 +85,153 @@ struct ChatView: View {
         }
     }
     
-    // MARK: - BBM Chat Header
-    private var chatHeaderView: some View {
-        HStack(spacing: 10) {
-            // Partner avatar
+    // MARK: - iMessage Header (centered avatar + name)
+    private var iMessageHeader: some View {
+        VStack(spacing: 2) {
+            // Avatar
             if let partnerAvatar = partnerProfile?.avatar, !partnerAvatar.isEmpty,
                let imgData = Data(base64Encoded: partnerAvatar),
                let uiImage = UIImage(data: imgData) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(Theme.rosePrimary.opacity(0.3), lineWidth: 1.5))
             } else {
                 Circle()
-                    .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.3), Theme.rosePrimary.opacity(0.1)], startPoint: .top, endPoint: .bottom))
-                    .frame(width: 36, height: 36)
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 32, height: 32)
                     .overlay(
-                        Text(isAdmin ? "\u{1F469}" : "\u{1F468}")
-                            .font(.system(size: 18))
+                        Text(isAdmin ? "👩" : "👨")
+                            .font(.system(size: 16))
                     )
             }
-            VStack(alignment: .leading, spacing: 1) {
+            // Name with chevron
+            HStack(spacing: 2) {
                 Text(partnerProfile?.displayName.isEmpty == false ? partnerProfile!.displayName : (isAdmin ? "Tucancita" : "Isacc"))
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .font(.system(.caption2, design: .rounded, weight: .semibold))
                     .foregroundStyle(.primary)
-                if let status = partnerProfile?.statusMessage, !status.isEmpty {
-                    Text(status)
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                } else {
-                    Text("\u{1F49D}")
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.tertiary)
-                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.secondary)
             }
-            Spacer()
         }
     }
     
-    // MARK: - Message Bubble
-    private func messageBubble(_ msg: ChatMessage) -> some View {
+    // MARK: - iMessage Bubble
+    private func iMessageBubble(_ msg: ChatMessage, index: Int) -> some View {
         let isMe = msg.sender == mySender
+        let showTail = shouldShowTail(at: index)
+        let showTimestamp = shouldShowTimestamp(at: index)
         
-        return HStack(alignment: .bottom, spacing: 6) {
-            if isMe { Spacer(minLength: 50) }
-            
-            // Partner avatar (left side)
-            if !isMe {
-                avatarCircle(for: partnerProfile, fallback: isAdmin ? "\u{1F469}" : "\u{1F468}")
+        return VStack(spacing: 0) {
+            // Timestamp separator
+            if showTimestamp {
+                Text(formatDate(msg.createdAt))
+                    .font(.system(.caption2, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
             }
-            VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
-                // Content based on type
-                switch msg.type {
-                case "image":
-                    if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(maxWidth: 220, maxHeight: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    } else {
-                        Label("Foto", systemImage: "photo.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                case "sticker":
-                    if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 140, height: 140)
-                    }
-                    
-                case "link":
-                    VStack(alignment: .leading, spacing: 4) {
-                        if !msg.content.isEmpty {
+            
+            HStack(alignment: .bottom, spacing: 4) {
+                if isMe { Spacer(minLength: 60) }
+                
+                VStack(alignment: isMe ? .trailing : .leading, spacing: 1) {
+                    // Content
+                    switch msg.type {
+                    case "image":
+                        if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: 240, maxHeight: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                        } else {
+                            Label("Foto", systemImage: "photo.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                    case "sticker":
+                        if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 150, height: 150)
+                        }
+                        
+                    default: // text, link
+                        // Check if it's just an emoji (1-3 emoji chars)
+                        if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
                             Text(msg.content)
-                                .font(.system(.body, design: .rounded))
-                                .foregroundStyle(isMe ? .white : Color(red: 0.2, green: 0.15, blue: 0.18))
-                        }
-                        if let url = msg.mediaUrl {
-                            Link(destination: URL(string: url)!) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "link")
-                                    Text(url.prefix(40) + (url.count > 40 ? "..." : ""))
-                                        .lineLimit(1)
-                                }
-                                .font(.caption)
-                                .foregroundStyle(isMe ? .white.opacity(0.8) : Theme.rosePrimary)
-                            }
+                                .font(.system(size: 48))
+                                .padding(.vertical, 4)
+                        } else {
+                            Text(msg.content)
+                                .font(.system(.body, design: .default))
+                                .foregroundStyle(isMe ? .white : .primary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    iMessageBubbleShape(isMe: isMe, showTail: showTail)
+                                        .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(receivedColor))
+                                )
                         }
                     }
                     
-                default: // text
-                    // Auto-detect links in text
-                    if msg.content.contains("http") {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(msg.content)
-                                .font(.system(.body, design: .rounded))
-                                .foregroundStyle(isMe ? .white : Color(red: 0.2, green: 0.15, blue: 0.18))
-                            if let linkRange = msg.content.range(of: "http[^ ]+", options: .regularExpression),
-                               let url = URL(string: String(msg.content[linkRange])) {
-                                Link(destination: url) {
-                                    Text("Abrir enlace →")
-                                        .font(.caption)
-                                        .foregroundStyle(isMe ? .white.opacity(0.8) : Theme.rosePrimary)
-                                }
-                            }
+                    // Delivery indicator (only for sent messages)
+                    if isMe && index == messages.count - 1 {
+                        HStack(spacing: 2) {
+                            Text(msg.seen == true ? "Leído" : "Entregado")
+                                .font(.system(size: 10, design: .rounded))
+                                .foregroundStyle(.secondary)
                         }
-                    } else {
-                        Text(msg.content)
-                            .font(.system(.body, design: .rounded))
-                            .foregroundStyle(isMe ? .white : Color(red: 0.2, green: 0.15, blue: 0.18))
+                        .padding(.trailing, 4)
+                        .padding(.top, 1)
                     }
                 }
                 
-                // Timestamp + seen
-                HStack(spacing: 4) {
-                    Text(formatTime(msg.createdAt))
-                        .font(.system(size: 10, design: .rounded))
-                        .foregroundStyle(isMe ? .white.opacity(0.6) : .secondary)
-                    if isMe {
-                        Image(systemName: msg.seen == true ? "checkmark.circle.fill" : "checkmark.circle")
-                            .font(.system(size: 10))
-                            .foregroundStyle(isMe ? .white.opacity(0.6) : .secondary)
-                    }
-                }
+                if !isMe { Spacer(minLength: 60) }
             }
-            .padding(.horizontal, msg.type == "sticker" ? 4 : 14)
-            .padding(.vertical, msg.type == "sticker" ? 4 : 10)
-            .background {
-                if msg.type != "sticker" {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(isMe
-                              ? LinearGradient(colors: [Theme.rosePrimary, Theme.roseQuartz], startPoint: .topLeading, endPoint: .bottomTrailing)
-                              : LinearGradient(colors: [Color.white, Color.white.opacity(0.9)], startPoint: .top, endPoint: .bottom))
-                        .shadow(color: (isMe ? Theme.rosePrimary : Color.black).opacity(0.08), radius: 4, y: 2)
-                }
-            }
-            
-            if !isMe { Spacer(minLength: 50) }
+            .padding(.horizontal, 6)
+            .padding(.vertical, showTail ? 2 : 0.5)
         }
     }
     
-    // MARK: - Input Bar
-    private var chatInputBar: some View {
+    // MARK: - iMessage Bubble Shape
+    private func iMessageBubbleShape(isMe: Bool, showTail: Bool) -> some Shape {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+    }
+    
+    // MARK: - Helpers
+    private func shouldShowTail(at index: Int) -> Bool {
+        guard index < messages.count else { return true }
+        let msg = messages[index]
+        if index == messages.count - 1 { return true }
+        let next = messages[index + 1]
+        return next.sender != msg.sender
+    }
+    
+    private func shouldShowTimestamp(at index: Int) -> Bool {
+        if index == 0 { return true }
+        guard let currentDate = parseDate(messages[index].createdAt),
+              let prevDate = parseDate(messages[index - 1].createdAt) else { return false }
+        return currentDate.timeIntervalSince(prevDate) > 300 // 5 min gap
+    }
+    
+    private func parseDate(_ dateStr: String?) -> Date? {
+        guard let str = dateStr else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return iso.date(from: str) ?? ISO8601DateFormatter().date(from: str)
+    }
+    
+    // MARK: - iMessage Input Bar
+    private var iMessageInputBar: some View {
         VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 8) {
-                // Attachments button
+            Divider().opacity(0.3)
+            HStack(alignment: .bottom, spacing: 8) {
+                // Plus button for attachments
                 Menu {
                     Button { showPhotosPicker = true } label: { Label("Foto", systemImage: "photo.fill") }
                     Button { showStickerPicker = true } label: { Label("Sticker", systemImage: "face.smiling.inverse") }
@@ -237,8 +239,9 @@ struct ChatView: View {
                     Button { pasteLink() } label: { Label("Pegar Link", systemImage: "link") }
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(Theme.rosePrimary)
+                        .font(.system(size: 28))
+                        .foregroundStyle(.secondary)
+                        .symbolRenderingMode(.hierarchical)
                 }
                 
                 // Photo picker (hidden)
@@ -257,27 +260,36 @@ struct ChatView: View {
                 }
                 .frame(width: 0, height: 0).opacity(0)
                 
-                // Text field
-                HStack {
-                    TextField("Escribe un mensaje...", text: $messageText, axis: .vertical)
-                        .lineLimit(1...4)
-                        .font(.system(.body, design: .rounded))
+                // iMessage-style text field
+                HStack(alignment: .bottom) {
+                    TextField("iMessage", text: $messageText, axis: .vertical)
+                        .lineLimit(1...6)
+                        .font(.system(.body))
                     
-                    if !messageText.isEmpty {
+                    if !messageText.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button { Task { await sendText() } } label: {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(Theme.rosePrimary)
+                                .font(.system(size: 28))
+                                .foregroundStyle(Color(red: 0.0, green: 0.48, blue: 1.0))
                         }
                         .disabled(isSending)
+                        .transition(.scale.combined(with: .opacity))
+                        .animation(.spring(duration: 0.2), value: messageText)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color.white).shadow(color: .black.opacity(0.05), radius: 4, y: 1))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            Capsule()
+                                .stroke(Color(UIColor.separator).opacity(0.5), lineWidth: 0.5)
+                        )
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
             .background(.ultraThinMaterial)
         }
     }
@@ -286,10 +298,10 @@ struct ChatView: View {
     private var stickerPickerSheet: some View {
         NavigationStack {
             ZStack {
-                Theme.meshBackground
+                Color(UIColor.systemBackground).ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Stickers de la App").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.rosePrimary)
+                        Text("Stickers de la App").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(.primary)
                         
                         let emojis = ["🐹", "🐰", "🐻", "🐱", "🐶", "🐧", "🦄", "🦊", "🐥", "🐼", "🐨", "🦥", "🦉", "🐹", "🦌", "🦝", "🐘", "🐢", "🦁", "🐯", "🐷", "🐸", "🦖", "🐙"]
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 70))], spacing: 10) {
@@ -339,16 +351,15 @@ struct ChatView: View {
     private var aiGeneratorSheet: some View {
         NavigationStack {
             ZStack {
-                Theme.meshBackground
+                Color(UIColor.systemBackground).ignoresSafeArea()
                 VStack(spacing: 20) {
                     Spacer()
                     Image(systemName: "wand.and.stars")
                         .font(.system(size: 50))
-                        .foregroundStyle(LinearGradient(colors: [.purple, Theme.rosePrimary], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .foregroundStyle(.linearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
                     
                     Text("Generador de Stickers IA")
                         .font(.system(.title2, design: .rounded, weight: .bold))
-                        .foregroundStyle(Theme.rosePrimary)
                     
                     Text("Describe el sticker que quieres crear, ¡será único!")
                         .font(.system(.subheadline, design: .rounded))
@@ -377,7 +388,7 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(RoundedRectangle(cornerRadius: 16).fill(
-                            LinearGradient(colors: [.purple, Theme.rosePrimary], startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing)
                         ))
                     }
                     .disabled(aiPrompt.isEmpty || isGeneratingSticker)
@@ -405,7 +416,6 @@ struct ChatView: View {
         let text = messageText; messageText = ""
         isSending = true; defer { isSending = false }
         
-        // Auto-detect if it's a link
         let type = text.contains("http://") || text.contains("https://") ? "link" : "text"
         let mediaUrl = type == "link" ? text : nil
         
@@ -455,7 +465,6 @@ struct ChatView: View {
                 await pollNewMessages()
             }
         }
-        // Also listen for push notifications for instant delivery
         NotificationCenter.default.addObserver(forName: .didReceiveRemoteMessage, object: nil, queue: .main) { _ in
             Task { @MainActor in
                 await pollNewMessages()
@@ -484,31 +493,25 @@ struct ChatView: View {
     }
     
     private func formatTime(_ dateStr: String?) -> String {
-        guard let str = dateStr else { return "" }
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = iso.date(from: str) ?? ISO8601DateFormatter().date(from: str) else { return "" }
+        guard let date = parseDate(dateStr) else { return "" }
         let df = DateFormatter(); df.dateFormat = "h:mm a"
         return df.string(from: date)
     }
     
-    // MARK: - Avatar Circle
-    private func avatarCircle(for profile: UserProfile?, fallback: String) -> some View {
-        Group {
-            if let av = profile?.avatar, !av.isEmpty,
-               let imgData = Data(base64Encoded: av),
-               let uiImage = UIImage(data: imgData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 24, height: 24)
-                    .clipShape(Circle())
-            } else {
-                Text(fallback)
-                    .font(.system(size: 12))
-                    .frame(width: 24, height: 24)
-                    .background(Circle().fill(Color.gray.opacity(0.1)))
-            }
+    private func formatDate(_ dateStr: String?) -> String {
+        guard let date = parseDate(dateStr) else { return "" }
+        let calendar = Calendar.current
+        let df = DateFormatter()
+        if calendar.isDateInToday(date) {
+            df.dateFormat = "h:mm a"
+            return df.string(from: date)
+        } else if calendar.isDateInYesterday(date) {
+            df.dateFormat = "h:mm a"
+            return "Ayer " + df.string(from: date)
+        } else {
+            df.dateFormat = "d MMM, h:mm a"
+            df.locale = Locale(identifier: "es_ES")
+            return df.string(from: date)
         }
     }
     
@@ -524,7 +527,6 @@ struct ChatView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Current avatar
                     VStack(spacing: 12) {
                         if let data = editAvatarData ?? (myProfile?.avatar.isEmpty == false ? Data(base64Encoded: myProfile!.avatar) : nil),
                            let uiImage = UIImage(data: data) {
@@ -533,22 +535,21 @@ struct ChatView: View {
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 100, height: 100)
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Theme.rosePrimary, lineWidth: 2))
+                                .overlay(Circle().stroke(Color.blue, lineWidth: 2))
                         } else {
                             Circle()
-                                .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.3), Theme.rosePrimary.opacity(0.1)], startPoint: .top, endPoint: .bottom))
+                                .fill(.ultraThinMaterial)
                                 .frame(width: 100, height: 100)
-                                .overlay(Text(isAdmin ? "\u{1F468}" : "\u{1F469}").font(.system(size: 44)))
+                                .overlay(Text(isAdmin ? "👨" : "👩").font(.system(size: 44)))
                         }
                         PhotosPicker(selection: $editAvatarItem, matching: .images) {
                             Label("Cambiar foto", systemImage: "camera.fill")
                                 .font(.system(.caption, design: .rounded, weight: .semibold))
-                                .foregroundStyle(Theme.rosePrimary)
+                                .foregroundStyle(.blue)
                         }
                         .onChange(of: editAvatarItem) { _, newItem in
                             Task {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                    // Compress to JPEG
                                     if let uiImage = UIImage(data: data),
                                        let jpeg = uiImage.jpegData(compressionQuality: 0.3) {
                                         editAvatarData = jpeg
@@ -565,7 +566,7 @@ struct ChatView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Estado (como en BBM \u{1F609})").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                        Text("Estado").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                         TextField("Ej: Pensando en ti...", text: $editStatus)
                             .textFieldStyle(.roundedBorder)
                     }
@@ -593,7 +594,7 @@ struct ChatView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Capsule().fill(Theme.rosePrimary))
+                            .background(Capsule().fill(.blue))
                     }
                 }.padding(24)
             }
@@ -609,4 +610,3 @@ struct ChatView: View {
         }
     }
 }
-
