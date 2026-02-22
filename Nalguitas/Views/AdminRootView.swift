@@ -3,7 +3,7 @@ import SwiftUI
 struct AdminRootView: View {
     let viewModel: AppViewModel
     let notificationService: NotificationService
-    @State private var selectedTab = 0
+    @State private var selectedTab = 2
     @State private var unreadChatCount = 0
     @State private var badgeTimer: Timer?
 
