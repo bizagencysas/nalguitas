@@ -60,6 +60,7 @@ struct TodayView: View {
         .task {
             await viewModel.loadTodayMessage(context: modelContext)
             await checkForGifts()
+            await PointsService.shared.awardDailyOpenPoint()
             withAnimation(.easeOut(duration: 0.8)) {
                 appeared = true
             }

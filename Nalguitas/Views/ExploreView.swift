@@ -873,6 +873,7 @@ struct ExploreView: View {
             todayQuestion = DailyQuestion(id: id, question: q.question, category: q.category, answered: true, answer: questionAnswer, answeredAt: nil, shownDate: nil)
             questionAnswer = ""
             showToast("¡Respuesta enviada! 💕")
+            await PointsService.shared.awardPoint(reason: "Respondió pregunta ❓")
         } catch {}
     }
     
@@ -1036,7 +1037,7 @@ struct CouponsSheetView: View {
                                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title2)
                                 } else if !isAdmin {
                                     Button {
-                                        Task { redeemingId = coupon.id; try? await APIService.shared.redeemCoupon(id: coupon.id); await onRefresh(); redeemingId = nil }
+                                        Task { redeemingId = coupon.id; try? await APIService.shared.redeemCoupon(id: coupon.id); await PointsService.shared.awardPoint(reason: "Canjeó cupón 🎟️"); await onRefresh(); redeemingId = nil }
                                     } label: {
                                         Text("Canjear").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(Theme.rosePrimary))
                                     }.disabled(redeemingId == coupon.id)

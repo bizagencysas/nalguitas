@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import LinkPresentation
 
 struct ChatView: View {
     let isAdmin: Bool
@@ -20,6 +21,9 @@ struct ChatView: View {
     @State private var showPaymentSheet = false
     @State private var paymentAmount = ""
     @State private var paymentNote = ""
+    
+    // Link previews cache
+    @State private var linkPreviews: [String: LinkPreviewData] = [:]
     
     // BBM-style profiles
     @State private var myProfile: UserProfile?
@@ -168,8 +172,11 @@ struct ChatView: View {
                         
                     case "payment":
                         paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
+                    
+                    case "link":
+                        linkPreviewBubble(msg, isMe: isMe)
                         
-                    default: // text, link
+                    default: // text
                         // Check if it's just an emoji (1-3 emoji chars)
                         if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
                             Text(msg.content)
@@ -609,6 +616,7 @@ struct ChatView: View {
             let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl)
             messages.append(msg)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
         } catch { messageText = text }
     }
     
@@ -617,6 +625,7 @@ struct ChatView: View {
             let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64)
             messages.append(msg)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            await PointsService.shared.awardPoint(reason: "Envió media 📷")
         } catch {}
     }
     
@@ -794,5 +803,131 @@ struct ChatView: View {
                 editStatus = myProfile?.statusMessage ?? ""
             }
         }
+    }
+}
+
+// MARK: - Link Preview Data
+struct LinkPreviewData {
+    let title: String?
+    let url: String
+    let domain: String
+    let icon: UIImage?
+    let image: UIImage?
+    
+    var platformIcon: String {
+        let d = domain.lowercased()
+        if d.contains("youtube") || d.contains("youtu.be") { return "▶️" }
+        if d.contains("tiktok") { return "🎵" }
+        if d.contains("instagram") { return "📸" }
+        if d.contains("twitter") || d.contains("x.com") { return "🐦" }
+        if d.contains("spotify") { return "🎧" }
+        return "🔗"
+    }
+}
+
+// MARK: - Link Preview Bubble Extension
+extension ChatView {
+    func linkPreviewBubble(_ msg: ChatMessage, isMe: Bool) -> some View {
+        let urlString = msg.mediaUrl ?? msg.content
+        let preview = linkPreviews[msg.id]
+        
+        return VStack(alignment: .leading, spacing: 0) {
+            // Preview image if available
+            if let image = preview?.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: 260, maxHeight: 140)
+                    .clipped()
+            }
+            
+            // Content section
+            VStack(alignment: .leading, spacing: 4) {
+                // Domain badge
+                HStack(spacing: 4) {
+                    Text(preview?.platformIcon ?? "🔗")
+                        .font(.system(size: 12))
+                    Text(preview?.domain ?? (URL(string: urlString)?.host ?? urlString))
+                        .font(.system(.caption2, design: .rounded, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                
+                // Title
+                if let title = preview?.title, !title.isEmpty {
+                    Text(title)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                }
+                
+                // URL
+                Text(urlString.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: "").prefix(50) + (urlString.count > 60 ? "..." : ""))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+        }
+        .frame(width: 260)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(isMe 
+                      ? AnyShapeStyle(sentGradient)
+                      : AnyShapeStyle(Color(UIColor.systemGray6)))
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture {
+            if let url = URL(string: urlString) {
+                UIApplication.shared.open(url)
+            }
+        }
+        .task {
+            if linkPreviews[msg.id] == nil {
+                await fetchLinkPreview(for: msg)
+            }
+        }
+    }
+    
+    func fetchLinkPreview(for msg: ChatMessage) async {
+        let urlString = msg.mediaUrl ?? msg.content
+        guard let url = URL(string: urlString) else { return }
+        
+        let provider = LPMetadataProvider()
+        do {
+            let metadata = try await provider.startFetchingMetadata(for: url)
+            
+            var thumbnail: UIImage?
+            if let imageProvider = metadata.imageProvider {
+                thumbnail = await withCheckedContinuation { continuation in
+                    imageProvider.loadObject(ofClass: UIImage.self) { image, _ in
+                        continuation.resume(returning: image as? UIImage)
+                    }
+                }
+            }
+            
+            var icon: UIImage?
+            if let iconProvider = metadata.iconProvider {
+                icon = await withCheckedContinuation { continuation in
+                    iconProvider.loadObject(ofClass: UIImage.self) { image, _ in
+                        continuation.resume(returning: image as? UIImage)
+                    }
+                }
+            }
+            
+            let domain = url.host ?? urlString
+            let preview = LinkPreviewData(
+                title: metadata.title,
+                url: urlString,
+                domain: domain,
+                icon: icon,
+                image: thumbnail
+            )
+            
+            await MainActor.run {
+                linkPreviews[msg.id] = preview
+            }
+        } catch {}
     }
 }
