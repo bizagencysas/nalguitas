@@ -16,6 +16,7 @@ struct TodayView: View {
     @State private var showGirlfriendSentConfirmation = false
     @State private var currentGift: Gift? = nil
     @State private var showGiftOverlay = false
+    @State private var unreadChatCount = 0
 
     var body: some View {
         ZStack {
@@ -42,6 +43,46 @@ struct TodayView: View {
                 .padding(.horizontal, 24)
             }
             .scrollIndicators(.hidden)
+            
+            // Floating chat button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        NotificationCenter.default.post(name: .switchToChatTab, object: nil)
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(red: 0.0, green: 0.48, blue: 1.0), Color(red: 0.0, green: 0.35, blue: 0.85)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 56, height: 56)
+                                .shadow(color: Color.blue.opacity(0.35), radius: 10, y: 4)
+                                .overlay(
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                )
+                            
+                            if unreadChatCount > 0 {
+                                Text("\(unreadChatCount)")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill(.red))
+                                    .offset(x: 6, y: -4)
+                            }
+                        }
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
+                }
+            }
         }
         .overlay {
             if viewModel.showSavedConfirmation {
@@ -61,6 +102,8 @@ struct TodayView: View {
             await viewModel.loadTodayMessage(context: modelContext)
             await checkForGifts()
             await PointsService.shared.awardDailyOpenPoint()
+            let isAdmin = UserDefaults.standard.bool(forKey: "isAdminDevice")
+            unreadChatCount = (try? await APIService.shared.fetchUnseenCount(sender: isAdmin ? "admin" : "girlfriend")) ?? 0
             withAnimation(.easeOut(duration: 0.8)) {
                 appeared = true
             }

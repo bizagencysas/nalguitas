@@ -576,6 +576,13 @@ extension APIService {
         try checkResponse(data, response)
     }
     
+    func fetchUnseenCount(sender: String) async throws -> Int {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/chat/unseen?sender=\(sender)")!)
+        try checkResponse(data, response)
+        struct Unseen: Decodable { let count: Int }
+        return try decoder.decode(Unseen.self, from: data).count
+    }
+    
     // MARK: - Rewards
     func fetchRewards() async throws -> [Reward] {
         let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/rewards")!)

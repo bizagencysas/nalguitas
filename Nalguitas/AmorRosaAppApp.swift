@@ -63,4 +63,5 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 
 extension Notification.Name {
     static let didReceiveRemoteMessage = Notification.Name("didReceiveRemoteMessage")
+    static let switchToChatTab = Notification.Name("switchToChatTab")
 }
