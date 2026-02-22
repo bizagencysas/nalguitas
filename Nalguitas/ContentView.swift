@@ -35,7 +35,7 @@ struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .preferredColorScheme(.light)
+        // Removed .preferredColorScheme(.light) to support dark mode
         .task {
             await checkRoleAndConfig()
         }

@@ -39,18 +39,18 @@ struct ChatView: View {
     
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
-    // iMessage colors
+    // Chat colors (rose palette, dark mode adaptive)
     private let sentGradient = LinearGradient(
-        colors: [Color(red: 0.0, green: 0.48, blue: 1.0), Color(red: 0.0, green: 0.4, blue: 0.9)],
+        colors: [Theme.chatSentBubble, Theme.chatSentBubbleEnd],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
-    private let receivedColor = Color(UIColor.systemGray5)
+    private let receivedColor = Theme.chatReceivedBubble
     
     var body: some View {
         NavigationStack {
             ZStack {
-                // iOS-style subtle background
-                Color(UIColor.systemBackground)
+                // Adaptive background
+                Theme.chatBackground
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -490,7 +490,7 @@ struct ChatView: View {
                 
                 // iMessage-style text field
                 HStack(alignment: .bottom) {
-                    TextField("iMessage", text: $messageText, axis: .vertical)
+                    TextField("Mensaje...", text: $messageText, axis: .vertical)
                         .lineLimit(1...6)
                         .font(.system(.body))
                     
@@ -498,7 +498,7 @@ struct ChatView: View {
                         Button { Task { await sendText() } } label: {
                             Image(systemName: "arrow.up.circle.fill")
                                 .font(.system(size: 28))
-                                .foregroundStyle(Color(red: 0.0, green: 0.48, blue: 1.0))
+                                .foregroundStyle(Theme.rosePrimary)
                         }
                         .disabled(isSending)
                         .transition(.scale.combined(with: .opacity))
@@ -584,7 +584,7 @@ struct ChatView: View {
                     Spacer()
                     Image(systemName: "wand.and.stars")
                         .font(.system(size: 50))
-                        .foregroundStyle(.linearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .foregroundStyle(.linearGradient(colors: [Theme.rosePrimary, Theme.blush], startPoint: .topLeading, endPoint: .bottomTrailing))
                     
                     Text("Generador de Stickers IA")
                         .font(.system(.title2, design: .rounded, weight: .bold))
@@ -616,7 +616,7 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(RoundedRectangle(cornerRadius: 16).fill(
-                            LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(colors: [Theme.rosePrimary, Theme.blush], startPoint: .leading, endPoint: .trailing)
                         ))
                     }
                     .disabled(aiPrompt.isEmpty || isGeneratingSticker)
@@ -765,7 +765,7 @@ struct ChatView: View {
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 100, height: 100)
                                 .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.blue, lineWidth: 2))
+                                .overlay(Circle().stroke(Theme.rosePrimary, lineWidth: 2))
                         } else {
                             Circle()
                                 .fill(.ultraThinMaterial)
@@ -775,7 +775,7 @@ struct ChatView: View {
                         PhotosPicker(selection: $editAvatarItem, matching: .images) {
                             Label("Cambiar foto", systemImage: "camera.fill")
                                 .font(.system(.caption, design: .rounded, weight: .semibold))
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(Theme.rosePrimary)
                         }
                         .onChange(of: editAvatarItem) { _, newItem in
                             Task {
@@ -824,7 +824,7 @@ struct ChatView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Capsule().fill(.blue))
+                            .background(Capsule().fill(Theme.rosePrimary))
                     }
                 }.padding(24)
             }

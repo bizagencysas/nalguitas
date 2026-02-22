@@ -56,12 +56,12 @@ struct TodayView: View {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color(red: 0.0, green: 0.48, blue: 1.0), Color(red: 0.0, green: 0.35, blue: 0.85)],
+                                        colors: [Theme.rosePrimary, Theme.blush],
                                         startPoint: .topLeading, endPoint: .bottomTrailing
                                     )
                                 )
                                 .frame(width: 56, height: 56)
-                                .shadow(color: Color.blue.opacity(0.35), radius: 10, y: 4)
+                                .shadow(color: Theme.rosePrimary.opacity(0.35), radius: 10, y: 4)
                                 .overlay(
                                     Image(systemName: "bubble.left.and.bubble.right.fill")
                                         .font(.system(size: 22, weight: .semibold))
