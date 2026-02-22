@@ -98,37 +98,52 @@ struct ChatView: View {
         }
     }
     
-    // MARK: - iMessage Header (centered avatar + name)
+    // MARK: - Chat Header (large photo + name)
     private var iMessageHeader: some View {
-        VStack(spacing: 2) {
-            // Avatar
-            if let partnerAvatar = partnerProfile?.avatar, !partnerAvatar.isEmpty,
-               let imgData = Data(base64Encoded: partnerAvatar),
-               let uiImage = UIImage(data: imgData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-            } else {
+        VStack(spacing: 6) {
+            // Large avatar with ring
+            ZStack {
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(isAdmin ? "👩" : "👨")
-                            .font(.system(size: 16))
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.rosePrimary, Theme.blush, Theme.roseLight],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
+                    .frame(width: 78, height: 78)
+                
+                if let partnerAvatar = partnerProfile?.avatar, !partnerAvatar.isEmpty,
+                   let imgData = Data(base64Encoded: partnerAvatar),
+                   let uiImage = UIImage(data: imgData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 72, height: 72)
+                        .clipShape(Circle())
+                } else {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 72, height: 72)
+                        .overlay(
+                            Text(isAdmin ? "👩" : "👨")
+                                .font(.system(size: 32))
+                        )
+                }
             }
-            // Name with chevron
-            HStack(spacing: 2) {
+            
+            // Name + chevron
+            HStack(spacing: 3) {
                 Text(partnerProfile?.displayName.isEmpty == false ? partnerProfile!.displayName : (isAdmin ? "Tucancita" : "Isacc"))
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.primary)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 7, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.tertiary)
             }
         }
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
     
     // MARK: - iMessage Bubble

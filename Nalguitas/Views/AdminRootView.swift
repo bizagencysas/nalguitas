@@ -61,6 +61,7 @@ struct AdminRootView: View {
     }
     
     private func refreshBadge() async {
+        guard selectedTab != 2 else { unreadChatCount = 0; return }
         unreadChatCount = (try? await APIService.shared.fetchUnseenCount(sender: "admin")) ?? 0
     }
 }
