@@ -16,6 +16,11 @@ struct ChatView: View {
     @State private var scrollProxy: ScrollViewProxy?
     @State private var pollTimer: Timer?
     
+    // Nalguitas Pay
+    @State private var showPaymentSheet = false
+    @State private var paymentAmount = ""
+    @State private var paymentNote = ""
+    
     // BBM-style profiles
     @State private var myProfile: UserProfile?
     @State private var partnerProfile: UserProfile?
@@ -80,6 +85,7 @@ struct ChatView: View {
             .sheet(isPresented: $showStickerPicker) { stickerPickerSheet }
             .sheet(isPresented: $showAIGenerator) { aiGeneratorSheet }
             .sheet(isPresented: $showProfileSheet) { profileEditSheet }
+            .sheet(isPresented: $showPaymentSheet) { paymentSheet }
             .task { await loadProfiles(); await loadMessages(); startPolling() }
             .onDisappear { pollTimer?.invalidate() }
         }
@@ -160,6 +166,9 @@ struct ChatView: View {
                                 .frame(width: 150, height: 150)
                         }
                         
+                    case "payment":
+                        paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
+                        
                     default: // text, link
                         // Check if it's just an emoji (1-3 emoji chars)
                         if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
@@ -203,6 +212,181 @@ struct ChatView: View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
     }
     
+    // MARK: - Nalguitas Pay Bubble
+    private func paymentBubble(amount: String, note: String?, isMe: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Card header
+            HStack {
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Nalguitas Pay")
+                    .font(.system(.caption, design: .rounded, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.9))
+                Spacer()
+                Image(systemName: isMe ? "arrow.up.right" : "arrow.down.left")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            
+            // Amount
+            Text(amount)
+                .font(.system(size: 38, design: .rounded, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+            
+            // Note
+            if let note = note, !note.isEmpty {
+                Text(note)
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 2)
+            }
+            
+            // Footer
+            HStack {
+                Text(isMe ? "Enviado" : "Recibido")
+                    .font(.system(.caption2, design: .rounded, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Text("💕")
+                    .font(.system(size: 14))
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 14)
+        }
+        .frame(width: 240)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.18, green: 0.80, blue: 0.44),
+                            Color(red: 0.10, green: 0.65, blue: 0.45),
+                            Color(red: 0.05, green: 0.55, blue: 0.40)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: Color(red: 0.1, green: 0.7, blue: 0.4).opacity(0.3), radius: 12, y: 6)
+        )
+    }
+    
+    // MARK: - Payment Sheet
+    private var paymentSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                VStack(spacing: 24) {
+                    Spacer()
+                    
+                    // Apple Cash style circle
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(red: 0.18, green: 0.80, blue: 0.44), Color(red: 0.05, green: 0.55, blue: 0.40)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "dollarsign")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    
+                    Text("Nalguitas Pay")
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                    
+                    // Amount input
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("$")
+                            .font(.system(size: 44, design: .rounded, weight: .light))
+                            .foregroundStyle(.primary)
+                        TextField("0", text: $paymentAmount)
+                            .font(.system(size: 52, design: .rounded, weight: .bold))
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 200)
+                    }
+                    .padding(.vertical, 8)
+                    
+                    // Note field
+                    TextField("Agregar nota... (opcional)", text: $paymentNote)
+                        .font(.system(.body, design: .rounded))
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(UIColor.systemGray6))
+                        )
+                        .padding(.horizontal, 32)
+                    
+                    Spacer()
+                    
+                    // Send button  
+                    Button {
+                        Task { await sendPayment() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 22))
+                            Text("Enviar")
+                                .font(.system(.headline, design: .rounded, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            Capsule().fill(
+                                paymentAmount.isEmpty
+                                ? AnyShapeStyle(Color.gray.opacity(0.5))
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Color(red: 0.18, green: 0.80, blue: 0.44), Color(red: 0.05, green: 0.55, blue: 0.40)],
+                                    startPoint: .leading, endPoint: .trailing
+                                ))
+                            )
+                        )
+                    }
+                    .disabled(paymentAmount.isEmpty)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { showPaymentSheet = false }
+                }
+            }
+        }
+    }
+    
+    private func sendPayment() async {
+        guard !paymentAmount.isEmpty else { return }
+        let amount = "$\(paymentAmount)"
+        let note = paymentNote.isEmpty ? nil : paymentNote
+        
+        do {
+            let msg = try await APIService.shared.sendChatMessage(
+                sender: mySender,
+                type: "payment",
+                content: amount,
+                mediaUrl: note
+            )
+            messages.append(msg)
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            paymentAmount = ""
+            paymentNote = ""
+            showPaymentSheet = false
+        } catch {}
+    }
+    
     // MARK: - Helpers
     private func shouldShowTail(at index: Int) -> Bool {
         guard index < messages.count else { return true }
@@ -237,6 +421,8 @@ struct ChatView: View {
                     Button { showStickerPicker = true } label: { Label("Sticker", systemImage: "face.smiling.inverse") }
                     Button { showAIGenerator = true } label: { Label("Sticker IA ✨", systemImage: "wand.and.stars") }
                     Button { pasteLink() } label: { Label("Pegar Link", systemImage: "link") }
+                    Divider()
+                    Button { showPaymentSheet = true } label: { Label("Nalguitas Pay 💸", systemImage: "dollarsign.circle.fill") }
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 28))

@@ -552,6 +552,7 @@ app.post("/chat/send", async (c) => {
     if (msg.type === "video") pushBody = "🎬 Video";
     if (msg.type === "sticker") pushBody = "🎨 Sticker";
     if (msg.type === "link") pushBody = `🔗 ${msg.content || "Link"}`;
+    if (msg.type === "payment") pushBody = `💸 Nalguitas Pay: ${msg.content}`;
     await Promise.all(targets.map((d: any) => sendPushNotification(d.token, pushTitle, pushBody)));
     return c.json(msg);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
