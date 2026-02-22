@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import LinkPresentation
+import AVKit
 
 struct ChatView: View {
     let isAdmin: Bool
@@ -8,9 +9,11 @@ struct ChatView: View {
     @State private var messageText = ""
     @State private var isSending = false
     @State private var showPhotosPicker = false
+    @State private var showVideoPicker = false
     @State private var showStickerPicker = false
     @State private var showAIGenerator = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedVideoItem: PhotosPickerItem?
     @State private var aiPrompt = ""
     @State private var isGeneratingSticker = false
     @State private var cachedStickers: [AISticker] = []
@@ -158,6 +161,17 @@ struct ChatView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                         } else {
                             Label("Foto", systemImage: "photo.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    
+                    case "video":
+                        if let data = msg.mediaData, let videoData = Data(base64Encoded: data) {
+                            VideoBubbleView(videoData: videoData)
+                                .frame(maxWidth: 240, maxHeight: 180)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                        } else {
+                            Label("Video", systemImage: "video.fill")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -425,6 +439,7 @@ struct ChatView: View {
                 // Plus button for attachments
                 Menu {
                     Button { showPhotosPicker = true } label: { Label("Foto", systemImage: "photo.fill") }
+                    Button { showVideoPicker = true } label: { Label("Video", systemImage: "video.fill") }
                     Button { showStickerPicker = true } label: { Label("Sticker", systemImage: "face.smiling.inverse") }
                     Button { showAIGenerator = true } label: { Label("Sticker IA ✨", systemImage: "wand.and.stars") }
                     Button { pasteLink() } label: { Label("Pegar Link", systemImage: "link") }
@@ -438,7 +453,7 @@ struct ChatView: View {
                 }
                 
                 // Photo picker (hidden)
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
                     EmptyView()
                 }
                 .onChange(of: selectedPhotoItem) { _, newItem in
@@ -447,6 +462,26 @@ struct ChatView: View {
                             let uiImage = UIImage(data: data)
                             if let compressed = uiImage?.jpegData(compressionQuality: 0.4) {
                                 await sendMedia(type: "image", base64: compressed.base64EncodedString())
+                            }
+                        }
+                    }
+                }
+                .frame(width: 0, height: 0).opacity(0)
+                
+                // Video picker (hidden)
+                PhotosPicker(selection: $selectedVideoItem, matching: .videos, photoLibrary: .shared()) {
+                    EmptyView()
+                }
+                .onChange(of: selectedVideoItem) { _, newItem in
+                    Task {
+                        if let movie = try? await newItem?.loadTransferable(type: VideoTransferable.self) {
+                            let data = try? Data(contentsOf: movie.url)
+                            if let videoData = data {
+                                // Limit to ~10MB for base64 chat
+                                let maxSize = 10 * 1024 * 1024
+                                if videoData.count <= maxSize {
+                                    await sendMedia(type: "video", base64: videoData.base64EncodedString())
+                                }
                             }
                         }
                     }
@@ -929,5 +964,99 @@ extension ChatView {
                 linkPreviews[msg.id] = preview
             }
         } catch {}
+    }
+}
+
+// MARK: - Video Transferable
+struct VideoTransferable: Transferable {
+    let url: URL
+    
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .movie) { movie in
+            SentTransferredFile(movie.url)
+        } importing: { received in
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mov")
+            try FileManager.default.copyItem(at: received.file, to: tempURL)
+            return Self(url: tempURL)
+        }
+    }
+}
+
+// MARK: - Video Bubble View
+struct VideoBubbleView: View {
+    let videoData: Data
+    @State private var isPlaying = false
+    @State private var player: AVPlayer?
+    @State private var thumbnail: UIImage?
+    
+    var body: some View {
+        ZStack {
+            if isPlaying, let player = player {
+                VideoPlayer(player: player)
+                    .onAppear { player.play() }
+                    .onDisappear { player.pause() }
+            } else {
+                // Thumbnail with play button
+                if let thumb = thumbnail {
+                    Image(uiImage: thumb)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Rectangle()
+                        .fill(Color(UIColor.systemGray4))
+                        .overlay(
+                            ProgressView()
+                                .tint(.white)
+                        )
+                }
+                
+                // Play button overlay
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.white)
+                            .offset(x: 2)
+                    )
+                    .shadow(radius: 4)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isPlaying {
+                isPlaying = false
+                player?.pause()
+            } else {
+                setupPlayer()
+                isPlaying = true
+            }
+        }
+        .task {
+            await generateThumbnail()
+        }
+    }
+    
+    private func setupPlayer() {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mp4")
+        try? videoData.write(to: tempURL)
+        player = AVPlayer(url: tempURL)
+    }
+    
+    private func generateThumbnail() async {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)_thumb.mp4")
+        try? videoData.write(to: tempURL)
+        
+        let asset = AVAsset(url: tempURL)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 480, height: 480)
+        
+        if let cgImage = try? await generator.image(at: .zero).image {
+            await MainActor.run {
+                thumbnail = UIImage(cgImage: cgImage)
+            }
+        }
     }
 }

@@ -27,7 +27,44 @@ struct AmorRosaAppApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        
+        // Home screen Quick Actions (long-press app icon)
+        application.shortcutItems = [
+            UIApplicationShortcutItem(
+                type: "com.nalguitas.openchat",
+                localizedTitle: "💬  Chat",
+                localizedSubtitle: "Abrir el chat",
+                icon: UIApplicationShortcutIcon(systemImageName: "bubble.left.and.bubble.right.fill"),
+                userInfo: nil
+            ),
+            UIApplicationShortcutItem(
+                type: "com.nalguitas.openpay",
+                localizedTitle: "💸  Nalguitas Pay",
+                localizedSubtitle: "Enviar dinero",
+                icon: UIApplicationShortcutIcon(systemImageName: "dollarsign.circle.fill"),
+                userInfo: nil
+            )
+        ]
+        
+        // Handle shortcut if app was launched from one
+        if let shortcutItem = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
+            handleShortcut(shortcutItem)
+        }
+        
         return true
+    }
+    
+    func application(_ application: UIApplication, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
+        handleShortcut(shortcutItem)
+        completionHandler(true)
+    }
+    
+    private func handleShortcut(_ item: UIApplicationShortcutItem) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if item.type == "com.nalguitas.openchat" || item.type == "com.nalguitas.openpay" {
+                NotificationCenter.default.post(name: .switchToChatTab, object: nil)
+            }
+        }
     }
 
     nonisolated func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {

@@ -49,6 +49,9 @@ struct AdminRootView: View {
         }
         .onAppear { startBadgePolling() }
         .onDisappear { badgeTimer?.invalidate() }
+        .onReceive(NotificationCenter.default.publisher(for: .switchToChatTab)) { _ in
+            selectedTab = 2
+        }
     }
     
     private func startBadgePolling() {
