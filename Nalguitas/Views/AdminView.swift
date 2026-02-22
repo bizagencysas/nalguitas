@@ -46,7 +46,7 @@ struct AdminView: View {
             ZStack {
                 Theme.meshBackground
 
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
                         girlfriendMessagesCard
                         giftSendCard
@@ -61,8 +61,9 @@ struct AdminView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 40)
+                    .frame(maxWidth: .infinity)
                 }
-                .scrollIndicators(.hidden)
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             }
             .navigationTitle("Admin")
             .navigationBarTitleDisplayMode(.large)
