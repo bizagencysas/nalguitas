@@ -183,29 +183,16 @@ struct ChatView: View {
                     // Content
                     switch msg.type {
                     case "image":
-                        if let data = msg.mediaData {
-                            AsyncBase64ImageView(base64String: data, msgId: msg.id, isSticker: false, fullScreenImage: $fullScreenImage)
-                        } else {
-                            Label("Foto", systemImage: "photo.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
+                        // Pass base64String ONLY if we just downloaded it from server (msg.mediaData acts as a fallback/first download payload)
+                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: false, fullScreenImage: $fullScreenImage)
                     
                     case "video":
-                        if let data = msg.mediaData {
-                            AsyncBase64VideoView(base64String: data, msgId: msg.id) { videoData in
-                                saveVideoToCameraRoll(videoData)
-                            }
-                        } else {
-                            Label("Video", systemImage: "video.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        AsyncBase64VideoView(base64String: msg.mediaData, msgId: msg.id) { videoData in
+                            saveVideoToCameraRoll(videoData)
                         }
                         
                     case "sticker":
-                        if let data = msg.mediaData {
-                            AsyncBase64ImageView(base64String: data, msgId: msg.id, isSticker: true, fullScreenImage: $fullScreenImage)
-                        }
+                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: true, fullScreenImage: $fullScreenImage)
                         
                     case "payment":
                         paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
@@ -1203,7 +1190,7 @@ class ChatMediaCache {
 
 // MARK: - Async Decoders
 struct AsyncBase64ImageView: View {
-    let base64String: String
+    let base64String: String?
     let msgId: String
     let isSticker: Bool
     @Binding var fullScreenImage: UIImage?
@@ -1238,17 +1225,34 @@ struct AsyncBase64ImageView: View {
                         .frame(width: isSticker ? 150 : 200, height: isSticker ? 150 : 200)
                     ProgressView()
                 }
-                .task(id: base64String) {
+                .task(id: msgId) {
+                    // Fast path 1: RAM Cache
                     if let cached = ChatMediaCache.shared.images.object(forKey: msgId as NSString) {
                         self.uiImage = cached
                         return
                     }
                     guard !isDecoding else { return }
                     isDecoding = true
+                    
                     Task.detached(priority: .userInitiated) {
-                        if let data = Data(base64Encoded: base64String), let img = UIImage(data: data) {
+                        // Fast path 2: Disk File (Native Cache)
+                        let type = isSticker ? "sticker" : "image"
+                        if let localURL = MediaFileManager.shared.localURL(for: msgId, type: type),
+                           let data = try? Data(contentsOf: localURL),
+                           let img = UIImage(data: data) {
                             ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
                             await MainActor.run { self.uiImage = img }
+                            return
+                        }
+                        
+                        // Slow path: Decode Base64 from payload (only happens once on first arrival)
+                        if let base64String = base64String, let data = Data(base64Encoded: base64String) {
+                            // Save to disk for next time
+                            _ = await MediaFileManager.shared.saveBase64Media(base64String, messageId: msgId, type: type)
+                            if let img = UIImage(data: data) {
+                                ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
+                                await MainActor.run { self.uiImage = img }
+                            }
                         }
                     }
                 }
@@ -1258,7 +1262,7 @@ struct AsyncBase64ImageView: View {
 }
 
 struct AsyncBase64VideoView: View {
-    let base64String: String
+    let base64String: String?
     let msgId: String
     let onSave: (Data) -> Void
     
@@ -1285,15 +1289,26 @@ struct AsyncBase64VideoView: View {
                         .frame(width: 200, height: 150)
                     ProgressView()
                 }
-                .task(id: base64String) {
+                .task(id: msgId) {
                     if let cached = ChatMediaCache.shared.videos.object(forKey: msgId as NSString) {
                         self.videoData = cached as Data
                         return
                     }
                     guard !isDecoding else { return }
                     isDecoding = true
+                    
                     Task.detached(priority: .userInitiated) {
-                        if let data = Data(base64Encoded: base64String) {
+                        // Fast path 1: Disk File
+                        if let localURL = MediaFileManager.shared.localURL(for: msgId, type: "video"),
+                           let data = try? Data(contentsOf: localURL) {
+                            ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
+                            await MainActor.run { self.videoData = data }
+                            return
+                        }
+                        
+                        // Slow path: Decode Base64 (only happens first time)
+                        if let base64String = base64String, let data = Data(base64Encoded: base64String) {
+                            _ = await MediaFileManager.shared.saveBase64Media(base64String, messageId: msgId, type: "video")
                             ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
                             await MainActor.run { self.videoData = data }
                         }
