@@ -957,6 +957,7 @@ struct ChatView: View {
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                             AmbientAudio.shared.playReceivedMessage()
                         }
+                        }
                     }
                     return // early exit so we don't immediately append it
                 }
