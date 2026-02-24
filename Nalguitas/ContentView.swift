@@ -148,6 +148,7 @@ struct GirlfriendTabView: View {
         }
         .tint(Theme.rosePrimary)
         .onChange(of: selectedTab) { _, newTab in
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             if newTab == 2 { unreadChatCount = 0 }
         }

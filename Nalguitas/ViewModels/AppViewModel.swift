@@ -12,15 +12,22 @@ class AppViewModel {
 
     func loadTodayMessage(context: ModelContext? = nil) async {
         guard !isLoading else { return }
+        
+        // Fast Path: Load cached message instantly before network call
+        if todayMessage == nil, let cached = SharedDataService.getTodayMessage(), !cached.content.isEmpty {
+            todayMessage = LoveMessage(id: "cached", content: cached.content, subtitle: cached.subtitle, tone: nil, createdAt: nil, isSpecial: nil)
+        }
+        
         isLoading = true
         defer { isLoading = false }
 
         do {
             let message = try await APIService.shared.fetchTodayMessage()
             if message.id.isEmpty || message.content.isEmpty {
-                todayMessage = nil
+                if todayMessage?.id == "cached" { todayMessage = nil }
             } else {
-                let isNew = todayMessage?.id != message.id
+                // If it was cached, we consider it "new" only if content differs to avoid double history insert
+                let isNew = (todayMessage == nil || todayMessage?.id == "cached") ? true : (todayMessage?.id != message.id)
                 todayMessage = message
                 SharedDataService.saveTodayMessage(message)
                 if isNew, let context {
@@ -28,9 +35,8 @@ class AppViewModel {
                 }
             }
         } catch {
-            if todayMessage == nil, let cached = SharedDataService.getTodayMessage(), !cached.content.isEmpty {
-                todayMessage = LoveMessage(id: "cached", content: cached.content, subtitle: cached.subtitle, tone: nil, createdAt: nil, isSpecial: nil)
-            }
+            // Already loaded cache above, just fail silently
+            print("Failed to sync today message: \(error)")
         }
     }
 

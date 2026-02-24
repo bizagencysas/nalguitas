@@ -80,10 +80,11 @@ struct ExploreView: View {
     @State private var rewards: [Reward] = []
     @State private var showRewardsSheet = false
     @State private var experiences: [Experience] = []
-    @State private var showExperiencesSheet = false
     
     @State private var toastText: String?
     @State private var fullScreenPhoto: UIImage?
+    
+    @Namespace private var exploreAnimation
     
     var body: some View {
         NavigationStack {
@@ -176,6 +177,19 @@ struct ExploreView: View {
             .sheet(isPresented: $showWishList) { WishListView(isAdmin: UserDefaults.standard.bool(forKey: "isAdminDevice")) }
             .task { await loadData() }
             .refreshable { await loadData() }
+            
+            if showScratchSheet {
+                scratchCardSheet
+                    .matchedGeometryEffect(id: "scratchGeo", in: exploreAnimation)
+                    .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .scale(scale: 0.95).combined(with: .opacity)))
+                    .zIndex(200)
+            }
+            if showDiarySheet {
+                diarySheet
+                    .matchedGeometryEffect(id: "diaryGeo", in: exploreAnimation)
+                    .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .scale(scale: 0.95).combined(with: .opacity)))
+                    .zIndex(200)
+            }
         }
     }
     
@@ -927,8 +941,55 @@ struct ExploreView: View {
         }
     }
     
+    // MARK: - Offline Cache Struct
+    private struct ExploreCache: Codable {
+        let daysTogether: DaysTogether?
+        let todayQuestion: DailyQuestion?
+        let todayMood: MoodEntry?
+        let coupons: [LoveCoupon]
+        let achievements: [Achievement]
+        let songs: [Song]
+        let specialDates: [SpecialDate]
+        let plans: [DatePlan]
+        let photos: [SharedPhoto]
+        let moodHistory: [MoodEntry]
+        let answeredQuestions: [DailyQuestion]
+        let customFact: CustomFact?
+        let todayWord: EnglishWord?
+        let scratchCard: ScratchCard?
+        let rouletteOptions: [RouletteOption]
+        let pointsBalance: Int
+        let rewards: [Reward]
+        let experiences: [Experience]
+        let partnerDiary: [DiaryEntry]
+    }
+    
     // MARK: - Actions
     private func loadData() async {
+        // Fast path: Load from cache instantly
+        if let cachedData = UserDefaults.standard.data(forKey: "ExploreCache"),
+           let cache = try? JSONDecoder().decode(ExploreCache.self, from: cachedData) {
+            self.daysTogether = cache.daysTogether
+            self.todayQuestion = cache.todayQuestion
+            self.todayMood = cache.todayMood
+            self.coupons = cache.coupons
+            self.achievements = cache.achievements
+            self.songs = cache.songs
+            self.specialDates = cache.specialDates
+            self.plans = cache.plans
+            self.photos = cache.photos
+            self.moodHistory = cache.moodHistory
+            self.answeredQuestions = cache.answeredQuestions
+            self.customFact = cache.customFact
+            self.todayWord = cache.todayWord
+            self.scratchCard = cache.scratchCard
+            self.rouletteOptions = cache.rouletteOptions
+            self.pointsBalance = cache.pointsBalance
+            self.rewards = cache.rewards
+            self.experiences = cache.experiences
+            self.partnerDiary = cache.partnerDiary
+        }
+        
         async let d = try? APIService.shared.fetchDaysTogether()
         async let q = try? APIService.shared.fetchTodayQuestion()
         async let m = try? APIService.shared.fetchTodayMood()
@@ -942,6 +1003,18 @@ struct ExploreView: View {
         async let aq = try? APIService.shared.fetchAnsweredQuestions()
         
         let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
+        
+        let fetchedFact = try? await APIService.shared.fetchRandomFact()
+        let fetchedWord = try? await APIService.shared.fetchTodayWord()
+        let fetchedScratch = try? await APIService.shared.fetchAvailableScratchCard()
+        let fetchedOptions = (try? await APIService.shared.fetchRouletteOptions(category: "general")) ?? []
+        let ptsResult = try? await APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+        let fetchedBalance = ptsResult?.balance ?? 0
+        let fetchedRewards = (try? await APIService.shared.fetchRewards()) ?? []
+        let fetchedExperiences = (try? await APIService.shared.fetchExperiences()) ?? []
+        let fetchedDiary = (try? await APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")) ?? []
+        
+        // Update state on MainActor implicitly via await
         daysTogether = days
         todayQuestion = question
         todayMood = mood
@@ -953,15 +1026,20 @@ struct ExploreView: View {
         photos = phs ?? []
         moodHistory = moods ?? []
         answeredQuestions = answered ?? []
-        customFact = try? await APIService.shared.fetchRandomFact()
-        todayWord = try? await APIService.shared.fetchTodayWord()
-        scratchCard = try? await APIService.shared.fetchAvailableScratchCard()
-        rouletteOptions = (try? await APIService.shared.fetchRouletteOptions(category: "general")) ?? []
-        let ptsResult = try? await APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
-        pointsBalance = ptsResult?.balance ?? 0
-        rewards = (try? await APIService.shared.fetchRewards()) ?? []
-        experiences = (try? await APIService.shared.fetchExperiences()) ?? []
-        partnerDiary = (try? await APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")) ?? []
+        customFact = fetchedFact
+        todayWord = fetchedWord
+        scratchCard = fetchedScratch
+        rouletteOptions = fetchedOptions
+        pointsBalance = fetchedBalance
+        rewards = fetchedRewards
+        experiences = fetchedExperiences
+        partnerDiary = fetchedDiary
+        
+        // Save to cache
+        let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photos: self.photos, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
+        if let encoded = try? JSONEncoder().encode(newCache) {
+            UserDefaults.standard.set(encoded, forKey: "ExploreCache")
+        }
     }
     
     private func selectMood(_ option: MoodOption) async {
@@ -1266,22 +1344,23 @@ extension ExploreView {
     
     // MARK: - Scratch Card Preview
     private var scratchCardPreview: some View {
-        Button { showScratchSheet = true } label: {
+        Button { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showScratchSheet = true } } label: {
             HStack {
-                Text(scratchCard?.emoji ?? "🎁").font(.system(size: 36))
+                Text("🎟").font(.system(size: 36))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("¡Raspa y Gana!")
+                    Text("¡Raspa y Gana Disponible!")
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .foregroundStyle(Theme.rosePrimary)
-                    Text("Tienes una tarjeta por rascar")
+                    Text("Tienes un cupón sorpresa esperando")
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "hand.draw.fill").font(.title2).foregroundStyle(.orange)
+                Image(systemName: "hand.draw.fill").font(.title2).foregroundStyle(.orange).symbolEffect(.pulse)
             }
             .padding(20)
             .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
+            .matchedGeometryEffect(id: "scratchGeo", in: exploreAnimation)
         }
     }
     
@@ -1384,8 +1463,9 @@ extension ExploreView {
             }
             .padding(32)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showScratchSheet = false; isScratched = false; scratchPoints = []; scratchPercentage = 0; Task { await loadData() } } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showScratchSheet = false; isScratched = false; scratchPoints = []; scratchPercentage = 0; Task { await loadData() } } } } }
         }
+        .background(Theme.meshBackground.ignoresSafeArea())
     }
     
     // MARK: - Roulette Preview
@@ -1475,7 +1555,7 @@ extension ExploreView {
     
     // MARK: - Diary Preview
     private var diaryPreviewCard: some View {
-        Button { showDiarySheet = true } label: {
+        Button { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showDiarySheet = true } } label: {
             HStack {
                 Text("📖").font(.system(size: 36))
                 VStack(alignment: .leading, spacing: 4) {
@@ -1487,10 +1567,11 @@ extension ExploreView {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "pencil.line").font(.title2).foregroundStyle(.green)
+                Image(systemName: "pencil.line").font(.title2).foregroundStyle(.green).symbolEffect(.pulse)
             }
             .padding(20)
             .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
+            .matchedGeometryEffect(id: "diaryGeo", in: exploreAnimation)
         }
     }
     
@@ -1537,8 +1618,9 @@ extension ExploreView {
             }
             .navigationTitle("Diario 📖")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { showDiarySheet = false } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showDiarySheet = false } } } }
         }
+        .background(Theme.meshBackground.ignoresSafeArea())
     }
     
     // MARK: - Points Preview
