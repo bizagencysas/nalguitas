@@ -292,51 +292,51 @@ struct ChatView: View {
             // Card header
             HStack {
                 Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
                 Text("Nalguitas Pay")
-                    .font(.system(.caption, design: .rounded, weight: .bold))
+                    .font(.system(size: 11, design: .rounded, weight: .bold))
                     .foregroundStyle(.white.opacity(0.9))
                 Spacer()
                 Image(systemName: isMe ? "arrow.up.right" : "arrow.down.left")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.white.opacity(0.7))
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
             
             // Amount
             Text(amount)
-                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
+                .padding(.horizontal, 12)
+                .padding(.top, 2)
             
             // Note
             if let note = note, !note.isEmpty {
                 Text(note)
-                    .font(.system(.subheadline, design: .rounded))
+                    .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.white.opacity(0.85))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 2)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 1)
             }
             
             // Footer
             HStack {
                 Text(isMe ? "Enviado" : "Recibido")
-                    .font(.system(.caption2, design: .rounded, weight: .medium))
+                    .font(.system(size: 9, design: .rounded, weight: .medium))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Text("💕")
-                    .font(.system(size: 14))
+                    .font(.system(size: 11))
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
+            .padding(.bottom, 10)
         }
-        .frame(width: 240)
+        .frame(width: 190)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -348,7 +348,7 @@ struct ChatView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .shadow(color: Theme.rosePrimary.opacity(0.3), radius: 12, y: 6)
+                .shadow(color: Theme.rosePrimary.opacity(0.25), radius: 8, y: 4)
         )
     }
     

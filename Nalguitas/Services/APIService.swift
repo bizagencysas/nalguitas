@@ -682,3 +682,32 @@ nonisolated struct CustomFact: Codable, Identifiable, Sendable {
     let fact: String
     var createdAt: String?
 }
+
+// MARK: - Wish List API
+extension APIService {
+    func fetchWishList() async throws -> [WishItem] {
+        let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/wishlist")!)
+        try checkResponse(data, response)
+        return try decoder.decode([WishItem].self, from: data)
+    }
+    
+    func addWishItem(name: String, link: String?, imageData: String?, addedBy: String) async throws -> WishItem {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/wishlist")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["name": name, "addedBy": addedBy]
+        if let link = link, !link.isEmpty { body["link"] = link }
+        if let imageData = imageData { body["imageData"] = imageData }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+        return try decoder.decode(WishItem.self, from: data)
+    }
+    
+    func deleteWishItem(id: String) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/wishlist/\(id)")!)
+        request.httpMethod = "DELETE"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+}

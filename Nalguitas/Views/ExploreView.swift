@@ -58,6 +58,7 @@ struct ExploreView: View {
     @State private var showMoodHistory = false
     @State private var showAnswerHistory = false
     @State private var showGallery = false
+    @State private var showWishList = false
     
     // New features state
     @State private var todayWord: EnglishWord?
@@ -172,6 +173,7 @@ struct ExploreView: View {
             .sheet(isPresented: $showDiarySheet) { diarySheet }
             .sheet(isPresented: $showRewardsSheet) { rewardsSheet }
             .sheet(isPresented: $showExperiencesSheet) { experiencesSheet }
+            .sheet(isPresented: $showWishList) { WishListView(isAdmin: UserDefaults.standard.bool(forKey: "isAdminDevice")) }
             .task { await loadData() }
         }
     }
@@ -422,6 +424,36 @@ struct ExploreView: View {
             }
             Button { showGallery = true } label: {
                 Text("Ver todas (\(photos.count) fotos) →").font(.system(.caption, design: .rounded, weight: .semibold)).foregroundStyle(Theme.rosePrimary)
+            }
+            
+            // Wish List shortcut
+            Button { showWishList = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "gift.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Theme.accentGradient))
+                    Text("Lista de Deseos 💝")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(
+                                    LinearGradient(colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                    lineWidth: 0.5
+                                )
+                        )
+                )
             }
         }
         .padding(16)

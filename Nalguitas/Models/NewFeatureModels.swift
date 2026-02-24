@@ -311,3 +311,13 @@ nonisolated struct UserProfile: Codable, Sendable {
     let statusMessage: String
     var updatedAt: String?
 }
+
+// MARK: - Wish List
+nonisolated struct WishItem: Codable, Identifiable, Sendable {
+    let id: String
+    let name: String
+    let link: String?
+    let imageData: String?
+    let addedBy: String
+    let createdAt: String?
+}
