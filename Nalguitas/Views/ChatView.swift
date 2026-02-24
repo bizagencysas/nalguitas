@@ -324,7 +324,7 @@ struct ChatView: View {
             // Footer
             HStack {
                 Text(isMe ? "Enviado" : "Recibido")
-                    .font(.system(size: 9, design: .rounded, weight: .medium))
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Text("💕")

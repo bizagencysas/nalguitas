@@ -46,7 +46,7 @@ struct NotificationBellView: View {
                             Task { await markAllAsRead() }
                         } label: {
                             Text("Marcar todas")
-                                .font(.system(.caption, weight: .semibold, design: .rounded))
+                                .font(.system(.caption, design: .rounded, weight: .semibold))
                                 .foregroundStyle(Theme.rosePrimary)
                         }
                     }
@@ -70,7 +70,7 @@ struct NotificationBellView: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(notif.title)
-                    .font(.system(.subheadline, weight: notif.isRead ? .regular : .semibold, design: .rounded))
+                    .font(.system(.subheadline, design: .rounded, weight: notif.isRead ? .regular : .semibold))
                     .foregroundStyle(Theme.textPrimary)
                 
                 if !notif.body.isEmpty {
