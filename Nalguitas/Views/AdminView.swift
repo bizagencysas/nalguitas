@@ -502,17 +502,7 @@ struct AdminView: View {
         displayFormatter.timeStyle = .short
         return displayFormatter.string(from: date)
     }
-        defer { isLoading = false }
-        do {
-            messages = try await APIService.shared.fetchMessages()
-        } catch {}
-    }
 
-    private func loadGirlfriendMessages() async {
-        do {
-            girlfriendMessages = try await APIService.shared.fetchGirlfriendMessages()
-        } catch {}
-    }
 
     private func deleteMessage(id: String) async {
         do {
