@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
-import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice, getTodayWord, seedEnglishWords, updateWordAiExample, saveScratchCard, loadScratchCards, getUnscratched, scratchCard, saveRouletteOption, loadRouletteOptions, loadRouletteCategories, deleteRouletteOption, saveDiaryEntry, getDiaryEntry, loadDiaryEntries, addPoints, getPointsBalance, getPointsHistory, saveReward, loadRewards, redeemReward, deleteReward, saveExperience, loadExperiences, completeExperience, deleteExperience, getProfile, saveProfile, updateAvatar, updateStatus } from "./storage";
+import { loadRemoteConfig, saveRemoteConfig, loadRoles, saveRole, saveMessage, loadMessages, deleteMessage, saveGift, loadGifts, loadUnseenGifts, markGiftSeen, saveCoupon, loadCoupons, redeemCoupon, getTodayQuestion, answerQuestion, loadAnsweredQuestions, saveMood, loadMoods, getTodayMood, loadSpecialDates, saveSpecialDate, deleteSpecialDate, saveSong, loadSongs, loadUnseenSongs, markSongSeen, loadAchievements, unlockAchievement, updateAchievementProgress, savePhoto, loadPhotos, loadPhotoById, deletePhoto, loadDevices, savePlan, loadPlans, updatePlanStatus, deletePlan, saveChatMessage, loadChatMessages, markChatMessagesSeen, countUnseenMessages, saveAISticker, loadAIStickers, saveCustomFact, loadCustomFacts, loadRandomFact, deleteCustomFact, deleteDevice, getTodayWord, seedEnglishWords, updateWordAiExample, saveScratchCard, loadScratchCards, getUnscratched, scratchCard, saveRouletteOption, loadRouletteOptions, loadRouletteCategories, deleteRouletteOption, saveDiaryEntry, getDiaryEntry, loadDiaryEntries, addPoints, getPointsBalance, getPointsHistory, saveReward, loadRewards, redeemReward, deleteReward, saveExperience, loadExperiences, completeExperience, deleteExperience, getProfile, saveProfile, updateAvatar, updateStatus, loadWishItems, addWishItem, deleteWishItem } from "./storage";
 import { ENGLISH_WORDS } from "./words";
 import { sendPushNotification } from "./apns-service";
 import { migrate } from "./db";
@@ -1164,6 +1164,30 @@ app.put("/profiles/:username/status", async (c: any) => {
   try {
     const { statusMessage } = await c.req.json();
     await updateStatus(c.req.param("username"), statusMessage || "");
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Wish List Endpoints ---
+
+app.get("/api/wishlist", async (c: any) => {
+  try {
+    return c.json(await loadWishItems());
+  } catch (e: any) { return c.json([], 200); }
+});
+
+app.post("/api/wishlist", async (c: any) => {
+  try {
+    const body = await c.req.json();
+    if (!body?.name) return c.json({ error: "name is required" }, 400);
+    const item = await addWishItem(body.name, body.link || null, body.imageData || null, body.addedBy || "girlfriend");
+    return c.json(item);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+app.delete("/api/wishlist/:id", async (c: any) => {
+  try {
+    await deleteWishItem(c.req.param("id"));
     return c.json({ success: true });
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });

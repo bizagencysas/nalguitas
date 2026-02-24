@@ -780,3 +780,36 @@ export async function updateStatus(username: string, statusMessage: string) {
     SET status_message = ${statusMessage}, updated_at = NOW()
   `;
 }
+
+// --- Wish List ---
+
+interface WishItem {
+  id: string;
+  name: string;
+  link: string | null;
+  imageData: string | null;
+  addedBy: string;
+  createdAt: string | null;
+}
+
+export async function loadWishItems(): Promise<WishItem[]> {
+  const rows = await sql`SELECT id, name, link, image_data, added_by, created_at FROM wish_items ORDER BY created_at DESC`;
+  return rows.map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    link: r.link,
+    imageData: r.image_data,
+    addedBy: r.added_by,
+    createdAt: r.created_at?.toISOString?.() || r.created_at,
+  }));
+}
+
+export async function addWishItem(name: string, link: string | null, imageData: string | null, addedBy: string): Promise<WishItem> {
+  const id = crypto.randomUUID();
+  await sql`INSERT INTO wish_items (id, name, link, image_data, added_by) VALUES (${id}, ${name}, ${link}, ${imageData}, ${addedBy})`;
+  return { id, name, link, imageData, addedBy, createdAt: new Date().toISOString() };
+}
+
+export async function deleteWishItem(id: string) {
+  await sql`DELETE FROM wish_items WHERE id = ${id}`;
+}
