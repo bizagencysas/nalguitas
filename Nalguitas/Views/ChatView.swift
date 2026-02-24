@@ -44,6 +44,9 @@ struct ChatView: View {
     @State private var editAvatarItem: PhotosPickerItem?
     @State private var editAvatarData: Data?
     
+    // Swipe to Reply
+    @State private var replyingToMessage: ChatMessage?
+    
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
     // Chat colors (rose palette, dark mode adaptive)
@@ -83,9 +86,14 @@ struct ChatView: View {
                             }
                         }
                     }
-                    
                     // iMessage-style input bar
-                    iMessageInputBar
+                    VStack(spacing: 0) {
+                        if let replyMsg = replyingToMessage {
+                            replyPreviewBanner(replyMsg)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                        iMessageInputBar
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -661,16 +669,21 @@ struct ChatView: View {
         let type = text.contains("http://") || text.contains("https://") ? "link" : "text"
         let mediaUrl = type == "link" ? text : nil
         
+        let replyId = replyingToMessage?.id
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { replyingToMessage = nil }
+        
         // 1. Optimistic: show message immediately
         let tempId = "local_\(UUID().uuidString)"
-        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: text, mediaData: nil, mediaUrl: mediaUrl, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: text, mediaData: nil, mediaUrl: mediaUrl, replyTo: replyId, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
         messages.append(tempMsg)
         ChatCache.save(messages)
         pendingMessages.insert(tempId)
         
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
+        
         // 2. Try sending in background
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl)
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl, replyTo: replyId)
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
         } catch {
@@ -681,16 +694,21 @@ struct ChatView: View {
     private func sendMedia(type: String, base64: String) async {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         
+        let replyId = replyingToMessage?.id
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { replyingToMessage = nil }
+        
         // 1. Optimistic: show immediately
         let tempId = "local_\(UUID().uuidString)"
-        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, mediaUrl: nil, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, mediaUrl: nil, replyTo: replyId, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
         messages.append(tempMsg)
         ChatCache.save(messages)
         pendingMessages.insert(tempId)
         
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
+        
         // 2. Try sending in background
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64)
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, replyTo: replyId)
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió media 📷")
         } catch {
@@ -701,15 +719,20 @@ struct ChatView: View {
     private func sendEmoji(_ emoji: String) async {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         
+        let replyId = replyingToMessage?.id
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { replyingToMessage = nil }
+        
         let tempId = "local_\(UUID().uuidString)"
-        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: "text", content: emoji, mediaData: nil, mediaUrl: nil, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: "text", content: emoji, mediaData: nil, mediaUrl: nil, replyTo: replyId, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
         messages.append(tempMsg)
         ChatCache.save(messages)
         showStickerPicker = false
         pendingMessages.insert(tempId)
         
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
+        
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji)
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji, replyTo: replyId)
             pendingMessages.remove(tempId)
         } catch {}
     }
@@ -1315,6 +1338,55 @@ struct AsyncBase64VideoView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Swipe To Reply Modifier
+struct SwipeToReplyModifier: ViewModifier {
+    let msg: ChatMessage
+    let replyAction: () -> Void
+    
+    @State private var dragOffset: CGFloat = 0
+    @State private var hasTriggered = false
+    
+    func body(content: Content) -> some View {
+        ZStack(alignment: .leading) {
+            Image(systemName: "arrowshape.turn.up.left.circle.fill")
+                .font(.system(size: 24))
+                .foregroundStyle(Theme.rosePrimary.opacity(0.8))
+                .opacity(min(1.0, Double(-dragOffset) / 50.0))
+                .scaleEffect(min(1.0, Double(-dragOffset) / 50.0))
+                .padding(.leading, 16)
+            
+            content
+                .offset(x: dragOffset)
+                .gesture(
+                    DragGesture(minimumDistance: 15, coordinateSpace: .local)
+                        .onChanged { value in
+                            guard value.translation.width < 0 else {
+                                dragOffset = 0
+                                return
+                            }
+                            
+                            // Parallax dampening effect like iMessage
+                            let damp = CGFloat(0.4)
+                            dragOffset = value.translation.width * damp
+                            
+                            if dragOffset < -50 && !hasTriggered {
+                                hasTriggered = true
+                                replyAction()
+                            } else if dragOffset > -40 {
+                                hasTriggered = false
+                            }
+                        }
+                        .onEnded { _ in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                dragOffset = 0
+                                hasTriggered = false
+                            }
+                        }
+                )
         }
     }
 }
