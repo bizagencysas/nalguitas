@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum Theme {
+public enum Theme {
     // MARK: - Core Palette
     static let rosePrimary = Color(red: 0.91, green: 0.58, blue: 0.65)
     static let roseLight = Color(red: 0.98, green: 0.88, blue: 0.90)

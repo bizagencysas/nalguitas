@@ -1457,7 +1457,8 @@ struct AsyncBase64ImageView: View {
                     .shimmering()
                 .task(id: msgId) {
                     // Fast path 1: RAM Cache
-                    if let cached = ChatMediaCache.shared.images.object(forKey: msgId as NSString) {
+                    let cachedImage = ChatMediaCache.shared.images.object(forKey: msgId as NSString)
+                    if let cached = cachedImage {
                         self.uiImage = cached
                         return
                     }
@@ -1470,8 +1471,10 @@ struct AsyncBase64ImageView: View {
                         if let localURL = MediaFileManager.shared.localURL(for: msgId, type: type),
                            let data = try? Data(contentsOf: localURL),
                            let img = UIImage(data: data) {
-                            ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
-                            await MainActor.run { self.uiImage = img }
+                            await MainActor.run { 
+                                ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
+                                self.uiImage = img 
+                            }
                             return
                         }
                         
@@ -1480,8 +1483,10 @@ struct AsyncBase64ImageView: View {
                             // Save to disk for next time
                             _ = await MediaFileManager.shared.saveBase64Media(base64String, messageId: msgId, type: type)
                             if let img = UIImage(data: data) {
-                                ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
-                                await MainActor.run { self.uiImage = img }
+                                await MainActor.run { 
+                                    ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
+                                    self.uiImage = img 
+                                }
                             }
                         }
                     }
@@ -1518,7 +1523,8 @@ struct AsyncBase64VideoView: View {
                     .frame(width: 200, height: 150)
                     .shimmering()
                 .task(id: msgId) {
-                    if let cached = ChatMediaCache.shared.videos.object(forKey: msgId as NSString) {
+                    let cachedVideo = ChatMediaCache.shared.videos.object(forKey: msgId as NSString)
+                    if let cached = cachedVideo {
                         self.videoData = cached as Data
                         return
                     }
@@ -1529,16 +1535,20 @@ struct AsyncBase64VideoView: View {
                         // Fast path 1: Disk File
                         if let localURL = MediaFileManager.shared.localURL(for: msgId, type: "video"),
                            let data = try? Data(contentsOf: localURL) {
-                            ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
-                            await MainActor.run { self.videoData = data }
+                            await MainActor.run { 
+                                ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
+                                self.videoData = data 
+                            }
                             return
                         }
                         
                         // Slow path: Decode Base64 (only happens first time)
                         if let base64String = base64String, let data = Data(base64Encoded: base64String) {
                             _ = await MediaFileManager.shared.saveBase64Media(base64String, messageId: msgId, type: "video")
-                            ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
-                            await MainActor.run { self.videoData = data }
+                            await MainActor.run { 
+                                ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
+                                self.videoData = data 
+                            }
                         }
                     }
                 }

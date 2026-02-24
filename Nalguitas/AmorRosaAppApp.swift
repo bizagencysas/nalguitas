@@ -69,7 +69,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         Task {
             do {
                 let fresh = try await APIService.shared.fetchChatMessages()
-                ChatCache.save(fresh)
+                await MainActor.run { ChatCache.save(fresh) }
                 // We successfully downloaded new data
                 completionHandler(.newData)
             } catch {
