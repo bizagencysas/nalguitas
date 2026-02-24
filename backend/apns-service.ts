@@ -99,6 +99,7 @@ export async function sendPushNotification(
           alert: { title, body },
           sound,
           badge: 1,
+          "content-available": 1,
         },
       });
 
@@ -150,7 +151,7 @@ export async function sendPushNotification(
       req.end();
 
       setTimeout(() => {
-        try { client.close(); } catch {}
+        try { client.close(); } catch { }
         resolve({ success: false, error: "Timeout" });
       }, 15000);
     } catch (err: any) {

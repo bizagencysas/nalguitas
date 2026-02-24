@@ -62,6 +62,21 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         completionHandler(true)
     }
     
+    // MARK: - Silent Push (Background Sync)
+    nonisolated func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        // If content-available == 1, APNs woke us up in the background
+        Task {
+            do {
+                let fresh = try await APIService.shared.fetchChatMessages()
+                ChatCache.save(fresh)
+                // We successfully downloaded new data
+                completionHandler(.newData)
+            } catch {
+                completionHandler(.failed)
+            }
+        }
+    }
+    
     private func handleShortcut(_ item: UIApplicationShortcutItem) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             if item.type == "com.nalguitas.openchat" || item.type == "com.nalguitas.openpay" {
