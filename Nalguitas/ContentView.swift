@@ -14,8 +14,8 @@ struct ContentView: View {
     @State private var isCheckingRole = true
     
     // Biometrics Storage
-    @AppStorage("isBiometricLockEnabled") private var isBiometricLockEnabled = true
-    @State private var isUnlocked = false
+    @AppStorage("isBiometricLockEnabled") private var isBiometricLockEnabled = false
+    @State private var isUnlocked = true
     @State private var showingAuthError = false
     @Environment(\.scenePhase) var scenePhase
 
