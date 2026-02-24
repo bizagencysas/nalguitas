@@ -323,15 +323,15 @@ struct ChatView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.18, green: 0.80, blue: 0.44),
-                            Color(red: 0.10, green: 0.65, blue: 0.45),
-                            Color(red: 0.05, green: 0.55, blue: 0.40)
+                            Theme.rosePrimary,
+                            Theme.blush,
+                            Color(red: 0.82, green: 0.45, blue: 0.55)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .shadow(color: Color(red: 0.1, green: 0.7, blue: 0.4).opacity(0.3), radius: 12, y: 6)
+                .shadow(color: Theme.rosePrimary.opacity(0.3), radius: 12, y: 6)
         )
     }
     
@@ -348,7 +348,7 @@ struct ChatView: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(red: 0.18, green: 0.80, blue: 0.44), Color(red: 0.05, green: 0.55, blue: 0.40)],
+                                    colors: [Theme.rosePrimary, Theme.blush],
                                     startPoint: .topLeading, endPoint: .bottomTrailing
                                 )
                             )
@@ -380,7 +380,7 @@ struct ChatView: View {
                         .padding(14)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.systemGray6))
+                                .fill(.ultraThinMaterial)
                         )
                         .padding(.horizontal, 32)
                     
@@ -404,7 +404,7 @@ struct ChatView: View {
                                 paymentAmount.isEmpty
                                 ? AnyShapeStyle(Color.gray.opacity(0.5))
                                 : AnyShapeStyle(LinearGradient(
-                                    colors: [Color(red: 0.18, green: 0.80, blue: 0.44), Color(red: 0.05, green: 0.55, blue: 0.40)],
+                                    colors: [Theme.rosePrimary, Theme.blush],
                                     startPoint: .leading, endPoint: .trailing
                                 ))
                             )
@@ -978,7 +978,7 @@ extension ChatView {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(isMe 
                       ? AnyShapeStyle(sentGradient)
-                      : AnyShapeStyle(Color(UIColor.systemGray6)))
+                      : AnyShapeStyle(.ultraThinMaterial))
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onTapGesture {
@@ -1071,7 +1071,7 @@ struct VideoBubbleView: View {
                         .aspectRatio(contentMode: .fill)
                 } else {
                     Rectangle()
-                        .fill(Color(UIColor.systemGray4))
+                        .fill(.ultraThinMaterial)
                         .overlay(
                             ProgressView()
                                 .tint(.white)
