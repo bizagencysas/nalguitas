@@ -82,6 +82,7 @@ struct ExploreView: View {
     @State private var showExperiencesSheet = false
     
     @State private var toastText: String?
+    @State private var fullScreenPhoto: UIImage?
     
     var body: some View {
         NavigationStack {
@@ -108,6 +109,51 @@ struct ExploreView: View {
                             .padding(.bottom, 100)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .overlay {
+                if let image = fullScreenPhoto {
+                    ZStack {
+                        Color.black.ignoresSafeArea()
+                            .onTapGesture { withAnimation { fullScreenPhoto = nil } }
+                        
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .ignoresSafeArea()
+                        
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button {
+                                    withAnimation { fullScreenPhoto = nil }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white.opacity(0.8))
+                                        .padding(16)
+                                }
+                            }
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button {
+                                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                                    withAnimation { fullScreenPhoto = nil }
+                                } label: {
+                                    Label("Guardar", systemImage: "square.and.arrow.down")
+                                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(Capsule().fill(.ultraThinMaterial))
+                                }
+                                .padding(20)
+                            }
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(100)
                 }
             }
             .navigationTitle("Explorar")
@@ -353,24 +399,23 @@ struct ExploreView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(photos.prefix(6)) { photo in
-                        Button { showGallery = true } label: {
-                            VStack(spacing: 4) {
-                                if let imgData = photo.imageData, !imgData.isEmpty,
-                                   let data = Data(base64Encoded: imgData),
-                                   let uiImage = UIImage(data: data) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 90, height: 90)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                } else {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                        .frame(width: 90, height: 90)
-                                        .overlay(Image(systemName: "photo.fill").font(.title2).foregroundStyle(Theme.rosePrimary.opacity(0.5)))
-                                }
-                                if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
+                        VStack(spacing: 4) {
+                            if let imgData = photo.imageData, !imgData.isEmpty,
+                               let data = Data(base64Encoded: imgData),
+                               let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 90, height: 90)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .onTapGesture { fullScreenPhoto = uiImage }
+                            } else {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 90, height: 90)
+                                    .overlay(Image(systemName: "photo.fill").font(.title2).foregroundStyle(Theme.rosePrimary.opacity(0.5)))
                             }
+                            if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
                         }
                     }
                 }
@@ -732,6 +777,7 @@ struct ExploreView: View {
                                         .aspectRatio(contentMode: .fill)
                                         .frame(minHeight: 140, maxHeight: 180)
                                         .clipShape(RoundedRectangle(cornerRadius: 14))
+                                        .onTapGesture { fullScreenPhoto = uiImage }
                                 } else {
                                     RoundedRectangle(cornerRadius: 14)
                                         .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))

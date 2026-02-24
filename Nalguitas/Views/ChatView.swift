@@ -186,6 +186,9 @@ struct ChatView: View {
                                 .frame(maxWidth: 240, maxHeight: 240)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                                 .onTapGesture { fullScreenImage = cachedImage }
+                                .contextMenu {
+                                    Button { UIImageWriteToSavedPhotosAlbum(cachedImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
+                                }
                         } else if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
                             Image(uiImage: uiImage)
                                 .resizable()
@@ -194,6 +197,9 @@ struct ChatView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                                 .onTapGesture { fullScreenImage = uiImage }
                                 .onAppear { decodedImages[msg.id] = uiImage }
+                                .contextMenu {
+                                    Button { UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
+                                }
                         } else {
                             Label("Foto", systemImage: "photo.fill")
                                 .font(.subheadline)
@@ -887,7 +893,6 @@ struct ChatView: View {
                 .aspectRatio(contentMode: .fit)
                 .ignoresSafeArea()
             
-            // Close button
             VStack {
                 HStack {
                     Spacer()
@@ -901,6 +906,20 @@ struct ChatView: View {
                     }
                 }
                 Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    } label: {
+                        Label("Guardar", systemImage: "square.and.arrow.down")
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Capsule().fill(.ultraThinMaterial))
+                    }
+                    .padding(20)
+                }
             }
         }
         .transition(.opacity)
