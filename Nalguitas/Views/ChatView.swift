@@ -674,10 +674,21 @@ struct ChatView: View {
     
     // MARK: - Actions
     private func loadMessages() async {
+        // 1. Instantly show cached messages (no network needed)
+        let cached = ChatCache.load()
+        if !cached.isEmpty && messages.isEmpty {
+            messages = cached
+        }
+        
+        // 2. Fetch fresh messages from API in background
         do {
-            messages = try await APIService.shared.fetchChatMessages()
+            let fresh = try await APIService.shared.fetchChatMessages()
+            messages = fresh
+            ChatCache.save(fresh)
             try? await APIService.shared.markChatSeen(sender: mySender)
-        } catch {}
+        } catch {
+            // Network failed — cached messages are already showing
+        }
     }
     
     private func sendText() async {
@@ -691,6 +702,7 @@ struct ChatView: View {
         do {
             let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl)
             messages.append(msg)
+            ChatCache.save(messages)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
         } catch { messageText = text }
@@ -700,6 +712,7 @@ struct ChatView: View {
         do {
             let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64)
             messages.append(msg)
+            ChatCache.save(messages)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             await PointsService.shared.awardPoint(reason: "Envió media 📷")
         } catch {}
@@ -709,6 +722,7 @@ struct ChatView: View {
         do {
             let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji)
             messages.append(msg)
+            ChatCache.save(messages)
             showStickerPicker = false
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         } catch {}
@@ -748,6 +762,7 @@ struct ChatView: View {
         if newMsgs.count > messages.count {
             let oldCount = messages.count
             messages = newMsgs
+            ChatCache.save(newMsgs)
             try? await APIService.shared.markChatSeen(sender: mySender)
             if newMsgs.count > oldCount {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
