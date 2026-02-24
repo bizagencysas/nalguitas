@@ -18,6 +18,17 @@ struct TodayView: View {
     @State private var showGiftOverlay = false
     @State private var unreadChatCount = 0
     @State private var showNotifications = false
+    
+    // Holographic Magic
+    @State private var dragOffset: CGSize = .zero
+    @State private var isDragging: Bool = false
+    
+    // Antigravity Confetti Magic
+    @StateObject private var confettiManager = ConfettiManager()
+    
+    // Easter Egg Tracker
+    @State private var secretTapCount = 0
+    @State private var showSecretModal = false
 
     var body: some View {
         ZStack {
@@ -84,6 +95,10 @@ struct TodayView: View {
                     .padding(.bottom, 20)
                 }
             }
+            
+            // Magical Confetti Layer
+            ConfettiView(manager: confettiManager)
+                .ignoresSafeArea()
         }
         .overlay(alignment: .topTrailing) {
             Button { showNotifications = true } label: {
@@ -162,6 +177,27 @@ struct TodayView: View {
 
             Text(greetingText)
                 .font(.system(.title3, design: .rounded, weight: .medium))
+                .foregroundStyle(Theme.textPrimary)
+                .onTapGesture {
+                    secretTapCount += 1
+                    if secretTapCount == 7 {
+                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        AmbientAudio.shared.playSuccess()
+                        confettiManager.burst()
+                        withAnimation { showSecretModal = true }
+                        secretTapCount = 0
+                    } else if secretTapCount > 4 {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                    
+                    // Reset tap count if they stop tapping
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        if secretTapCount < 7 { secretTapCount = 0 }
+                    }
+                }
+
+            Text(viewModel.todayDateString)
+                .font(.subheadline)
                 .foregroundStyle(Theme.textSecondary)
         }
         .opacity(appeared ? 1 : 0)
@@ -250,7 +286,36 @@ struct TodayView: View {
                             ),
                             lineWidth: 0.5
                         )
+                        )
                 }
+        }
+        // Holographic Tilt Magic
+        .rotation3DEffect(
+            .degrees(isDragging ? Double(dragOffset.width / -15) : 0),
+            axis: (x: 0, y: 1, z: 0)
+        )
+        .rotation3DEffect(
+            .degrees(isDragging ? Double(dragOffset.height / 15) : 0),
+            axis: (x: 1, y: 0, z: 0)
+        )
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.7)) {
+                        isDragging = true
+                        dragOffset = value.translation
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.6)) {
+                        isDragging = false
+                        dragOffset = .zero
+                    }
+                }
+        )
+        .onTapGesture {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            confettiManager.burst()
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 20)
@@ -352,7 +417,7 @@ struct TodayView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
-        .padding(16)
+        .padding(20)
         .background {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(.ultraThinMaterial)
@@ -429,7 +494,7 @@ struct TodayView: View {
             }
         }
         .buttonStyle(.plain)
-        .padding(16)
+        .padding(20)
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(.ultraThinMaterial)
@@ -506,6 +571,50 @@ struct TodayView: View {
             }
         } catch {
             // Silent fail - gifts are optional
+        }
+    }
+}
+
+// MARK: - Easter Egg Modal View
+struct EasterEggModalView: View {
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        ZStack {
+            Theme.meshBackground.ignoresSafeArea()
+            
+            VStack(spacing: 30) {
+                Image(systemName: "key.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(Theme.rosePrimary)
+                    .symbolEffect(.pulse)
+                
+                Text("¡Desbloqueaste el Secreto!")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                
+                Text("Esta app está hecha con muchísimo amor. Eres nuestro VIP absoluto. No hay nadie más importante para Nalguitas que tú. ✨💖")
+                    .font(.system(.body, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+                
+                Button {
+                    let impact = UIImpactFeedbackGenerator(style: .rigid)
+                    impact.impactOccurred()
+                    dismiss()
+                } label: {
+                    Text("Guardar el secreto 🤫")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Capsule().fill(Theme.rosePrimary))
+                        .shadow(color: Theme.rosePrimary.opacity(0.3), radius: 8, y: 4)
+                }
+            }
+            .padding()
         }
     }
 }

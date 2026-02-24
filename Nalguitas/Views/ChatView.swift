@@ -49,6 +49,9 @@ struct ChatView: View {
     // Swipe to Reply
     @State private var replyingToMessage: ChatMessage?
     
+    // Typing Indicator
+    @State private var isPartnerTyping = false
+    
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
     // Chat colors (rose palette, dark mode adaptive)
@@ -88,6 +91,14 @@ struct ChatView: View {
                                 // Soft haptic when a new message arrives and scroll triggers
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             }
+                        }
+                        
+                        // Typing Indicator
+                        if isPartnerTyping {
+                            TypingIndicatorView()
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 8)
+                                .transition(.asymmetric(insertion: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity), removal: .scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity)))
                         }
                     }
                     // iMessage-style input bar
@@ -173,6 +184,39 @@ struct ChatView: View {
         .padding(.bottom, 4)
     }
     
+    // MARK: - Audio Message Bubble Spoof
+    private func audioMessageBubble(duration: String, isMe: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "play.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(isMe ? .white : Theme.rosePrimary)
+            
+            // Fake Waveform
+            HStack(spacing: 3) {
+                ForEach(0..<12, id: \.self) { i in
+                    Capsule()
+                        .fill(isMe ? .white.opacity(0.7) : Theme.textSecondary.opacity(0.5))
+                        .frame(width: 3, height: CGFloat.random(in: 4...20))
+                }
+            }
+            
+            Text(duration)
+                .font(.system(.caption, design: .rounded, weight: .bold))
+                .foregroundStyle(isMe ? .white : Theme.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            iMessageBubbleShape(isMe: isMe, showTail: true)
+                .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
+                .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
+        )
+        .onTapGesture {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            // Here you'd trigger actual AVPlayer audio
+        }
+    }
+    
     // MARK: - iMessage Bubble
     private func iMessageBubble(_ msg: ChatMessage, index: Int) -> some View {
         let isMe = msg.sender == mySender
@@ -221,6 +265,9 @@ struct ChatView: View {
                     
                     case "link":
                         linkPreviewBubble(msg, isMe: isMe)
+                    
+                    case "audio":
+                        audioMessageBubble(duration: msg.content, isMe: isMe)
                         
                     default: // text
                         // Check if it's just an emoji (1-3 emoji chars)
@@ -696,6 +743,9 @@ struct ChatView: View {
         ChatCache.save(messages)
         pendingMessages.insert(tempId)
         
+        // Native Apple sent swoosh sound
+        AmbientAudio.shared.playSentMessage()
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
         
         // 2. Try sending in background
@@ -722,6 +772,9 @@ struct ChatView: View {
         ChatCache.save(messages)
         pendingMessages.insert(tempId)
         
+        // Native Apple sent swoosh sound
+        AmbientAudio.shared.playSentMessage()
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
         
         // 2. Try sending in background
@@ -747,6 +800,9 @@ struct ChatView: View {
         ChatCache.save(messages)
         showStickerPicker = false
         pendingMessages.insert(tempId)
+        
+        // Native Apple sent swoosh sound
+        AmbientAudio.shared.playSentMessage()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
         
@@ -804,7 +860,51 @@ struct ChatView: View {
         guard let newMsgs = try? await APIService.shared.fetchChatMessages() else { return }
         // Remove local temp messages that the server now has
         let localPending = messages.filter { $0.id.hasPrefix("local_") && pendingMessages.contains($0.id) }
-        if newMsgs.count >= (messages.count - localPending.count) {
+        
+        // Polling hook: If a new message from partner is detected during poll
+        let oldPartnerCount = messages.filter { $0.sender != mySender }.count
+        
+        do {
+            let fetched = newMsgs // Use newMsgs from the initial fetch
+            let newPartnerCount = fetched.filter { $0.sender != mySender }.count
+            
+            // If there's a new message from the partner that wasn't there before
+            if newPartnerCount > oldPartnerCount && !messages.isEmpty {
+                // Determine the new incoming messages
+                let newPartnerMsgs = fetched.filter { $0.sender != mySender }.suffix(newPartnerCount - oldPartnerCount)
+                
+                // Show typing indicator momentarily for the first new message
+                if !isPartnerTyping {
+                    withAnimation(.spring()) { isPartnerTyping = true }
+                    
+                    // Delay dropping the actual messages into the UI by 1.5 seconds to spool the typing animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation(.spring()) {
+                            self.isPartnerTyping = false
+                            // Merge: keep server messages + any still-pending local messages
+                            var merged = fetched
+                            for pending in localPending {
+                                // Check if server already has this message (by content match)
+                                let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
+                                if !alreadySent {
+                                    merged.append(pending)
+                                } else {
+                                    pendingMessages.remove(pending.id)
+                                }
+                            }
+                            self.messages = merged
+                            ChatCache.save(merged)
+                            try? await APIService.shared.markChatSeen(sender: mySender)
+                            // Haptic ping and Native Received Sound on arrival
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            AmbientAudio.shared.playReceivedMessage()
+                        }
+                    }
+                    return // early exit so we don't immediately append it
+                }
+            }
+            
+            // Standard update if no new partner messages or if polling normally
             // Merge: keep server messages + any still-pending local messages
             var merged = newMsgs
             for pending in localPending {
@@ -823,6 +923,8 @@ struct ChatView: View {
             if merged.count > oldCount {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }
+        } catch {
+            print("Poll error: \(error)")
         }
     }
     
@@ -1380,6 +1482,60 @@ struct AsyncBase64VideoView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Typing Indicator View
+struct TypingIndicatorView: View {
+    @State private var step = 0
+    let dotColor = Theme.rosePrimary.opacity(0.8)
+    
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 4) {
+            // "Head" of the bubble connecting to partner side
+            Path { path in
+                path.move(to: CGPoint(x: 16, y: 16))
+                path.addCurve(to: CGPoint(x: 0, y: 16), control1: CGPoint(x: 8, y: 16), control2: CGPoint(x: 0, y: 16))
+                path.addCurve(to: CGPoint(x: 8, y: 8), control1: CGPoint(x: 4, y: 16), control2: CGPoint(x: 8, y: 12))
+                path.addCurve(to: CGPoint(x: 16, y: 16), control1: CGPoint(x: 8, y: 16), control2: CGPoint(x: 12, y: 16))
+            }
+            .fill(Color(UIColor.systemGray5))
+            .frame(width: 16, height: 16)
+            .offset(x: 4, y: 0)
+            
+            // Main Bubble
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                    .offset(y: step == 0 ? -4 : 0)
+                    .animation(Animation.easeInOut(duration: 0.4).repeatForever().delay(0.0), value: step)
+                
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                    .offset(y: step == 1 ? -4 : 0)
+                    .animation(Animation.easeInOut(duration: 0.4).repeatForever().delay(0.2), value: step)
+                
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                    .offset(y: step == 2 ? -4 : 0)
+                    .animation(Animation.easeInOut(duration: 0.4).repeatForever().delay(0.4), value: step)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(UIColor.systemGray5))
+            )
+        }
+        .onAppear {
+            let timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+                step = (step + 1) % 4
+            }
+            RunLoop.current.add(timer, forMode: .common)
         }
     }
 }

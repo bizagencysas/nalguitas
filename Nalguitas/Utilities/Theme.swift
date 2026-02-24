@@ -95,20 +95,40 @@ enum Theme {
 
     // MARK: - Mesh Background
     static var meshBackground: some View {
+        AnimatedMeshBackground()
+    }
+}
+
+// MARK: - Animated Mesh Background
+struct AnimatedMeshBackground: View {
+    @State private var t: Float = 0.0
+    @State private var timer: Timer?
+
+    var body: some View {
         MeshGradient(
             width: 3, height: 3,
             points: [
                 [0.0, 0.0], [0.5, 0.0], [1.0, 0.0],
-                [0.0, 0.5], [0.5, 0.5], [1.0, 0.5],
+                [0.0, 0.5], [0.5 + 0.1 * sin(t), 0.5 + 0.1 * cos(t)], [1.0, 0.5],
                 [0.0, 1.0], [0.5, 1.0], [1.0, 1.0]
             ],
             colors: [
-                warmWhite, rosePale, cream,
-                rosePale, roseLight.opacity(0.4), warmWhite,
-                cream, warmWhite, rosePale
+                Theme.warmWhite, Theme.rosePale, Theme.cream,
+                Theme.rosePale, Theme.roseLight.opacity(0.4), Theme.warmWhite,
+                Theme.cream, Theme.warmWhite, Theme.rosePale
             ]
         )
         .ignoresSafeArea()
+        .onAppear {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+                withAnimation(.linear(duration: 0.05)) {
+                    t += 0.02
+                }
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
     }
     
     // MARK: - Chat Background (subtle rose tint)

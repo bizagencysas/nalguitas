@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import LocalAuthentication
 
 struct ContentView: View {
     @State private var viewModel = AppViewModel()
@@ -11,11 +12,19 @@ struct ContentView: View {
     @State private var remoteConfig: RemoteConfig?
     @State private var showRolePopup = false
     @State private var isCheckingRole = true
+    
+    // Biometrics Storage
+    @AppStorage("isBiometricLockEnabled") private var isBiometricLockEnabled = true
+    @State private var isUnlocked = false
+    @State private var showingAuthError = false
+    @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
         ZStack {
             Group {
-                if isCheckingRole {
+                if !isUnlocked && isBiometricLockEnabled {
+                    biometricLockScreen
+                } else if isCheckingRole {
                     launchScreen
                 } else if !hasSelectedRole {
                     WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
@@ -39,6 +48,18 @@ struct ContentView: View {
         .onAppear { AppDelegate.appIsReady = true }
         .task {
             await checkRoleAndConfig()
+            if !isBiometricLockEnabled {
+                isUnlocked = true
+            } else {
+                authenticate()
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .background && isBiometricLockEnabled {
+                isUnlocked = false
+            } else if newPhase == .active && isBiometricLockEnabled && !isUnlocked {
+                authenticate()
+            }
         }
     }
 
@@ -53,6 +74,68 @@ struct ContentView: View {
                 ProgressView()
                     .tint(Theme.rosePrimary)
             }
+        }
+    }
+    
+    private var biometricLockScreen: some View {
+        ZStack {
+            Theme.meshBackground
+            VStack(spacing: 24) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Theme.rosePrimary)
+                    .symbolEffect(.pulse)
+                
+                Text("App Bloqueada")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                
+                Text("Desbloquea Nalguitas para ver tus mensajes y planes privados.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                
+                Button(action: authenticate) {
+                    Text("Usar FaceID / TouchID")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 16)
+                        .background(Capsule().fill(Theme.rosePrimary))
+                        .shadow(color: Theme.rosePrimary.opacity(0.3), radius: 10, y: 5)
+                }
+                .padding(.top, 20)
+                
+                if showingAuthError {
+                    Text("Error de autenticación. Intenta de nuevo.")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+    
+    private func authenticate() {
+        let context = LAContext()
+        var error: NSError?
+        
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) {
+            let reason = "Desbloquea Nalguitas para acceder"
+            context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authenticationError in
+                DispatchQueue.main.async {
+                    if success {
+                        withAnimation(.spring()) {
+                            self.isUnlocked = true
+                            self.showingAuthError = false
+                        }
+                    } else {
+                        self.showingAuthError = true
+                    }
+                }
+            }
+        } else {
+            // No biometrics or passcode set
+            isUnlocked = true
         }
     }
 

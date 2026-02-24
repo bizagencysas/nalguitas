@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var adminPass: String = ""
     @State private var loginError: Bool = false
     @AppStorage("isAdminDevice") private var isAdminDevice = false
+    @AppStorage("isBiometricLockEnabled") private var isBiometricLockEnabled = true
+    @StateObject private var iconManager = IconManager()
 
     var body: some View {
         NavigationStack {
@@ -19,6 +21,8 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         notificationsSection
+                        privacySection
+                        iconSelectionSection
                         widgetSection
                         if isAdminDevice {
                             adminSection
@@ -118,6 +122,89 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.rosePrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
+                }
+            }
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.white.opacity(0.75))
+                    .shadow(color: Theme.rosePrimary.opacity(0.06), radius: 10, y: 4)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.roseLight.opacity(0.4), lineWidth: 0.5)
+                    }
+            }
+        }
+    }
+    
+    private var privacySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(icon: "lock.shield.fill", title: "Privacidad")
+
+            VStack(spacing: 12) {
+                Toggle(isOn: $isBiometricLockEnabled) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "faceid")
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            .foregroundStyle(Theme.rosePrimary)
+                        Text("Bloqueo con FaceID / TouchID")
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                }
+                .tint(Theme.rosePrimary)
+            }
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.white.opacity(0.75))
+                    .shadow(color: Theme.rosePrimary.opacity(0.06), radius: 10, y: 4)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Theme.roseLight.opacity(0.4), lineWidth: 0.5)
+                    }
+            }
+        }
+    }
+    
+    // MARK: - App Icon Selection
+    private var iconSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(icon: "app.badge.fill", title: "Ícono de la App")
+
+            VStack(spacing: 12) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        ForEach(AppIcon.allCases) { icon in
+                            VStack(spacing: 8) {
+                                // Mock visual representation for Settings
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(
+                                        icon == .primary ? AnyShapeStyle(Theme.sentBubble) :
+                                        icon == .midnight ? AnyShapeStyle(Color.black) :
+                                        icon == .ruby ? AnyShapeStyle(Color.red) :
+                                        AnyShapeStyle(Color.yellow)
+                                    )
+                                    .frame(width: 64, height: 64)
+                                    .overlay {
+                                        if icon == iconManager.currentIcon {
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(Theme.rosePrimary, lineWidth: 3)
+                                                .padding(-4)
+                                        }
+                                    }
+                                    .onTapGesture {
+                                        iconManager.setIcon(icon)
+                                    }
+                                
+                                Text(icon.displayName)
+                                    .font(.system(.caption, design: .rounded, weight: icon == iconManager.currentIcon ? .bold : .medium))
+                                    .foregroundStyle(icon == iconManager.currentIcon ? Theme.rosePrimary : Theme.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 8)
                 }
             }
             .padding(16)

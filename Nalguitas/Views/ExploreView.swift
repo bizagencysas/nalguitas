@@ -85,6 +85,7 @@ struct ExploreView: View {
     @State private var fullScreenPhoto: UIImage?
     
     @Namespace private var exploreAnimation
+    @StateObject private var confettiManager = ConfettiManager()
     
     var body: some View {
         NavigationStack {
@@ -360,44 +361,22 @@ struct ExploreView: View {
     
     // MARK: - Plans Card
     private var plansCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             HStack {
-                Label("Planes de Pareja", systemImage: "map.fill")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundStyle(Theme.rosePrimary)
+                Text("Planes Propuestos").font(.system(.headline, design: .rounded, weight: .bold)).foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Button { showPlanSheet = true } label: {
-                    Image(systemName: "plus.circle.fill").font(.title3).foregroundStyle(Theme.rosePrimary)
+                if isAdmin {
+                    Button(action: { showPlanSheet = true }) {
+                        Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Theme.rosePrimary)
+                    }
                 }
             }
-            ForEach(plans.filter { $0.status != "cancelado" }.prefix(3)) { plan in
-                HStack {
-                    Text(PlanCategory.categories.first { $0.id == plan.category }?.emoji ?? "💕").font(.title2)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(plan.title).font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        HStack(spacing: 4) {
-                            if !plan.proposedDate.isEmpty { Text(plan.proposedDate).font(.caption2).foregroundStyle(.secondary) }
-                            if !plan.proposedTime.isEmpty { Text("• \(plan.proposedTime)").font(.caption2).foregroundStyle(.secondary) }
-                        }
-                    }
-                    Spacer()
-                    Text(plan.statusEmoji).font(.title3)
-                    if plan.status == "pendiente" {
-                        Button {
-                            Task {
-                                try? await APIService.shared.updatePlanStatus(id: plan.id, status: "aceptado")
-                                await loadData()
-                            }
-                        } label: {
-                            Text("Aceptar").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(.green))
-                        }
-                    }
-                }
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.ultraThinMaterial))
+            // Render the Tinder-style Swipe Cards instead of a boring list!
+            DatePlanSwipeView(plans: $plans, isAdmin: isAdmin) {
+                Task { await loadData() }
             }
         }
-        .padding(16)
+        .padding(20)
         .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 3))
     }
     
@@ -1146,6 +1125,7 @@ struct ExploreView: View {
     private var middleSection: some View {
         VStack(spacing: 20) {
             quickActionsGrid
+            throwbackMemoryCard
             if !plans.isEmpty { plansCard }
             if !photos.isEmpty { photoGalleryPreview }
             if !specialDates.isEmpty { upcomingDatesCard }
@@ -1222,7 +1202,7 @@ struct CouponsSheetView: View {
                                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.title2)
                                 } else if !isAdmin {
                                     Button {
-                                        Task { redeemingId = coupon.id; try? await APIService.shared.redeemCoupon(id: coupon.id); await PointsService.shared.awardPoint(reason: "Canjeó cupón 🎟️"); await onRefresh(); redeemingId = nil }
+                                        Task { redeemingId = coupon.id; try? await APIService.shared.redeemCoupon(id: coupon.id); await PointsService.shared.awardPoint(reason: "Canjeó cupón 🎟️"); AmbientAudio.shared.playApplePaySuccess(); await onRefresh(); redeemingId = nil }
                                     } label: {
                                         Text("Canjear").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(Theme.rosePrimary))
                                     }.disabled(redeemingId == coupon.id)
@@ -1435,9 +1415,12 @@ extension ExploreView {
                                                 try? await APIService.shared.scratchCard(id: id)
                                                 let generator = UINotificationFeedbackGenerator()
                                                 generator.notificationOccurred(.success)
+                                                AmbientAudio.shared.playSuccess()
                                                 withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                                                     isScratched = true
                                                 }
+                                                // Trigger Confetti Burst
+                                                confettiManager.burst()
                                             }
                                         }
                                     } else {
@@ -1466,6 +1449,41 @@ extension ExploreView {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showScratchSheet = false; isScratched = false; scratchPoints = []; scratchPercentage = 0; Task { await loadData() } } } } }
         }
         .background(Theme.meshBackground.ignoresSafeArea())
+        .overlay { ConfettiView(manager: confettiManager).ignoresSafeArea() }
+    }
+    
+    // MARK: - Throwback Memory Card
+    @ViewBuilder
+    private var throwbackMemoryCard: some View {
+        if photos.count > 3, let randomOldPhoto = photos.dropFirst(2).randomElement(), let imgData = randomOldPhoto.imageData, !imgData.isEmpty, let d = Data(base64Encoded: imgData), let uiImg = UIImage(data: d) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.rosePrimary)
+                    Text("Un día como hoy...")
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                }
+                
+                Image(uiImage: uiImg)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .onTapGesture { fullScreenPhoto = uiImg }
+                
+                if let cap = randomOldPhoto.caption, !cap.isEmpty {
+                    Text(cap)
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary)
+                        .italic()
+                }
+            }
+            .padding(20)
+            .background(Theme.glassCard(cornerRadius: 24))
+        }
     }
     
     // MARK: - Roulette Preview
@@ -1786,6 +1804,7 @@ extension ExploreView {
                     Task {
                         try? await APIService.shared.completeExperience(id: exp.id, photo: nil)
                         experiences = (try? await APIService.shared.fetchExperiences()) ?? []
+                        AmbientAudio.shared.playSuccess()
                         showToast("¡Experiencia completada! 🎉")
                     }
                 } label: {
@@ -1803,5 +1822,149 @@ extension ExploreView {
             RoundedRectangle(cornerRadius: 14)
                 .fill(exp.completed ? AnyShapeStyle(Theme.rosePrimary.opacity(0.05)) : AnyShapeStyle(.ultraThinMaterial))
         }
+    }
+}
+
+// MARK: - Date Plan Swipe Cards (Tinder Style)
+struct DatePlanSwipeView: View {
+    @Binding var plans: [DatePlan]
+    let isAdmin: Bool
+    let onRefresh: () -> Void
+    
+    var pendingPlans: [DatePlan] {
+        plans.filter { $0.status == "pendiente" }
+    }
+    
+    var body: some View {
+        VStack {
+            ZStack {
+                if pendingPlans.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "heart.square.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Theme.rosePrimary)
+                            .symbolEffect(.pulse)
+                        Text("No hay planes pendientes")
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(height: 180)
+                } else {
+                    // Render cards backwards so the first is on top
+                    ForEach(pendingPlans.reversed()) { plan in
+                        SwipeablePlanCard(plan: plan, isAdmin: isAdmin) { accepted in
+                            Task {
+                                try? await APIService.shared.managePlan(id: plan.id, action: accepted ? "accept" : "reject")
+                                onRefresh()
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 180)
+            
+            // Accepted Plans Summary Below
+            let accepted = plans.filter { $0.status == "aceptado" }
+            if !accepted.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Planes Aceptados").font(.caption).foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(accepted) { plan in
+                                Text("\(plan.title) 💖")
+                                    .font(.system(.caption, design: .rounded, weight: .bold))
+                                    .padding(.horizontal, 12).padding(.vertical, 6)
+                                    .background(Capsule().fill(.ultraThinMaterial))
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 12)
+            }
+        }
+    }
+}
+
+struct SwipeablePlanCard: View {
+    let plan: DatePlan
+    let isAdmin: Bool
+    let onSwipe: (Bool) -> Void // True = Accept (Right), False = Reject (Left)
+    
+    @State private var offset: CGSize = .zero
+    @State private var color: Color = .white
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(plan.title).font(.system(.title3, design: .rounded, weight: .bold)).foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text(plan.category.capitalized).font(.system(size: 10, weight: .bold)).foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(Theme.rosePrimary))
+            }
+            
+            Text(plan.description)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+            
+            HStack {
+                Image(systemName: "calendar")
+                Text(formatDate(plan.proposedDate))
+                Spacer()
+                Image(systemName: "clock")
+                Text(plan.proposedTime)
+            }
+            .font(.system(.caption, design: .rounded, weight: .medium))
+            .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .frame(height: 180)
+        .background(Theme.glassCard(cornerRadius: 24))
+        .background(RoundedRectangle(cornerRadius: 24).fill(color.opacity(0.8)))
+        .offset(x: offset.width, y: offset.height * 0.4)
+        .rotationEffect(.degrees(Double(offset.width / 15)))
+        // Swiping gesture logic
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    offset = gesture.translation
+                    withAnimation {
+                        if offset.width > 50 { color = .green }
+                        else if offset.width < -50 { color = .red }
+                        else { color = .white }
+                    }
+                }
+                .onEnded { _ in
+                    let swipeThreshold: CGFloat = 100
+                    if offset.width > swipeThreshold {
+                        // Swiped Right - Accept
+                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        onSwipe(true)
+                    } else if offset.width < -swipeThreshold {
+                        // Swiped Left - Reject
+                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        onSwipe(false)
+                    } else {
+                        // Snap back
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                            offset = .zero
+                            color = .white
+                        }
+                    }
+                }
+        )
+        // Admin shouldn't swipe if it's the girlfriend's app logic, but let's allow it for testing if needed
+    }
+    
+    private func formatDate(_ dateStr: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: dateStr) {
+            let df = DateFormatter()
+            df.dateFormat = "dd/MM"
+            return df.string(from: date)
+        }
+        return dateStr
     }
 }
