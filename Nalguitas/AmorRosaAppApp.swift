@@ -96,19 +96,18 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         // User tapped a notification — wait for app to be ready, then navigate
         Task { @MainActor in
-            // Wait until app is ready (max 8 seconds)
-            for _ in 0..<16 {
+            // Wait until app is ready (max 3 seconds, checks every 200ms)
+            for _ in 0..<15 {
                 if AppDelegate.appIsReady { break }
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.sleep(for: .milliseconds(200))
             }
-            // Only post if app is ready
             guard AppDelegate.appIsReady else { return }
             
             // Navigate to chat tab
             NotificationCenter.default.post(name: .switchToChatTab, object: nil)
             
             // Small delay then refresh data
-            try? await Task.sleep(for: .milliseconds(500))
+            try? await Task.sleep(for: .milliseconds(300))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
     }
