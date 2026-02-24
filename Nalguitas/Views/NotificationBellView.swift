@@ -46,7 +46,7 @@ struct NotificationBellView: View {
                             Task { await markAllAsRead() }
                         } label: {
                             Text("Marcar todas")
-                                .font(.system(.caption, design: .rounded, weight: .semibold))
+                                .font(.system(.caption, weight: .semibold, design: .rounded))
                                 .foregroundStyle(Theme.rosePrimary)
                         }
                     }
@@ -70,7 +70,7 @@ struct NotificationBellView: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(notif.title)
-                    .font(.system(.subheadline, design: .rounded, weight: notif.isRead ? .regular : .semibold))
+                    .font(.system(.subheadline, weight: notif.isRead ? .regular : .semibold, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
                 
                 if !notif.body.isEmpty {
@@ -94,10 +94,15 @@ struct NotificationBellView: View {
             }
         }
         .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(notif.isRead ? .clear : .ultraThinMaterial)
-        )
+        .background {
+            if notif.isRead {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.clear)
+            } else {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
     }
     
     private func iconForType(_ type: String) -> String {

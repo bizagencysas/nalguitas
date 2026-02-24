@@ -295,7 +295,7 @@ struct ChatView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
                 Text("Nalguitas Pay")
-                    .font(.system(size: 11, design: .rounded, weight: .bold))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.9))
                 Spacer()
                 Image(systemName: isMe ? "arrow.up.right" : "arrow.down.left")
