@@ -153,7 +153,7 @@ struct ChatView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.top, 24)
+        .padding(.top, 44)
         .padding(.bottom, 4)
     }
     
@@ -467,15 +467,13 @@ struct ChatView: View {
         return iso.date(from: str) ?? ISO8601DateFormatter().date(from: str)
     }
     
-    // MARK: - iMessage Input Bar
+    // MARK: - Chat Input Bar (WhatsApp-style)
     private var iMessageInputBar: some View {
         VStack(spacing: 0) {
             Divider().opacity(0.3)
-            HStack(alignment: .bottom, spacing: 8) {
-                // Plus button for attachments
+            HStack(alignment: .bottom, spacing: 6) {
+                // + menu (stickers, AI, Pay, video)
                 Menu {
-                    Button { showPhotosPicker = true } label: { Label("Foto", systemImage: "photo.fill") }
-                    Button { showVideoPicker = true } label: { Label("Video", systemImage: "video.fill") }
                     Button { showStickerPicker = true } label: { Label("Sticker", systemImage: "face.smiling.inverse") }
                     Button { showAIGenerator = true } label: { Label("Sticker IA ✨", systemImage: "wand.and.stars") }
                     Button { pasteLink() } label: { Label("Pegar Link", systemImage: "link") }
@@ -483,53 +481,32 @@ struct ChatView: View {
                     Button { showPaymentSheet = true } label: { Label("Nalguitas Pay 💸", systemImage: "dollarsign.circle.fill") }
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 26))
+                        .foregroundStyle(Theme.rosePrimary.opacity(0.7))
                         .symbolRenderingMode(.hierarchical)
                 }
                 
-                // Photo picker (hidden)
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
-                    EmptyView()
-                }
-                .onChange(of: selectedPhotoItem) { _, newItem in
-                    Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                            let uiImage = UIImage(data: data)
-                            if let compressed = uiImage?.jpegData(compressionQuality: 0.4) {
-                                await sendMedia(type: "image", base64: compressed.base64EncodedString())
-                            }
-                        }
-                    }
-                }
-                .frame(width: 0, height: 0).opacity(0)
-                
-                // Video picker (hidden)
-                PhotosPicker(selection: $selectedVideoItem, matching: .videos, photoLibrary: .shared()) {
-                    EmptyView()
-                }
-                .onChange(of: selectedVideoItem) { _, newItem in
-                    Task {
-                        if let movie = try? await newItem?.loadTransferable(type: VideoTransferable.self) {
-                            let data = try? Data(contentsOf: movie.url)
-                            if let videoData = data {
-                                // Limit to ~10MB for base64 chat
-                                let maxSize = 10 * 1024 * 1024
-                                if videoData.count <= maxSize {
-                                    await sendMedia(type: "video", base64: videoData.base64EncodedString())
-                                }
-                            }
-                        }
-                    }
-                }
-                .frame(width: 0, height: 0).opacity(0)
-                
-                // iMessage-style text field
-                HStack(alignment: .bottom) {
+                // Text field capsule
+                HStack(alignment: .bottom, spacing: 6) {
                     TextField("Mensaje...", text: $messageText, axis: .vertical)
-                        .lineLimit(1...6)
-                        .font(.system(.body))
+                        .lineLimit(1...5)
+                        .font(.system(size: 16))
                     
+                    // Camera button → directly opens photo picker
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images, photoLibrary: .shared()) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Theme.rosePrimary.opacity(0.6))
+                    }
+                    
+                    // Video button
+                    PhotosPicker(selection: $selectedVideoItem, matching: .videos, photoLibrary: .shared()) {
+                        Image(systemName: "video.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Theme.rosePrimary.opacity(0.6))
+                    }
+                    
+                    // Send button (only when text)
                     if !messageText.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button { Task { await sendText() } } label: {
                             Image(systemName: "arrow.up.circle.fill")
@@ -541,20 +518,42 @@ struct ChatView: View {
                         .animation(.spring(duration: 0.2), value: messageText)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
                 .background(
                     Capsule()
                         .fill(.ultraThinMaterial)
                         .overlay(
                             Capsule()
-                                .stroke(Color(UIColor.separator).opacity(0.5), lineWidth: 0.5)
+                                .stroke(Color(UIColor.separator).opacity(0.4), lineWidth: 0.5)
                         )
                 )
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .background(.ultraThinMaterial)
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                    let uiImage = UIImage(data: data)
+                    if let compressed = uiImage?.jpegData(compressionQuality: 0.4) {
+                        await sendMedia(type: "image", base64: compressed.base64EncodedString())
+                    }
+                }
+                selectedPhotoItem = nil
+            }
+        }
+        .onChange(of: selectedVideoItem) { _, newItem in
+            Task {
+                if let movie = try? await newItem?.loadTransferable(type: VideoTransferable.self) {
+                    let data = try? Data(contentsOf: movie.url)
+                    if let videoData = data, videoData.count <= 10 * 1024 * 1024 {
+                        await sendMedia(type: "video", base64: videoData.base64EncodedString())
+                    }
+                }
+                selectedVideoItem = nil
+            }
         }
     }
     
