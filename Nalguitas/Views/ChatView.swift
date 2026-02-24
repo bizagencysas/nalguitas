@@ -687,7 +687,8 @@ struct ChatView: View {
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
         } catch {
-            // Message stays visible — will retry on next poll
+            // Message fails to send due to network issue - save to Drafts queue
+            await MessageOutbox.shared.enqueue(sender: mySender, type: type, content: text, mediaUrl: mediaUrl, replyTo: replyId)
         }
     }
     
@@ -712,7 +713,8 @@ struct ChatView: View {
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió media 📷")
         } catch {
-            // Message stays visible — will retry on next poll
+            // Message fails to send due to network issue - save to Drafts queue
+            await MessageOutbox.shared.enqueue(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, replyTo: replyId)
         }
     }
     
@@ -734,7 +736,10 @@ struct ChatView: View {
         do {
             let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji, replyTo: replyId)
             pendingMessages.remove(tempId)
-        } catch {}
+        } catch {
+            // Enqueue into offline outbox
+            await MessageOutbox.shared.enqueue(sender: mySender, type: "text", content: emoji, replyTo: replyId)
+        }
     }
     
     private func pasteLink() {
