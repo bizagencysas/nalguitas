@@ -1,0 +1,3 @@
+# Protect backend config files — keep local version during merges
+package.json merge=ours
+tsconfig.json merge=ours
