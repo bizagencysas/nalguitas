@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 public enum AppIcon: String, CaseIterable, Identifiable {
     case primary = "AppIcon" // Default

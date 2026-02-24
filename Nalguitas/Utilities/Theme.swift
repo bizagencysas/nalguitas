@@ -138,13 +138,13 @@ struct AnimatedMeshBackground: View {
             
             // Subtle floating orbs
             Circle()
-                .fill(rosePale.opacity(0.3))
+                .fill(Theme.rosePale.opacity(0.3))
                 .frame(width: 200, height: 200)
                 .blur(radius: 60)
                 .offset(x: -80, y: -200)
             
             Circle()
-                .fill(roseLight.opacity(0.2))
+                .fill(Theme.roseLight.opacity(0.2))
                 .frame(width: 160, height: 160)
                 .blur(radius: 50)
                 .offset(x: 100, y: 300)
