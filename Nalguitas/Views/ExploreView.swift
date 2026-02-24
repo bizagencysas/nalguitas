@@ -990,7 +990,7 @@ struct ExploreView: View {
             async let fetchedWordPromise = try? APIService.shared.fetchTodayWord()
             async let fetchedScratchPromise = try? APIService.shared.fetchAvailableScratchCard()
             async let fetchedOptionsPromise = try? APIService.shared.fetchRouletteOptions(category: "general")
-            async let ptsResultPromise = try? APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+            async let ptsResultPromise = try? APIService.shared.fetchPoints(username: "girlfriend")
             async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
             async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
             async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")

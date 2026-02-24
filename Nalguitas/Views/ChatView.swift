@@ -19,7 +19,7 @@ struct ChatView: View {
     @State private var isGeneratingSticker = false
     @State private var cachedStickers: [AISticker] = []
     @State private var scrollProxy: ScrollViewProxy?
-    @State private var pollTimer: Timer?
+    @State private var pollTask: Task<Void, Never>?
     
     // Nalguitas Pay
     @State private var showPaymentSheet = false
@@ -136,7 +136,7 @@ struct ChatView: View {
                 startPolling()
                 Task { await pollNewMessages() }
             }
-            .onDisappear { pollTimer?.invalidate() }
+            .onDisappear { pollTask?.cancel() }
         }
     }
     
@@ -905,10 +905,11 @@ struct ChatView: View {
     }
     
     private func startPolling() {
-        pollTimer?.invalidate()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            Task { @MainActor in
+        pollTask?.cancel()
+        pollTask = Task { @MainActor in
+            while !Task.isCancelled {
                 await pollNewMessages()
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
             }
         }
         NotificationCenter.default.addObserver(forName: .didReceiveRemoteMessage, object: nil, queue: .main) { _ in
