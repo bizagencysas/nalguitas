@@ -83,30 +83,24 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        // App is in foreground — safe to post immediately with small debounce
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .badge, .sound])
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(300))
             guard AppDelegate.appIsReady else { return }
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
-        return [.banner, .badge, .sound]
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        // User tapped a notification — wait for app to be ready, then navigate
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        completionHandler()
         Task { @MainActor in
-            // Wait until app is ready (max 3 seconds, checks every 200ms)
             for _ in 0..<15 {
                 if AppDelegate.appIsReady { break }
                 try? await Task.sleep(for: .milliseconds(200))
             }
             guard AppDelegate.appIsReady else { return }
-            
-            // Navigate to chat tab
             NotificationCenter.default.post(name: .switchToChatTab, object: nil)
-            
-            // Small delay then refresh data
             try? await Task.sleep(for: .milliseconds(300))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
