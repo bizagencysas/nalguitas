@@ -55,8 +55,8 @@ struct ChatView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Adaptive background
-                Theme.chatBackground
+                // Glass background with floating orbs
+                Theme.chatMeshBackground
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -230,17 +230,17 @@ struct ChatView: View {
                         // Check if it's just an emoji (1-3 emoji chars)
                         if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
                             Text(msg.content)
-                                .font(.system(size: 48))
-                                .padding(.vertical, 4)
+                                .font(.system(size: 42))
                         } else {
                             Text(msg.content)
-                                .font(.system(.body, design: .default))
-                                .foregroundStyle(isMe ? .white : .primary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
+                                .font(.system(size: 16, design: .rounded))
+                                .foregroundStyle(isMe ? .white : Theme.textPrimary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
                                 .background(
                                     iMessageBubbleShape(isMe: isMe, showTail: showTail)
-                                        .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(receivedColor))
+                                        .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
+                                        .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
                                 )
                         }
                     }

@@ -211,12 +211,19 @@ struct TodayView: View {
         }
         .frame(maxWidth: .infinity)
         .background {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.white.opacity(0.75))
-                .shadow(color: Theme.rosePrimary.opacity(0.12), radius: 20, y: 8)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Theme.rosePrimary.opacity(0.1), radius: 20, y: 8)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Theme.roseLight.opacity(0.6), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.7), Theme.roseLight.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
                 }
         }
         .opacity(appeared ? 1 : 0)
@@ -321,12 +328,19 @@ struct TodayView: View {
         }
         .padding(16)
         .background {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white.opacity(0.7))
-                .shadow(color: Theme.rosePrimary.opacity(0.08), radius: 12, y: 4)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Theme.rosePrimary.opacity(0.06), radius: 12, y: 4)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.roseLight.opacity(0.5), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
                 }
         }
         .opacity(appeared ? 1 : 0)
@@ -391,12 +405,19 @@ struct TodayView: View {
         .buttonStyle(.plain)
         .padding(16)
         .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.7))
-                .shadow(color: Theme.rosePrimary.opacity(0.08), radius: 12, y: 4)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Theme.rosePrimary.opacity(0.06), radius: 12, y: 4)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Theme.roseLight.opacity(0.5), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
                 }
         }
         .opacity(appeared ? 1 : 0)

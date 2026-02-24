@@ -178,7 +178,7 @@ struct ExploreView: View {
                 .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange.opacity(0.2), lineWidth: 1)).shadow(color: Color.orange.opacity(0.1), radius: 8, y: 3))
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)).shadow(color: Theme.rosePrimary.opacity(0.08), radius: 8, y: 3))
     }
     
     // MARK: - Mood Card
@@ -265,7 +265,7 @@ struct ExploreView: View {
                 .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.22))
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.15), lineWidth: 1)).shadow(color: Color.purple.opacity(0.05), radius: 4, y: 2))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)).shadow(color: Theme.rosePrimary.opacity(0.05), radius: 4, y: 2))
     }
     
     // MARK: - Quick Actions
@@ -453,7 +453,7 @@ struct ExploreView: View {
             }
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.indigo.opacity(0.15), lineWidth: 1)).shadow(color: Color.indigo.opacity(0.08), radius: 6, y: 3))
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)).shadow(color: Theme.rosePrimary.opacity(0.06), radius: 6, y: 3))
     }
     
     // MARK: - Admin: Answers
@@ -476,7 +476,7 @@ struct ExploreView: View {
             }
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.teal.opacity(0.15), lineWidth: 1)).shadow(color: Color.teal.opacity(0.08), radius: 6, y: 3))
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.6), Theme.roseLight.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5)).shadow(color: Theme.rosePrimary.opacity(0.06), radius: 6, y: 3))
     }
     
     // MARK: - Song Share Sheet
@@ -1174,7 +1174,7 @@ extension ExploreView {
                 Image(systemName: "hand.draw.fill").font(.title2).foregroundStyle(.orange)
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .orange.opacity(0.15), radius: 8, y: 4))
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
         }
     }
     
@@ -1298,7 +1298,7 @@ extension ExploreView {
                 Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90").font(.title2).foregroundStyle(.blue)
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .blue.opacity(0.15), radius: 8, y: 4))
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
         }
     }
     
@@ -1383,7 +1383,7 @@ extension ExploreView {
                 Image(systemName: "pencil.line").font(.title2).foregroundStyle(.green)
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .green.opacity(0.15), radius: 8, y: 4))
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
         }
     }
     
@@ -1453,7 +1453,7 @@ extension ExploreView {
                     .foregroundStyle(.yellow)
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial).shadow(color: .yellow.opacity(0.15), radius: 8, y: 4))
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
         }
     }
     
