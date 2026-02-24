@@ -286,7 +286,6 @@ struct TodayView: View {
                             ),
                             lineWidth: 0.5
                         )
-                        )
                 }
         }
         // Holographic Tilt Magic
