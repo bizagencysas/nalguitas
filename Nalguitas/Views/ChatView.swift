@@ -136,6 +136,35 @@ struct ChatView: View {
         }
     }
     
+    // MARK: - Reply Preview Banner
+    @ViewBuilder
+    private func replyPreviewBanner(_ msg: ChatMessage) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Respondiendo a \(msg.sender == mySender ? "Ti" : (isAdmin ? "Ella" : "Isacc"))")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.rosePrimary)
+                    .fontWeight(.bold)
+                Text(msg.content.isEmpty ? (msg.type == "image" ? "📸 Foto" : "🎤 Audio") : msg.content)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            // Cancel reply
+            Button {
+                withAnimation { replyingToMessage = nil }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(8)
+        .background(Color(UIColor.systemGray6))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
+    
     // MARK: - Chat Header (large photo + name)
     private var iMessageHeader: some View {
         VStack(spacing: 6) {
@@ -907,10 +936,11 @@ struct ChatView: View {
                     
                     // Delay dropping the actual messages into the UI by 1.5 seconds to spool the typing animation
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        withAnimation(.spring()) {
-                            self.isPartnerTyping = false
-                            // Merge: keep server messages + any still-pending local messages
-                            var merged = fetched
+                        Task { @MainActor in
+                            withAnimation(.spring()) {
+                                self.isPartnerTyping = false
+                                // Merge: keep server messages + any still-pending local messages
+                                var merged = fetched
                             for pending in localPending {
                                 // Check if server already has this message (by content match)
                                 let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
@@ -1369,7 +1399,7 @@ struct VideoBubbleView: View {
     }
     
     static func thumbnail(from videoURL: URL) async -> UIImage? {
-        let asset = AVAsset(url: videoURL)
+        let asset = AVURLAsset(url: videoURL)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.maximumSize = CGSize(width: 480, height: 480)
@@ -1383,7 +1413,7 @@ struct VideoBubbleView: View {
 }
 
 // MARK: - Chat Media Cache
-class ChatMediaCache {
+class ChatMediaCache: @unchecked Sendable {
     static let shared = ChatMediaCache()
     let images = NSCache<NSString, UIImage>()
     let videos = NSCache<NSString, NSData>()

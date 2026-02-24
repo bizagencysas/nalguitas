@@ -79,6 +79,7 @@ struct ExploreView: View {
     @State private var pointsBalance: Int = 0
     @State private var rewards: [Reward] = []
     @State private var showRewardsSheet = false
+    @State private var showExperiencesSheet = false
     @State private var experiences: [Experience] = []
     
     @State private var toastText: String?
@@ -1483,8 +1484,8 @@ extension ExploreView {
                         Image(uiImage: uiImg).resizable().aspectRatio(contentMode: .fit)
                     }
                 
-                if let cap = randomOldPhoto.caption, !cap.isEmpty {
-                    Text(cap)
+                if !randomOldPhoto.caption.isEmpty {
+                    Text(randomOldPhoto.caption)
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(Theme.textSecondary)
                         .italic()
@@ -1863,7 +1864,7 @@ struct DatePlanSwipeView: View {
                     ForEach(pendingPlans.reversed()) { plan in
                         SwipeablePlanCard(plan: plan, isAdmin: isAdmin) { accepted in
                             Task {
-                                try? await APIService.shared.managePlan(id: plan.id, action: accepted ? "accept" : "reject")
+                                try? await APIService.shared.updatePlanStatus(id: plan.id, status: accepted ? "aceptado" : "rechazado")
                                 onRefresh()
                             }
                         }

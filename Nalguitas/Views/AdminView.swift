@@ -211,7 +211,7 @@ struct AdminView: View {
                         Text(msg.content)
                             .font(.subheadline)
                         HStack {
-                            Text(msg.subtitle)
+                            Text(msg.subtitle ?? "")
                             Spacer()
                             Text(msg.tone.capitalized)
                             if msg.seen {
