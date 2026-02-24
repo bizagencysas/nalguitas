@@ -971,65 +971,69 @@ struct ExploreView: View {
             self.partnerDiary = cache.partnerDiary
         }
         
-        async let d = try? APIService.shared.fetchDaysTogether()
-        async let q = try? APIService.shared.fetchTodayQuestion()
-        async let m = try? APIService.shared.fetchTodayMood()
-        async let c = try? APIService.shared.fetchCoupons()
-        async let a = try? APIService.shared.fetchAchievements()
-        async let s = try? APIService.shared.fetchSongs()
-        async let dates = try? APIService.shared.fetchSpecialDates()
-        async let p = try? APIService.shared.fetchPlans()
-        async let ph = try? APIService.shared.fetchPhotos()
-        async let mh = try? APIService.shared.fetchMoods()
-        async let aq = try? APIService.shared.fetchAnsweredQuestions()
         
-        async let fetchedFactPromise = try? APIService.shared.fetchRandomFact()
-        async let fetchedWordPromise = try? APIService.shared.fetchTodayWord()
-        async let fetchedScratchPromise = try? APIService.shared.fetchAvailableScratchCard()
-        async let fetchedOptionsPromise = try? APIService.shared.fetchRouletteOptions(category: "general")
-        async let ptsResultPromise = try? APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
-        async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
-        async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
-        async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")
-        
-        let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
-        
-        // Await the new async let promises concurrently
-        let fetchedFact = await fetchedFactPromise
-        let fetchedWord = await fetchedWordPromise
-        let fetchedScratch = await fetchedScratchPromise
-        let fetchedOptions = await fetchedOptionsPromise ?? []
-        let ptsResult = await ptsResultPromise
-        let fetchedBalance = ptsResult?.balance ?? 0
-        let fetchedRewards = await fetchedRewardsPromise ?? []
-        let fetchedExperiences = await fetchedExperiencesPromise ?? []
-        let fetchedDiary = await fetchedDiaryPromise ?? []
-        
-        // Update state on MainActor implicitly via await
-        daysTogether = days
-        todayQuestion = question
-        todayMood = mood
-        coupons = cps ?? []
-        achievements = achs ?? []
-        songs = sgs ?? []
-        specialDates = dts ?? []
-        plans = pls ?? []
-        photos = phs ?? []
-        moodHistory = moods ?? []
-        answeredQuestions = answered ?? []
-        customFact = fetchedFact
-        todayWord = fetchedWord
-        scratchCard = fetchedScratch
-        rouletteOptions = fetchedOptions
-        pointsBalance = fetchedBalance
-        rewards = fetchedRewards
-        experiences = fetchedExperiences
-        partnerDiary = fetchedDiary
-        
-        // Save to cache
-        let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photos: self.photos, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
-        if let encoded = try? JSONEncoder().encode(newCache) {
-            UserDefaults.standard.set(encoded, forKey: "ExploreCache")
+        // Launch network requests in a detached task to avoid blocking the initial cache render
+        Task {
+            async let d = try? APIService.shared.fetchDaysTogether()
+            async let q = try? APIService.shared.fetchTodayQuestion()
+            async let m = try? APIService.shared.fetchTodayMood()
+            async let c = try? APIService.shared.fetchCoupons()
+            async let a = try? APIService.shared.fetchAchievements()
+            async let s = try? APIService.shared.fetchSongs()
+            async let dates = try? APIService.shared.fetchSpecialDates()
+            async let p = try? APIService.shared.fetchPlans()
+            async let ph = try? APIService.shared.fetchPhotos()
+            async let mh = try? APIService.shared.fetchMoods()
+            async let aq = try? APIService.shared.fetchAnsweredQuestions()
+            
+            async let fetchedFactPromise = try? APIService.shared.fetchRandomFact()
+            async let fetchedWordPromise = try? APIService.shared.fetchTodayWord()
+            async let fetchedScratchPromise = try? APIService.shared.fetchAvailableScratchCard()
+            async let fetchedOptionsPromise = try? APIService.shared.fetchRouletteOptions(category: "general")
+            async let ptsResultPromise = try? APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+            async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
+            async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
+            async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")
+            
+            let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
+            
+            // Await the new async let promises concurrently
+            let fetchedFact = await fetchedFactPromise
+            let fetchedWord = await fetchedWordPromise
+            let fetchedScratch = await fetchedScratchPromise
+            let fetchedOptions = await fetchedOptionsPromise ?? []
+            let ptsResult = await ptsResultPromise
+            let fetchedBalance = ptsResult?.balance ?? 0
+            let fetchedRewards = await fetchedRewardsPromise ?? []
+            let fetchedExperiences = await fetchedExperiencesPromise ?? []
+            let fetchedDiary = await fetchedDiaryPromise ?? []
+            
+            // Update state on MainActor implicitly via await
+            self.daysTogether = days
+            self.todayQuestion = question
+            self.todayMood = mood
+            self.coupons = cps ?? []
+            self.achievements = achs ?? []
+            self.songs = sgs ?? []
+            self.specialDates = dts ?? []
+            self.plans = pls ?? []
+            self.photos = phs ?? []
+            self.moodHistory = moods ?? []
+            self.answeredQuestions = answered ?? []
+            self.customFact = fetchedFact
+            self.todayWord = fetchedWord
+            self.scratchCard = fetchedScratch
+            self.rouletteOptions = fetchedOptions
+            self.pointsBalance = fetchedBalance
+            self.rewards = fetchedRewards
+            self.experiences = fetchedExperiences
+            self.partnerDiary = fetchedDiary
+            
+            // Save to cache
+            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photos: self.photos, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
+            if let encoded = try? JSONEncoder().encode(newCache) {
+                UserDefaults.standard.set(encoded, forKey: "ExploreCache")
+            }
         }
     }
     
