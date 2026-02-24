@@ -29,8 +29,10 @@ struct ChatView: View {
     // Link previews cache
     @State private var linkPreviews: [String: LinkPreviewData] = [:]
     
-    // Full-screen photo viewer
-    @State private var fullScreenImage: UIImage?
+    // Full-screen photo viewer with Matched Geometry Flow
+    @State private var fullScreenData: (image: UIImage, id: String)?
+    @Namespace private var imageAnimation
+    @State private var viewerDragOffset: CGSize = .zero
     
     // Optimistic sending: tracks messages waiting to be confirmed by server
     @State private var pendingMessages: Set<String> = []
@@ -114,8 +116,8 @@ struct ChatView: View {
             .sheet(isPresented: $showProfileSheet) { profileEditSheet }
             .sheet(isPresented: $showPaymentSheet) { paymentSheet }
             .overlay {
-                if let image = fullScreenImage {
-                    photoViewerOverlay(image)
+                if let data = fullScreenData {
+                    photoViewerOverlay(data.image, id: data.id)
                 }
             }
             .task { await loadProfiles(); await loadMessages(); startPolling() }
@@ -194,7 +196,12 @@ struct ChatView: View {
                     switch msg.type {
                     case "image":
                         // Pass base64String ONLY if we just downloaded it from server (msg.mediaData acts as a fallback/first download payload)
-                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: false, fullScreenImage: $fullScreenImage)
+                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: false) { img, id in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                fullScreenData = (img, id)
+                            }
+                        }
+                        .matchedGeometryEffect(id: msg.id, in: imageAnimation)
                     
                     case "video":
                         AsyncBase64VideoView(base64String: msg.mediaData, msgId: msg.id) { videoData in
@@ -202,7 +209,12 @@ struct ChatView: View {
                         }
                         
                     case "sticker":
-                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: true, fullScreenImage: $fullScreenImage)
+                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: true) { img, id in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                fullScreenData = (img, id)
+                            }
+                        }
+                        .matchedGeometryEffect(id: msg.id, in: imageAnimation)
                         
                     case "payment":
                         paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
@@ -942,21 +954,43 @@ struct ChatView: View {
     
     // MARK: - Full-Screen Photo Viewer
     @ViewBuilder
-    private func photoViewerOverlay(_ image: UIImage) -> some View {
+    private func photoViewerOverlay(_ image: UIImage, id: String) -> some View {
+        let dragScale = max(0.6, 1.0 - abs(viewerDragOffset.height) / 1000.0)
+        let bgOpacity = max(0.0, 1.0 - abs(viewerDragOffset.height) / 400.0)
+        
         ZStack {
-            Color.black.ignoresSafeArea()
-                .onTapGesture { withAnimation { fullScreenImage = nil } }
+            Color.black.opacity(bgOpacity).ignoresSafeArea()
+                .onTapGesture { withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { fullScreenData = nil } }
             
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
+                .matchedGeometryEffect(id: id, in: imageAnimation)
+                .offset(viewerDragOffset)
+                .scaleEffect(dragScale)
+                .gesture(
+                    DragGesture()
+                        .onChanged { val in
+                            viewerDragOffset = val.translation
+                        }
+                        .onEnded { val in
+                            if abs(val.translation.height) > 100 {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    fullScreenData = nil
+                                    viewerDragOffset = .zero
+                                }
+                            } else {
+                                withAnimation(.spring()) { viewerDragOffset = .zero }
+                            }
+                        }
+                )
                 .ignoresSafeArea()
             
             VStack {
                 HStack {
                     Spacer()
                     Button {
-                        withAnimation { fullScreenImage = nil }
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { fullScreenData = nil }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 30))
@@ -964,6 +998,7 @@ struct ChatView: View {
                             .padding(16)
                     }
                 }
+                .opacity(bgOpacity)
                 Spacer()
                 HStack {
                     Spacer()
@@ -979,6 +1014,7 @@ struct ChatView: View {
                     }
                     .padding(20)
                 }
+                .opacity(bgOpacity)
             }
         }
         .transition(.opacity)
@@ -1226,7 +1262,7 @@ struct AsyncBase64ImageView: View {
     let base64String: String?
     let msgId: String
     let isSticker: Bool
-    @Binding var fullScreenImage: UIImage?
+    var onImageTapped: ((UIImage, String) -> Void)? = nil
     
     @State private var uiImage: UIImage?
     @State private var isDecoding = false
@@ -1239,14 +1275,14 @@ struct AsyncBase64ImageView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 150, height: 150)
-                        .onTapGesture { fullScreenImage = uiImage }
+                        .onTapGesture { onImageTapped?(uiImage, msgId) }
                 } else {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(maxWidth: 240, maxHeight: 240)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .onTapGesture { fullScreenImage = uiImage }
+                        .onTapGesture { onImageTapped?(uiImage, msgId) }
                         .contextMenu {
                             Button { UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
                         }
