@@ -175,6 +175,7 @@ struct ExploreView: View {
             .sheet(isPresented: $showExperiencesSheet) { experiencesSheet }
             .sheet(isPresented: $showWishList) { WishListView(isAdmin: UserDefaults.standard.bool(forKey: "isAdminDevice")) }
             .task { await loadData() }
+            .refreshable { await loadData() }
         }
     }
     
@@ -411,6 +412,16 @@ struct ExploreView: View {
                                     .frame(width: 90, height: 90)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .onTapGesture { fullScreenPhoto = uiImage }
+                                    .contextMenu {
+                                        Button {
+                                            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
+                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                        } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
+                                    } preview: {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                    }
                             } else {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -419,9 +430,17 @@ struct ExploreView: View {
                             }
                             if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
                         }
+                        .scrollTransition(.animated.threshold(.visible(0.3))) { content, phase in
+                            content
+                                .opacity(phase.isIdentity ? 1 : 0.6)
+                                .scaleEffect(phase.isIdentity ? 1 : 0.85)
+                                .blur(radius: phase.isIdentity ? 0 : 2)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
             }
+            .padding(.horizontal, -16)
             Button { showGallery = true } label: {
                 Text("Ver todas (\(photos.count) fotos) →").font(.system(.caption, design: .rounded, weight: .semibold)).foregroundStyle(Theme.rosePrimary)
             }
@@ -810,6 +829,16 @@ struct ExploreView: View {
                                         .frame(minHeight: 140, maxHeight: 180)
                                         .clipShape(RoundedRectangle(cornerRadius: 14))
                                         .onTapGesture { fullScreenPhoto = uiImage }
+                                        .contextMenu {
+                                            Button {
+                                                UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
+                                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                            } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
+                                        } preview: {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                        }
                                 } else {
                                     RoundedRectangle(cornerRadius: 14)
                                         .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))

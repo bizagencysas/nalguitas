@@ -1288,12 +1288,10 @@ struct AsyncBase64ImageView: View {
                         }
                 }
             } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.gray.opacity(0.1))
-                        .frame(width: isSticker ? 150 : 200, height: isSticker ? 150 : 200)
-                    ProgressView()
-                }
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: isSticker ? 150 : 200, height: isSticker ? 150 : 200)
+                    .shimmering()
                 .task(id: msgId) {
                     // Fast path 1: RAM Cache
                     if let cached = ChatMediaCache.shared.images.object(forKey: msgId as NSString) {
@@ -1352,12 +1350,10 @@ struct AsyncBase64VideoView: View {
                         }
                     }
             } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.gray.opacity(0.1))
-                        .frame(width: 200, height: 150)
-                    ProgressView()
-                }
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: 200, height: 150)
+                    .shimmering()
                 .task(id: msgId) {
                     if let cached = ChatMediaCache.shared.videos.object(forKey: msgId as NSString) {
                         self.videoData = cached as Data

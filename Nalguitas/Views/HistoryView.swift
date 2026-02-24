@@ -14,27 +14,45 @@ struct HistoryView: View {
                 if history.isEmpty {
                     emptyState
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(groupedByDate, id: \.key) { group in
-                                Section {
-                                    ForEach(group.messages) { entry in
-                                        historyRow(entry)
-
+                    List {
+                        ForEach(groupedByDate, id: \.key) { group in
+                            Section {
+                                ForEach(group.messages) { entry in
+                                    historyRow(entry)
+                                        .listRowInsets(EdgeInsets())
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.clear)
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                                withAnimation {
+                                                    modelContext.delete(entry)
+                                                }
+                                            } label: {
+                                                Label("Eliminar", systemImage: "trash")
+                                            }
+                                        }
+                                        
                                         if entry.id != group.messages.last?.id {
                                             Divider()
                                                 .overlay(Theme.roseLight.opacity(0.5))
                                                 .padding(.horizontal, 20)
+                                                .listRowInsets(EdgeInsets())
+                                                .listRowSeparator(.hidden)
+                                                .listRowBackground(Color.clear)
                                         }
-                                    }
-                                } header: {
-                                    sectionHeader(group.key)
                                 }
+                            } header: {
+                                sectionHeader(group.key)
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
                             }
                         }
-                        .padding(.bottom, 40)
                     }
+                    .listStyle(.plain)
                     .scrollIndicators(.hidden)
+                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle("Historial")

@@ -24,7 +24,31 @@ struct WishListView: View {
                 Theme.meshBackground
                 
                 if isLoading {
-                    ProgressView().tint(Theme.rosePrimary)
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                HStack(spacing: 12) {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Color.gray.opacity(0.15))
+                                        .frame(width: 70, height: 70)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color.gray.opacity(0.15))
+                                            .frame(width: 150, height: 16)
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color.gray.opacity(0.15))
+                                            .frame(width: 80, height: 12)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(12)
+                                .background(RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial))
+                                .shimmering()
+                            }
+                        }
+                        .padding(16)
+                    }
+                    .scrollIndicators(.hidden)
                 } else if items.isEmpty {
                     emptyState
                 } else {
@@ -88,6 +112,31 @@ struct WishListView: View {
             LazyVStack(spacing: 12) {
                 ForEach(items) { item in
                     wishItemCard(item)
+                        .scrollTransition(.animated.threshold(.visible(0.3))) { content, phase in
+                            content
+                                .opacity(phase.isIdentity ? 1 : 0.8)
+                                .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                                .blur(radius: phase.isIdentity ? 0 : 2)
+                        }
+                        .contextMenu {
+                            if let link = item.link, !link.isEmpty, let url = URL(string: link) {
+                                Button {
+                                    UIApplication.shared.open(url)
+                                } label: {
+                                    Label("Abrir Link", systemImage: "safari")
+                                }
+                            }
+                            if isAdmin {
+                                Button(role: .destructive) {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    Task { await deleteItem(item) }
+                                } label: {
+                                    Label("Marcar como Obtenido", systemImage: "checkmark.circle.fill")
+                                }
+                            }
+                        } preview: {
+                            wishItemCard(item).frame(width: 320).padding()
+                        }
                 }
             }
             .padding(16)
@@ -146,6 +195,7 @@ struct WishListView: View {
             // Admin can mark as gotten
             if isAdmin {
                 Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     Task { await deleteItem(item) }
                 } label: {
                     Image(systemName: "checkmark.circle.fill")
