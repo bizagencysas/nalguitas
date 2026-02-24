@@ -115,9 +115,9 @@ struct AdminView: View {
             } else {
                 ForEach(girlfriendMessages) { msg in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(msg.content ?? "")
+                        Text(msg.content)
                             .font(.system(.body, design: .rounded))
-                        Text(formatDate(msg.createdAt))
+                        Text(formatDate(msg.sentAt))
                             .font(.system(.caption, design: .rounded, weight: .medium))
                             .foregroundStyle(.tertiary)
                     }
@@ -208,7 +208,7 @@ struct AdminView: View {
             } else {
                 ForEach(messages) { msg in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(msg.content ?? "")
+                        Text(msg.content)
                             .font(.subheadline)
                         HStack {
                             Text(msg.subtitle)
@@ -487,16 +487,10 @@ struct AdminView: View {
     private func loadGirlfriendMessages() async {
         if let msgs = try? await APIService.shared.fetchGirlfriendMessages() {
             girlfriendMessages = msgs
-            unreadChatCount = msgs.filter { !$0.isRead }.count
         }
     }
-    
-    private func formatDate(_ dateStr: String?) -> String {
-        guard let dateStr = dateStr else { return "" }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = formatter.date(from: dateStr) ?? ISO8601DateFormatter().date(from: dateStr) else { return dateStr }
-        
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "" }
         let displayFormatter = DateFormatter()
         displayFormatter.dateStyle = .medium
         displayFormatter.timeStyle = .short
