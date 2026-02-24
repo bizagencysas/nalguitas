@@ -130,7 +130,7 @@ struct WishListView: View {
                             Image(systemName: "link")
                                 .font(.system(size: 10))
                             Text("Ver producto")
-                                .font(.system(size: 11, design: .rounded, weight: .medium))
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
                         }
                         .foregroundStyle(Theme.rosePrimary)
                     }
