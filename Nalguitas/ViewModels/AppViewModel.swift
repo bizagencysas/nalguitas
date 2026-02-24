@@ -10,6 +10,13 @@ class AppViewModel {
     var errorMessage: String?
     var showSavedConfirmation = false
 
+    var todayDateString: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateStyle = .long
+        return formatter.string(from: Date()).capitalized
+    }
+
     func loadTodayMessage(context: ModelContext? = nil) async {
         guard !isLoading else { return }
         
