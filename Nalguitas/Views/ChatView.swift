@@ -32,9 +32,6 @@ struct ChatView: View {
     // Full-screen photo viewer
     @State private var fullScreenImage: UIImage?
     
-    // Decoded image cache for performance
-    @State private var decodedImages: [String: UIImage] = [:]
-    
     // Optimistic sending: tracks messages waiting to be confirmed by server
     @State private var pendingMessages: Set<String> = []
     
@@ -186,27 +183,8 @@ struct ChatView: View {
                     // Content
                     switch msg.type {
                     case "image":
-                        if let cachedImage = decodedImages[msg.id] {
-                            Image(uiImage: cachedImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(maxWidth: 240, maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .onTapGesture { fullScreenImage = cachedImage }
-                                .contextMenu {
-                                    Button { UIImageWriteToSavedPhotosAlbum(cachedImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
-                                }
-                        } else if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(maxWidth: 240, maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .onTapGesture { fullScreenImage = uiImage }
-                                .onAppear { decodedImages[msg.id] = uiImage }
-                                .contextMenu {
-                                    Button { UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
-                                }
+                        if let data = msg.mediaData {
+                            AsyncBase64ImageView(base64String: data, msgId: msg.id, isSticker: false, fullScreenImage: $fullScreenImage)
                         } else {
                             Label("Foto", systemImage: "photo.fill")
                                 .font(.subheadline)
@@ -214,17 +192,10 @@ struct ChatView: View {
                         }
                     
                     case "video":
-                        if let data = msg.mediaData, let videoData = Data(base64Encoded: data) {
-                            VideoBubbleView(videoData: videoData)
-                                .frame(maxWidth: 240, maxHeight: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .contextMenu {
-                                    Button {
-                                        saveVideoToCameraRoll(videoData)
-                                    } label: {
-                                        Label("Guardar Video", systemImage: "square.and.arrow.down")
-                                    }
-                                }
+                        if let data = msg.mediaData {
+                            AsyncBase64VideoView(base64String: data, msgId: msg.id) { videoData in
+                                saveVideoToCameraRoll(videoData)
+                            }
                         } else {
                             Label("Video", systemImage: "video.fill")
                                 .font(.subheadline)
@@ -232,12 +203,8 @@ struct ChatView: View {
                         }
                         
                     case "sticker":
-                        if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 150, height: 150)
-                                .onTapGesture { fullScreenImage = uiImage }
+                        if let data = msg.mediaData {
+                            AsyncBase64ImageView(base64String: data, msgId: msg.id, isSticker: true, fullScreenImage: $fullScreenImage)
                         }
                         
                     case "payment":
@@ -1206,14 +1173,132 @@ struct VideoBubbleView: View {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString)_thumb.mp4")
         try? videoData.write(to: tempURL)
         
-        let asset = AVAsset(url: tempURL)
+        if let thumb = await VideoBubbleView.thumbnail(from: tempURL) {
+            await MainActor.run {
+                thumbnail = thumb
+            }
+        }
+    }
+    
+    static func thumbnail(from videoURL: URL) async -> UIImage? {
+        let asset = AVAsset(url: videoURL)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.maximumSize = CGSize(width: 480, height: 480)
-        
-        if let cgImage = try? await generator.image(at: .zero).image {
-            await MainActor.run {
-                thumbnail = UIImage(cgImage: cgImage)
+        do {
+            let cgImage = try await generator.image(at: .zero).image
+            return UIImage(cgImage: cgImage)
+        } catch {
+            return nil
+        }
+    }
+}
+
+// MARK: - Chat Media Cache
+class ChatMediaCache {
+    static let shared = ChatMediaCache()
+    let images = NSCache<NSString, UIImage>()
+    let videos = NSCache<NSString, NSData>()
+}
+
+// MARK: - Async Decoders
+struct AsyncBase64ImageView: View {
+    let base64String: String
+    let msgId: String
+    let isSticker: Bool
+    @Binding var fullScreenImage: UIImage?
+    
+    @State private var uiImage: UIImage?
+    @State private var isDecoding = false
+    
+    var body: some View {
+        Group {
+            if let uiImage = uiImage {
+                if isSticker {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 150, height: 150)
+                        .onTapGesture { fullScreenImage = uiImage }
+                } else {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: 240, maxHeight: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .onTapGesture { fullScreenImage = uiImage }
+                        .contextMenu {
+                            Button { UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil) } label: { Label("Guardar", systemImage: "square.and.arrow.down") }
+                        }
+                }
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: isSticker ? 150 : 200, height: isSticker ? 150 : 200)
+                    ProgressView()
+                }
+                .task(id: base64String) {
+                    if let cached = ChatMediaCache.shared.images.object(forKey: msgId as NSString) {
+                        self.uiImage = cached
+                        return
+                    }
+                    guard !isDecoding else { return }
+                    isDecoding = true
+                    Task.detached(priority: .userInitiated) {
+                        if let data = Data(base64Encoded: base64String), let img = UIImage(data: data) {
+                            ChatMediaCache.shared.images.setObject(img, forKey: msgId as NSString)
+                            await MainActor.run { self.uiImage = img }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct AsyncBase64VideoView: View {
+    let base64String: String
+    let msgId: String
+    let onSave: (Data) -> Void
+    
+    @State private var videoData: Data?
+    @State private var isDecoding = false
+    
+    var body: some View {
+        Group {
+            if let videoData = videoData {
+                VideoBubbleView(videoData: videoData)
+                    .frame(maxWidth: 240, maxHeight: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .contextMenu {
+                        Button {
+                            onSave(videoData)
+                        } label: {
+                            Label("Guardar Video", systemImage: "square.and.arrow.down")
+                        }
+                    }
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: 200, height: 150)
+                    ProgressView()
+                }
+                .task(id: base64String) {
+                    if let cached = ChatMediaCache.shared.videos.object(forKey: msgId as NSString) {
+                        self.videoData = cached as Data
+                        return
+                    }
+                    guard !isDecoding else { return }
+                    isDecoding = true
+                    Task.detached(priority: .userInitiated) {
+                        if let data = Data(base64Encoded: base64String) {
+                            ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
+                            await MainActor.run { self.videoData = data }
+                        }
+                    }
+                }
             }
         }
     }
