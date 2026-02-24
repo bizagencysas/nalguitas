@@ -83,6 +83,8 @@ struct ChatView: View {
                         .onChange(of: messages.count) { oldCount, newCount in
                             if newCount > oldCount {
                                 scrollToBottom(proxy)
+                                // Soft haptic when a new message arrives and scroll triggers
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             }
                         }
                     }
@@ -243,6 +245,9 @@ struct ChatView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, showTail ? 2 : 0.5)
+            .onTapGesture(count: 2) {
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
         }
     }
     
@@ -664,7 +669,7 @@ struct ChatView: View {
     private func sendText() async {
         guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let text = messageText; messageText = ""
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         
         let type = text.contains("http://") || text.contains("https://") ? "link" : "text"
         let mediaUrl = type == "link" ? text : nil
@@ -693,7 +698,7 @@ struct ChatView: View {
     }
     
     private func sendMedia(type: String, base64: String) async {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         
         let replyId = replyingToMessage?.id
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { replyingToMessage = nil }
@@ -719,7 +724,7 @@ struct ChatView: View {
     }
     
     private func sendEmoji(_ emoji: String) async {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         
         let replyId = replyingToMessage?.id
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { replyingToMessage = nil }
