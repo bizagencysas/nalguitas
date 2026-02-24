@@ -11,7 +11,7 @@ struct Gift: Codable, Identifiable, Sendable {
     let seen: Bool
 }
 
-struct GiftCharacter: Identifiable, Sendable {
+struct GiftCharacter: Identifiable, Sendable, Hashable {
     let id: String
     let name: String
     let imageUrl: String

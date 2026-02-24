@@ -115,10 +115,10 @@ struct AdminView: View {
             } else {
                 ForEach(girlfriendMessages) { msg in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(msg.content)
+                        Text(msg.content ?? "")
                             .font(.system(.body, design: .rounded))
                         Text(formatDate(msg.createdAt))
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(.system(.caption, design: .rounded, weight: .medium))
                             .foregroundStyle(.tertiary)
                     }
                 }
@@ -186,7 +186,7 @@ struct AdminView: View {
                         Text("Guardar para después")
                     }
                 }
-                .font(.system(.subheadline, weight: .semibold, design: .rounded))
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -208,7 +208,7 @@ struct AdminView: View {
             } else {
                 ForEach(messages) { msg in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(msg.content)
+                        Text(msg.content ?? "")
                             .font(.subheadline)
                         HStack {
                             Text(msg.subtitle)
@@ -478,6 +478,30 @@ struct AdminView: View {
 
     private func loadMessages() async {
         isLoading = true
+        if let msgs = try? await APIService.shared.fetchMessages() {
+            messages = msgs
+        }
+        isLoading = false
+    }
+
+    private func loadGirlfriendMessages() async {
+        if let msgs = try? await APIService.shared.fetchGirlfriendMessages() {
+            girlfriendMessages = msgs
+            unreadChatCount = msgs.filter { !$0.isRead }.count
+        }
+    }
+    
+    private func formatDate(_ dateStr: String?) -> String {
+        guard let dateStr = dateStr else { return "" }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: dateStr) ?? ISO8601DateFormatter().date(from: dateStr) else { return dateStr }
+        
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateStyle = .medium
+        displayFormatter.timeStyle = .short
+        return displayFormatter.string(from: date)
+    }
         defer { isLoading = false }
         do {
             messages = try await APIService.shared.fetchMessages()
