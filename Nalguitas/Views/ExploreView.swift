@@ -983,17 +983,27 @@ struct ExploreView: View {
         async let mh = try? APIService.shared.fetchMoods()
         async let aq = try? APIService.shared.fetchAnsweredQuestions()
         
+        async let fetchedFactPromise = try? APIService.shared.fetchRandomFact()
+        async let fetchedWordPromise = try? APIService.shared.fetchTodayWord()
+        async let fetchedScratchPromise = try? APIService.shared.fetchAvailableScratchCard()
+        async let fetchedOptionsPromise = try? APIService.shared.fetchRouletteOptions(category: "general")
+        async let ptsResultPromise = try? APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+        async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
+        async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
+        async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")
+        
         let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
         
-        let fetchedFact = try? await APIService.shared.fetchRandomFact()
-        let fetchedWord = try? await APIService.shared.fetchTodayWord()
-        let fetchedScratch = try? await APIService.shared.fetchAvailableScratchCard()
-        let fetchedOptions = (try? await APIService.shared.fetchRouletteOptions(category: "general")) ?? []
-        let ptsResult = try? await APIService.shared.fetchPoints(username: isAdmin ? "admin" : "girlfriend")
+        // Await the new async let promises concurrently
+        let fetchedFact = await fetchedFactPromise
+        let fetchedWord = await fetchedWordPromise
+        let fetchedScratch = await fetchedScratchPromise
+        let fetchedOptions = await fetchedOptionsPromise ?? []
+        let ptsResult = await ptsResultPromise
         let fetchedBalance = ptsResult?.balance ?? 0
-        let fetchedRewards = (try? await APIService.shared.fetchRewards()) ?? []
-        let fetchedExperiences = (try? await APIService.shared.fetchExperiences()) ?? []
-        let fetchedDiary = (try? await APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")) ?? []
+        let fetchedRewards = await fetchedRewardsPromise ?? []
+        let fetchedExperiences = await fetchedExperiencesPromise ?? []
+        let fetchedDiary = await fetchedDiaryPromise ?? []
         
         // Update state on MainActor implicitly via await
         daysTogether = days
