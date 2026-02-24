@@ -36,6 +36,8 @@ struct ContentView: View {
                     GirlfriendTabView(viewModel: viewModel, notificationService: notificationService, selectedTab: $selectedTab)
                 }
             }
+            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isCheckingRole)
+            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isUnlocked)
 
             if showRolePopup, let popup = remoteConfig?.popup, popup.enabled {
                 RoleSelectionPopup(config: popup) { role in
@@ -55,6 +57,9 @@ struct ContentView: View {
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                Task { try? await UNUserNotificationCenter.current().setBadgeCount(0) }
+            }
             if newPhase == .background && isBiometricLockEnabled {
                 isUnlocked = false
             } else if newPhase == .active && isBiometricLockEnabled && !isUnlocked {
@@ -239,7 +244,10 @@ struct GirlfriendTabView: View {
             await notificationService.requestPermission()
             await refreshBadge()
         }
-        .onAppear { startBadgePolling() }
+        .onAppear { 
+            startBadgePolling() 
+            checkDeepLink()
+        }
         .onDisappear { badgeTimer?.invalidate() }
         .onReceive(NotificationCenter.default.publisher(for: .switchToChatTab)) { _ in
             selectedTab = 2
@@ -255,5 +263,12 @@ struct GirlfriendTabView: View {
     private func refreshBadge() async {
         guard selectedTab != 2 else { unreadChatCount = 0; return }
         unreadChatCount = (try? await APIService.shared.fetchUnseenCount(sender: "girlfriend")) ?? 0
+    }
+    
+    private func checkDeepLink() {
+        if let link = UserDefaults.standard.string(forKey: "pendingDeepLink"), link == "chat" {
+            selectedTab = 2
+            UserDefaults.standard.removeObject(forKey: "pendingDeepLink")
+        }
     }
 }

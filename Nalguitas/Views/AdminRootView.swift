@@ -48,7 +48,10 @@ struct AdminRootView: View {
             await notificationService.requestPermission()
             await refreshBadge()
         }
-        .onAppear { startBadgePolling() }
+        .onAppear { 
+            startBadgePolling() 
+            checkDeepLink()
+        }
         .onDisappear { badgeTimer?.invalidate() }
         .onReceive(NotificationCenter.default.publisher(for: .switchToChatTab)) { _ in
             selectedTab = 2
@@ -64,5 +67,12 @@ struct AdminRootView: View {
     private func refreshBadge() async {
         guard selectedTab != 2 else { unreadChatCount = 0; return }
         unreadChatCount = (try? await APIService.shared.fetchUnseenCount(sender: "admin")) ?? 0
+    }
+    
+    private func checkDeepLink() {
+        if let link = UserDefaults.standard.string(forKey: "pendingDeepLink"), link == "chat" {
+            selectedTab = 2
+            UserDefaults.standard.removeObject(forKey: "pendingDeepLink")
+        }
     }
 }

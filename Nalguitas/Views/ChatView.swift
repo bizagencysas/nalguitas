@@ -237,54 +237,82 @@ struct ChatView: View {
                 
                 VStack(alignment: isMe ? .trailing : .leading, spacing: 1) {
                     // Content
-                    switch msg.type {
-                    case "image":
-                        // Pass base64String ONLY if we just downloaded it from server (msg.mediaData acts as a fallback/first download payload)
-                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: false) { img, id in
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                fullScreenData = (img, id)
+                    Group {
+                        switch msg.type {
+                        case "image":
+                            // Pass base64String ONLY if we just downloaded it from server (msg.mediaData acts as a fallback/first download payload)
+                            AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: false) { img, id in
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    fullScreenData = (img, id)
+                                }
+                            }
+                            .matchedGeometryEffect(id: msg.id, in: imageAnimation)
+                        
+                        case "video":
+                            AsyncBase64VideoView(base64String: msg.mediaData, msgId: msg.id) { videoData in
+                                saveVideoToCameraRoll(videoData)
+                            }
+                            
+                        case "sticker":
+                            AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: true) { img, id in
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    fullScreenData = (img, id)
+                                }
+                            }
+                            .matchedGeometryEffect(id: msg.id, in: imageAnimation)
+                            
+                        case "payment":
+                            paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
+                        
+                        case "link":
+                            linkPreviewBubble(msg, isMe: isMe)
+                        
+                        case "audio":
+                            audioMessageBubble(duration: msg.content, isMe: isMe)
+                            
+                        default: // text
+                            // Check if it's just an emoji (1-3 emoji chars)
+                            if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
+                                Text(msg.content)
+                                    .font(.system(size: 42))
+                            } else {
+                                Text(msg.content)
+                                    .font(.system(size: 16, design: .rounded))
+                                    .foregroundStyle(isMe ? .white : Theme.textPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        iMessageBubbleShape(isMe: isMe, showTail: showTail)
+                                            .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
+                                            .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
+                                    )
                             }
                         }
-                        .matchedGeometryEffect(id: msg.id, in: imageAnimation)
-                    
-                    case "video":
-                        AsyncBase64VideoView(base64String: msg.mediaData, msgId: msg.id) { videoData in
-                            saveVideoToCameraRoll(videoData)
+                    }
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = msg.content
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Label("Copiar Texto", systemImage: "doc.on.doc")
                         }
                         
-                    case "sticker":
-                        AsyncBase64ImageView(base64String: msg.mediaData, msgId: msg.id, isSticker: true) { img, id in
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                fullScreenData = (img, id)
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                replyingToMessage = msg
                             }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        } label: {
+                            Label("Responder", systemImage: "arrowshape.turn.up.left")
                         }
-                        .matchedGeometryEffect(id: msg.id, in: imageAnimation)
                         
-                    case "payment":
-                        paymentBubble(amount: msg.content, note: msg.mediaUrl, isMe: isMe)
-                    
-                    case "link":
-                        linkPreviewBubble(msg, isMe: isMe)
-                    
-                    case "audio":
-                        audioMessageBubble(duration: msg.content, isMe: isMe)
-                        
-                    default: // text
-                        // Check if it's just an emoji (1-3 emoji chars)
-                        if msg.content.count <= 4 && msg.content.unicodeScalars.allSatisfy({ $0.properties.isEmoji }) {
-                            Text(msg.content)
-                                .font(.system(size: 42))
-                        } else {
-                            Text(msg.content)
-                                .font(.system(size: 16, design: .rounded))
-                                .foregroundStyle(isMe ? .white : Theme.textPrimary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(
-                                    iMessageBubbleShape(isMe: isMe, showTail: showTail)
-                                        .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
-                                        .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
-                                )
+                        if msg.type == "image" || msg.type == "video" {
+                            Button {
+                                // Visual pseudo-trigger, base functionality relies on deep viewer usually.
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            } label: {
+                                Label("Guardar en Fotos", systemImage: "square.and.arrow.down")
+                            }
                         }
                     }
                     
@@ -1087,6 +1115,8 @@ struct ChatView: View {
                         }
                 )
                 .ignoresSafeArea()
+                // Cinematic Parallax tilt
+                .parallaxMotion(magnitude: 35)
             
             VStack {
                 HStack {

@@ -110,12 +110,15 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         completionHandler()
+        
+        // 1. Save deep link intention
+        UserDefaults.standard.set("chat", forKey: "pendingDeepLink")
+        
         Task { @MainActor in
-            for _ in 0..<15 {
-                if AppDelegate.appIsReady { break }
-                try? await Task.sleep(for: .milliseconds(200))
-            }
-            guard AppDelegate.appIsReady else { return }
+            // Clear Badge Count when they tap the notification
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
+            
+            // 2. Broadcast immediately for warm state
             NotificationCenter.default.post(name: .switchToChatTab, object: nil)
             try? await Task.sleep(for: .milliseconds(300))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)

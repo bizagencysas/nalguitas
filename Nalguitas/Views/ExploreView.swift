@@ -124,6 +124,7 @@ struct ExploreView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .ignoresSafeArea()
+                            .parallaxMotion(magnitude: 35)
                         
                         VStack {
                             HStack {
@@ -1473,6 +1474,14 @@ extension ExploreView {
                     .frame(height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .onTapGesture { fullScreenPhoto = uiImg }
+                    .contextMenu {
+                        Button {
+                            UIImageWriteToSavedPhotosAlbum(uiImg, nil, nil, nil)
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
+                    } preview: {
+                        Image(uiImage: uiImg).resizable().aspectRatio(contentMode: .fit)
+                    }
                 
                 if let cap = randomOldPhoto.caption, !cap.isEmpty {
                     Text(cap)
