@@ -6,7 +6,7 @@ import Photos
 
 struct ChatView: View {
     let isAdmin: Bool
-    @State private var messages: [ChatMessage] = []
+    @State private var messages: [ChatMessage] = ChatCache.load()
     @State private var messageText = ""
     @State private var isSending = false
     @State private var showPhotosPicker = false
@@ -77,10 +77,13 @@ struct ChatView: View {
                             .padding(.top, 8)
                             .padding(.bottom, 8)
                         }
+                        .defaultScrollAnchor(.bottom)
                         .scrollDismissesKeyboard(.interactively)
                         .onAppear { scrollProxy = proxy }
-                        .onChange(of: messages.count) { _, _ in
-                            scrollToBottom(proxy)
+                        .onChange(of: messages.count) { oldCount, newCount in
+                            if newCount > oldCount {
+                                scrollToBottom(proxy)
+                            }
                         }
                     }
                     
@@ -685,13 +688,7 @@ struct ChatView: View {
     
     // MARK: - Actions
     private func loadMessages() async {
-        // 1. Instantly show cached messages (no network needed)
-        let cached = ChatCache.load()
-        if !cached.isEmpty && messages.isEmpty {
-            messages = cached
-        }
-        
-        // 2. Fetch fresh messages from API in background
+        // Fetch fresh messages from API in background
         do {
             let fresh = try await APIService.shared.fetchChatMessages()
             messages = fresh
