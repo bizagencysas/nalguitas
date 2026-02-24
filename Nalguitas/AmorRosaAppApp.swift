@@ -25,6 +25,9 @@ struct AmorRosaAppApp: App {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+    /// Set to true once ContentView has fully appeared
+    static var appIsReady = false
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         
@@ -81,18 +84,31 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        // Small delay to debounce rapid notifications
+        // App is in foreground — safe to post immediately with small debounce
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(300))
+            guard AppDelegate.appIsReady else { return }
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
         return [.banner, .badge, .sound]
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        // Longer delay for cold start — gives SwiftUI time to mount views + SwiftData
+        // User tapped a notification — wait for app to be ready, then navigate
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3.0))
+            // Wait until app is ready (max 8 seconds)
+            for _ in 0..<16 {
+                if AppDelegate.appIsReady { break }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+            // Only post if app is ready
+            guard AppDelegate.appIsReady else { return }
+            
+            // Navigate to chat tab
+            NotificationCenter.default.post(name: .switchToChatTab, object: nil)
+            
+            // Small delay then refresh data
+            try? await Task.sleep(for: .milliseconds(500))
             NotificationCenter.default.post(name: .didReceiveRemoteMessage, object: nil)
         }
     }

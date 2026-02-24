@@ -38,6 +38,7 @@ struct ContentView: View {
         .preferredColorScheme(.light)
         .task {
             await checkRoleAndConfig()
+            AppDelegate.appIsReady = true
         }
     }
 

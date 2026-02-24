@@ -34,6 +34,9 @@ struct ChatView: View {
     // Decoded image cache for performance
     @State private var decodedImages: [String: UIImage] = [:]
     
+    // Optimistic sending: tracks messages waiting to be confirmed by server
+    @State private var pendingMessages: Set<String> = []
+    
     // BBM-style profiles
     @State private var myProfile: UserProfile?
     @State private var partnerProfile: UserProfile?
@@ -694,37 +697,61 @@ struct ChatView: View {
     private func sendText() async {
         guard !messageText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let text = messageText; messageText = ""
-        isSending = true; defer { isSending = false }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         
         let type = text.contains("http://") || text.contains("https://") ? "link" : "text"
         let mediaUrl = type == "link" ? text : nil
         
+        // 1. Optimistic: show message immediately
+        let tempId = "local_\(UUID().uuidString)"
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: text, mediaData: nil, mediaUrl: mediaUrl, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        messages.append(tempMsg)
+        ChatCache.save(messages)
+        pendingMessages.insert(tempId)
+        
+        // 2. Try sending in background
         do {
-            let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl)
-            messages.append(msg)
-            ChatCache.save(messages)
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl)
+            pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
-        } catch { messageText = text }
+        } catch {
+            // Message stays visible — will retry on next poll
+        }
     }
     
     private func sendMedia(type: String, base64: String) async {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        
+        // 1. Optimistic: show immediately
+        let tempId = "local_\(UUID().uuidString)"
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, mediaUrl: nil, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        messages.append(tempMsg)
+        ChatCache.save(messages)
+        pendingMessages.insert(tempId)
+        
+        // 2. Try sending in background
         do {
-            let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64)
-            messages.append(msg)
-            ChatCache.save(messages)
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64)
+            pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió media 📷")
-        } catch {}
+        } catch {
+            // Message stays visible — will retry on next poll
+        }
     }
     
     private func sendEmoji(_ emoji: String) async {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        
+        let tempId = "local_\(UUID().uuidString)"
+        let tempMsg = ChatMessage(id: tempId, sender: mySender, type: "text", content: emoji, mediaData: nil, mediaUrl: nil, replyTo: nil, seen: nil, createdAt: ISO8601DateFormatter().string(from: Date()))
+        messages.append(tempMsg)
+        ChatCache.save(messages)
+        showStickerPicker = false
+        pendingMessages.insert(tempId)
+        
         do {
-            let msg = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji)
-            messages.append(msg)
-            ChatCache.save(messages)
-            showStickerPicker = false
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji)
+            pendingMessages.remove(tempId)
         } catch {}
     }
     
@@ -759,12 +786,25 @@ struct ChatView: View {
     
     private func pollNewMessages() async {
         guard let newMsgs = try? await APIService.shared.fetchChatMessages() else { return }
-        if newMsgs.count > messages.count {
+        // Remove local temp messages that the server now has
+        let localPending = messages.filter { $0.id.hasPrefix("local_") && pendingMessages.contains($0.id) }
+        if newMsgs.count >= (messages.count - localPending.count) {
+            // Merge: keep server messages + any still-pending local messages
+            var merged = newMsgs
+            for pending in localPending {
+                // Check if server already has this message (by content match)
+                let alreadySent = newMsgs.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
+                if !alreadySent {
+                    merged.append(pending)
+                } else {
+                    pendingMessages.remove(pending.id)
+                }
+            }
             let oldCount = messages.count
-            messages = newMsgs
-            ChatCache.save(newMsgs)
+            messages = merged
+            ChatCache.save(merged)
             try? await APIService.shared.markChatSeen(sender: mySender)
-            if newMsgs.count > oldCount {
+            if merged.count > oldCount {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }
         }
