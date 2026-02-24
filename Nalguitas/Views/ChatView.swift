@@ -937,12 +937,8 @@ struct ChatView: View {
                     // Delay dropping the actual messages into the UI by 1.5 seconds to spool the typing animation
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         Task { @MainActor in
-                            withAnimation(.spring()) {
-                                self.isPartnerTyping = false
-                                // Merge: keep server messages + any still-pending local messages
-                                var merged = fetched
+                            var merged = fetched
                             for pending in localPending {
-                                // Check if server already has this message (by content match)
                                 let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
                                 if !alreadySent {
                                     merged.append(pending)
@@ -950,13 +946,17 @@ struct ChatView: View {
                                     pendingMessages.remove(pending.id)
                                 }
                             }
-                            self.messages = merged
+                            
+                            withAnimation(.spring()) {
+                                self.isPartnerTyping = false
+                                self.messages = merged
+                            }
+                            
                             ChatCache.save(merged)
                             try? await APIService.shared.markChatSeen(sender: mySender)
                             // Haptic ping and Native Received Sound on arrival
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                             AmbientAudio.shared.playReceivedMessage()
-                        }
                         }
                     }
                     return // early exit so we don't immediately append it
@@ -1468,7 +1468,7 @@ struct AsyncBase64ImageView: View {
                     Task.detached(priority: .userInitiated) {
                         // Fast path 2: Disk File (Native Cache)
                         let type = isSticker ? "sticker" : "image"
-                        if let localURL = MediaFileManager.shared.localURL(for: msgId, type: type),
+                        if let localURL = await MediaFileManager.shared.localURL(for: msgId, type: type),
                            let data = try? Data(contentsOf: localURL),
                            let img = UIImage(data: data) {
                             await MainActor.run { 
@@ -1533,7 +1533,7 @@ struct AsyncBase64VideoView: View {
                     
                     Task.detached(priority: .userInitiated) {
                         // Fast path 1: Disk File
-                        if let localURL = MediaFileManager.shared.localURL(for: msgId, type: "video"),
+                        if let localURL = await MediaFileManager.shared.localURL(for: msgId, type: "video"),
                            let data = try? Data(contentsOf: localURL) {
                             await MainActor.run { 
                                 ChatMediaCache.shared.videos.setObject(data as NSData, forKey: msgId as NSString)
