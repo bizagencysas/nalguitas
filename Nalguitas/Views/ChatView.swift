@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import LinkPresentation
 import AVKit
+import Photos
 
 struct ChatView: View {
     let isAdmin: Bool
@@ -214,6 +215,13 @@ struct ChatView: View {
                             VideoBubbleView(videoData: videoData)
                                 .frame(maxWidth: 240, maxHeight: 180)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .contextMenu {
+                                    Button {
+                                        saveVideoToCameraRoll(videoData)
+                                    } label: {
+                                        Label("Guardar Video", systemImage: "square.and.arrow.down")
+                                    }
+                                }
                         } else {
                             Label("Video", systemImage: "video.fill")
                                 .font(.subheadline)
@@ -768,6 +776,18 @@ struct ChatView: View {
             await sendMedia(type: "sticker", base64: sticker.imageData)
             aiPrompt = ""
             showAIGenerator = false
+        } catch {}
+    }
+    
+    private func saveVideoToCameraRoll(_ videoData: Data) {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mp4")
+        do {
+            try videoData.write(to: tempURL)
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: tempURL)
+            } completionHandler: { success, _ in
+                try? FileManager.default.removeItem(at: tempURL)
+            }
         } catch {}
     }
     

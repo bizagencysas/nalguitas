@@ -17,6 +17,7 @@ struct TodayView: View {
     @State private var currentGift: Gift? = nil
     @State private var showGiftOverlay = false
     @State private var unreadChatCount = 0
+    @State private var showNotifications = false
 
     var body: some View {
         ZStack {
@@ -83,6 +84,31 @@ struct TodayView: View {
                     .padding(.bottom, 20)
                 }
             }
+        }
+        .overlay(alignment: .topTrailing) {
+            Button { showNotifications = true } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.rosePrimary)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(.ultraThinMaterial))
+                        .shadow(color: Theme.rosePrimary.opacity(0.15), radius: 8, y: 2)
+                    
+                    if unreadChatCount > 0 {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 10, height: 10)
+                            .offset(x: 2, y: -1)
+                    }
+                }
+            }
+            .padding(.trailing, 20)
+            .padding(.top, 56)
+        }
+        .sheet(isPresented: $showNotifications) {
+            NotificationBellView()
+                .presentationDetents([.medium, .large])
         }
         .overlay {
             if viewModel.showSavedConfirmation {

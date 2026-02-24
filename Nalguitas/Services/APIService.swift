@@ -583,6 +583,15 @@ extension APIService {
         return try decoder.decode(Unseen.self, from: data).count
     }
     
+    func fetchNotifications() async throws -> [AppNotification] {
+        // Placeholder — will use local fallback in NotificationBellView
+        throw URLError(.badURL)
+    }
+    
+    func markAllNotificationsRead() async throws {
+        // Placeholder — marks locally only for now
+    }
+    
     // MARK: - Rewards
     func fetchRewards() async throws -> [Reward] {
         let (data, response) = try await URLSession.shared.data(from: URL(string: "\(baseURL)/api/rewards")!)
