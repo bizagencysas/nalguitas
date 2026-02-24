@@ -131,7 +131,11 @@ struct ChatView: View {
                     photoViewerOverlay(data.image, id: data.id)
                 }
             }
-            .task { await loadProfiles(); await loadMessages(); startPolling() }
+            .task { 
+                Task { await loadProfiles() }
+                startPolling()
+                Task { await pollNewMessages() }
+            }
             .onDisappear { pollTimer?.invalidate() }
         }
     }
@@ -901,6 +905,7 @@ struct ChatView: View {
     }
     
     private func startPolling() {
+        pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             Task { @MainActor in
                 await pollNewMessages()
@@ -922,65 +927,34 @@ struct ChatView: View {
         let oldPartnerCount = messages.filter { $0.sender != mySender }.count
         
         do {
-            let fetched = newMsgs // Use newMsgs from the initial fetch
+            let fetched = newMsgs
             let newPartnerCount = fetched.filter { $0.sender != mySender }.count
             
-            // If there's a new message from the partner that wasn't there before
-            if newPartnerCount > oldPartnerCount && !messages.isEmpty {
-                // Determine the new incoming messages
-                _ = fetched.filter { $0.sender != mySender }.suffix(newPartnerCount - oldPartnerCount)
-                
-                // Show typing indicator momentarily for the first new message
-                if !isPartnerTyping {
-                    withAnimation(.spring()) { isPartnerTyping = true }
-                    
-                    // Delay dropping the actual messages into the UI by 1.5 seconds to spool the typing animation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        Task { @MainActor in
-                            var merged = fetched
-                            for pending in localPending {
-                                let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
-                                if !alreadySent {
-                                    merged.append(pending)
-                                } else {
-                                    pendingMessages.remove(pending.id)
-                                }
-                            }
-                            
-                            withAnimation(.spring()) {
-                                self.isPartnerTyping = false
-                                self.messages = merged
-                            }
-                            
-                            ChatCache.save(merged)
-                            try? await APIService.shared.markChatSeen(sender: mySender)
-                            // Haptic ping and Native Received Sound on arrival
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                            AmbientAudio.shared.playReceivedMessage()
-                        }
-                    }
-                    return // early exit so we don't immediately append it
-                }
-            }
-            
-            // Standard update if no new partner messages or if polling normally
-            // Merge: keep server messages + any still-pending local messages
-            var merged = newMsgs
+            // Standard update: keep server messages + any still-pending local messages
+            var merged = fetched
             for pending in localPending {
                 // Check if server already has this message (by content match)
-                let alreadySent = newMsgs.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
+                let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
                 if !alreadySent {
                     merged.append(pending)
                 } else {
                     pendingMessages.remove(pending.id)
                 }
             }
+            
             let oldCount = messages.count
             messages = merged
             ChatCache.save(merged)
             try await APIService.shared.markChatSeen(sender: mySender)
+            
             if merged.count > oldCount {
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                if newPartnerCount > oldPartnerCount {
+                    // Haptic ping and Native Received Sound on arrival for partner messages
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    AmbientAudio.shared.playReceivedMessage()
+                } else {
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                }
             }
         } catch {
             print("Poll error: \(error)")
