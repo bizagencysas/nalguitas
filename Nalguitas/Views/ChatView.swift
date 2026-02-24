@@ -28,6 +28,12 @@ struct ChatView: View {
     // Link previews cache
     @State private var linkPreviews: [String: LinkPreviewData] = [:]
     
+    // Full-screen photo viewer
+    @State private var fullScreenImage: UIImage?
+    
+    // Decoded image cache for performance
+    @State private var decodedImages: [String: UIImage] = [:]
+    
     // BBM-style profiles
     @State private var myProfile: UserProfile?
     @State private var partnerProfile: UserProfile?
@@ -93,6 +99,11 @@ struct ChatView: View {
             .sheet(isPresented: $showAIGenerator) { aiGeneratorSheet }
             .sheet(isPresented: $showProfileSheet) { profileEditSheet }
             .sheet(isPresented: $showPaymentSheet) { paymentSheet }
+            .overlay {
+                if let image = fullScreenImage {
+                    photoViewerOverlay(image)
+                }
+            }
             .task { await loadProfiles(); await loadMessages(); startPolling() }
             .onDisappear { pollTimer?.invalidate() }
         }
@@ -168,12 +179,21 @@ struct ChatView: View {
                     // Content
                     switch msg.type {
                     case "image":
-                        if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
+                        if let cachedImage = decodedImages[msg.id] {
+                            Image(uiImage: cachedImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: 240, maxHeight: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .onTapGesture { fullScreenImage = cachedImage }
+                        } else if let data = msg.mediaData, let imgData = Data(base64Encoded: data), let uiImage = UIImage(data: imgData) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(maxWidth: 240, maxHeight: 240)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .onTapGesture { fullScreenImage = uiImage }
+                                .onAppear { decodedImages[msg.id] = uiImage }
                         } else {
                             Label("Foto", systemImage: "photo.fill")
                                 .font(.subheadline)
@@ -197,6 +217,7 @@ struct ChatView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 150, height: 150)
+                                .onTapGesture { fullScreenImage = uiImage }
                         }
                         
                     case "payment":
@@ -853,6 +874,38 @@ struct ChatView: View {
                 editStatus = myProfile?.statusMessage ?? ""
             }
         }
+    }
+    
+    // MARK: - Full-Screen Photo Viewer
+    @ViewBuilder
+    private func photoViewerOverlay(_ image: UIImage) -> some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+                .onTapGesture { withAnimation { fullScreenImage = nil } }
+            
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .ignoresSafeArea()
+            
+            // Close button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation { fullScreenImage = nil }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(.white.opacity(0.8))
+                            .padding(16)
+                    }
+                }
+                Spacer()
+            }
+        }
+        .transition(.opacity)
+        .zIndex(100)
     }
 }
 
