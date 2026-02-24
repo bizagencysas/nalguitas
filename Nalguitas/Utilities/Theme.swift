@@ -97,6 +97,27 @@ public enum Theme {
     static var meshBackground: some View {
         AnimatedMeshBackground()
     }
+    
+    // MARK: - Chat Background (subtle rose tint)
+    static var chatMeshBackground: some View {
+        ZStack {
+            Color(red: 0.99, green: 0.97, blue: 0.97)
+            
+            // Subtle floating orbs
+            Circle()
+                .fill(Theme.rosePale.opacity(0.3))
+                .frame(width: 200, height: 200)
+                .blur(radius: 60)
+                .offset(x: -80, y: -200)
+            
+            Circle()
+                .fill(Theme.roseLight.opacity(0.2))
+                .frame(width: 160, height: 160)
+                .blur(radius: 50)
+                .offset(x: 100, y: 300)
+        }
+        .ignoresSafeArea()
+    }
 }
 
 // MARK: - Animated Mesh Background
@@ -129,26 +150,5 @@ struct AnimatedMeshBackground: View {
         .onDisappear {
             timer?.invalidate()
         }
-    }
-    
-    // MARK: - Chat Background (subtle rose tint)
-    static var chatMeshBackground: some View {
-        ZStack {
-            Color(red: 0.99, green: 0.97, blue: 0.97)
-            
-            // Subtle floating orbs
-            Circle()
-                .fill(Theme.rosePale.opacity(0.3))
-                .frame(width: 200, height: 200)
-                .blur(radius: 60)
-                .offset(x: -80, y: -200)
-            
-            Circle()
-                .fill(Theme.roseLight.opacity(0.2))
-                .frame(width: 160, height: 160)
-                .blur(radius: 50)
-                .offset(x: 100, y: 300)
-        }
-        .ignoresSafeArea()
     }
 }

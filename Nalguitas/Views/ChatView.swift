@@ -928,7 +928,7 @@ struct ChatView: View {
             // If there's a new message from the partner that wasn't there before
             if newPartnerCount > oldPartnerCount && !messages.isEmpty {
                 // Determine the new incoming messages
-                let newPartnerMsgs = fetched.filter { $0.sender != mySender }.suffix(newPartnerCount - oldPartnerCount)
+                _ = fetched.filter { $0.sender != mySender }.suffix(newPartnerCount - oldPartnerCount)
                 
                 // Show typing indicator momentarily for the first new message
                 if !isPartnerTyping {
@@ -978,7 +978,7 @@ struct ChatView: View {
             let oldCount = messages.count
             messages = merged
             ChatCache.save(merged)
-            try? await APIService.shared.markChatSeen(sender: mySender)
+            try await APIService.shared.markChatSeen(sender: mySender)
             if merged.count > oldCount {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }

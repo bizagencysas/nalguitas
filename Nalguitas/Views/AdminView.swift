@@ -214,9 +214,6 @@ struct AdminView: View {
                             Text(msg.subtitle ?? "")
                             Spacer()
                             Text((msg.tone ?? "").capitalized)
-                            if msg.seen {
-                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                            }
                         }
                         .font(.caption2)
                         .foregroundColor(.secondary)
