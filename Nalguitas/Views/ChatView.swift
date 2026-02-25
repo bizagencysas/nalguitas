@@ -52,6 +52,14 @@ struct ChatView: View {
     // Typing Indicator
     @State private var isPartnerTyping = false
     
+    init(isAdmin: Bool) {
+        self.isAdmin = isAdmin
+        let me = isAdmin ? "admin" : "girlfriend"
+        let partner = isAdmin ? "girlfriend" : "admin"
+        _myProfile = State(initialValue: ProfileCache.load(for: me))
+        _partnerProfile = State(initialValue: ProfileCache.load(for: partner))
+    }
+    
     private var mySender: String { isAdmin ? "admin" : "girlfriend" }
     
     // Chat colors (rose palette, dark mode adaptive)
@@ -131,12 +139,14 @@ struct ChatView: View {
                     photoViewerOverlay(data.image, id: data.id)
                 }
             }
-            .task { 
+            .task {
                 Task { await loadProfiles() }
                 startPolling()
-                Task { await pollNewMessages() }
             }
             .onDisappear { pollTask?.cancel() }
+            .onReceive(NotificationCenter.default.publisher(for: .didReceiveRemoteMessage)) { _ in
+                Task { @MainActor in await pollNewMessages() }
+            }
         }
     }
     
@@ -905,16 +915,11 @@ struct ChatView: View {
     }
     
     private func startPolling() {
-        pollTask?.cancel()
+        guard pollTask == nil || pollTask?.isCancelled == true else { return }
         pollTask = Task { @MainActor in
             while !Task.isCancelled {
                 await pollNewMessages()
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-            }
-        }
-        NotificationCenter.default.addObserver(forName: .didReceiveRemoteMessage, object: nil, queue: .main) { _ in
-            Task { @MainActor in
-                await pollNewMessages()
+                try? await Task.sleep(for: .seconds(3))
             }
         }
     }
@@ -995,9 +1000,15 @@ struct ChatView: View {
     
     // MARK: - Load Profiles
     private func loadProfiles() async {
-        myProfile = try? await APIService.shared.fetchProfile(username: mySender)
+        if let fresh = try? await APIService.shared.fetchProfile(username: mySender) {
+            myProfile = fresh
+            ProfileCache.save(fresh, for: mySender)
+        }
         let partner = isAdmin ? "girlfriend" : "admin"
-        partnerProfile = try? await APIService.shared.fetchProfile(username: partner)
+        if let fresh = try? await APIService.shared.fetchProfile(username: partner) {
+            partnerProfile = fresh
+            ProfileCache.save(fresh, for: partner)
+        }
     }
     
     // MARK: - Profile Edit Sheet
