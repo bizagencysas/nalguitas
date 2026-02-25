@@ -425,32 +425,12 @@ struct ExploreView: View {
                 HStack(spacing: 10) {
                     ForEach(photos.prefix(6)) { photo in
                         VStack(spacing: 4) {
-                            if let imgData = photo.imageData, !imgData.isEmpty,
-                               let data = Data(base64Encoded: imgData),
-                               let uiImage = UIImage(data: data) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 90, height: 90)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .onTapGesture { fullScreenPhoto = uiImage }
-                                    .contextMenu {
-                                        Button {
-                                            UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                        } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
-                                    } preview: {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                    }
-                            } else {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.2), Theme.roseQuartz.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .frame(width: 90, height: 90)
-                                    .overlay(Image(systemName: "photo.fill").font(.title2).foregroundStyle(Theme.rosePrimary.opacity(0.5)))
+                            PhotoGalleryCard(photo: photo, width: 90, height: 90, cornerRadius: 12) { img in
+                                fullScreenPhoto = img
                             }
-                            if !photo.caption.isEmpty { Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90) }
+                            if !photo.caption.isEmpty {
+                                Text(photo.caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 90)
+                            }
                         }
                         .scrollTransition(.animated.threshold(.visible(0.3))) { content, phase in
                             content
@@ -760,20 +740,7 @@ struct ExploreView: View {
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                 ForEach(photos) { photo in
                                     VStack(spacing: 2) {
-                                        if let imgData = photo.imageData, !imgData.isEmpty,
-                                           let data = Data(base64Encoded: imgData),
-                                           let uiImage = UIImage(data: data) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(height: 80)
-                                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        } else {
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                                .frame(height: 80)
-                                                .overlay(Image(systemName: "photo.fill").foregroundStyle(Theme.rosePrimary.opacity(0.4)))
-                                        }
+                                        PhotoGalleryCard(photo: photo, height: 80, cornerRadius: 10)
                                         if !photo.caption.isEmpty { Text(photo.caption).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1) }
                                         Text(photo.uploadedBy == "admin" ? "Isacc" : "Tú").font(.system(size: 8, weight: .medium, design: .rounded)).foregroundStyle(.tertiary)
                                     }
@@ -842,30 +809,8 @@ struct ExploreView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         ForEach(photos) { photo in
                             VStack(spacing: 4) {
-                                if let imgData = photo.imageData, !imgData.isEmpty,
-                                   let data = Data(base64Encoded: imgData),
-                                   let uiImage = UIImage(data: data) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(minHeight: 140, maxHeight: 180)
-                                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                                        .onTapGesture { fullScreenPhoto = uiImage }
-                                        .contextMenu {
-                                            Button {
-                                                UIImageWriteToSavedPhotosAlbum(uiImage, nil, nil, nil)
-                                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                            } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
-                                        } preview: {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                        }
-                                } else {
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(LinearGradient(colors: [Theme.rosePrimary.opacity(0.15), Theme.roseQuartz.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                        .frame(height: 140)
-                                        .overlay(Image(systemName: "photo.fill").font(.title).foregroundStyle(Theme.rosePrimary.opacity(0.4)))
+                                PhotoGalleryCard(photo: photo, height: 160, cornerRadius: 14) { img in
+                                    fullScreenPhoto = img
                                 }
                                 if !photo.caption.isEmpty {
                                     Text(photo.caption)
@@ -1063,7 +1008,20 @@ struct ExploreView: View {
             self.songs = sgs ?? []
             self.specialDates = dts ?? []
             self.plans = pls ?? []
-            self.photos = phs ?? []
+            if let fetchedPhotos = phs, !fetchedPhotos.isEmpty {
+                Task.detached(priority: .utility) {
+                    for photo in fetchedPhotos {
+                        if let b64 = photo.imageData, !b64.isEmpty {
+                            await PhotoStore.shared.save(base64: b64, id: photo.id)
+                        }
+                    }
+                }
+                self.photos = fetchedPhotos.map {
+                    SharedPhoto(id: $0.id, imageData: nil, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt)
+                }
+            } else {
+                self.photos = phs ?? []
+            }
             self.moodHistory = moods ?? []
             self.answeredQuestions = answered ?? []
             self.customFact = fetchedFact
@@ -1179,9 +1137,9 @@ struct ExploreView: View {
             Spacer(minLength: 10)
             if let days = daysTogether { daysCounterCard(days) }
             loveChallengeCard
-            moodCard
-            if let question = todayQuestion, question.id != nil { questionCard(question) }
-            romanticFactCard
+            if !isAdmin { moodCard }
+            if !isAdmin, let question = todayQuestion, question.id != nil { questionCard(question) }
+            if !isAdmin { romanticFactCard }
         }
         .padding(.horizontal, 20)
     }
@@ -1214,12 +1172,12 @@ struct ExploreView: View {
     private var newFeaturesSection: some View {
         VStack(spacing: 20) {
             // Palabra del Día
-            if let word = todayWord {
+            if !isAdmin, let word = todayWord {
                 wordOfDayCard(word)
             }
             
             // Raspa y Gana
-            if scratchCard != nil {
+            if !isAdmin, scratchCard != nil {
                 scratchCardPreview
             }
             
@@ -1519,7 +1477,7 @@ extension ExploreView {
     // MARK: - Throwback Memory Card
     @ViewBuilder
     private var throwbackMemoryCard: some View {
-        if photos.count > 3, let randomOldPhoto = photos.dropFirst(2).randomElement(), let imgData = randomOldPhoto.imageData, !imgData.isEmpty, let d = Data(base64Encoded: imgData), let uiImg = UIImage(data: d) {
+        if photos.count > 3, let randomOldPhoto = photos.dropFirst(2).randomElement() {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "clock.arrow.circlepath")
@@ -1531,20 +1489,9 @@ extension ExploreView {
                     Spacer()
                 }
                 
-                Image(uiImage: uiImg)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .onTapGesture { fullScreenPhoto = uiImg }
-                    .contextMenu {
-                        Button {
-                            UIImageWriteToSavedPhotosAlbum(uiImg, nil, nil, nil)
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        } label: { Label("Guardar en Fotos", systemImage: "square.and.arrow.down") }
-                    } preview: {
-                        Image(uiImage: uiImg).resizable().aspectRatio(contentMode: .fit)
-                    }
+                PhotoGalleryCard(photo: randomOldPhoto, height: 180, cornerRadius: 16) { img in
+                    fullScreenPhoto = img
+                }
                 
                 if !randomOldPhoto.caption.isEmpty {
                     Text(randomOldPhoto.caption)
