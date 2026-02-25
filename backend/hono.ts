@@ -488,7 +488,10 @@ app.post("/photos", async (c) => {
 });
 
 app.get("/photos", async (c) => {
-  try { return c.json(await loadPhotos()); } catch { return c.json([], 200); }
+  try {
+    const photos = await loadPhotos();
+    return c.json(photos.map(p => ({ id: p.id, imageData: null, caption: p.caption, uploadedBy: p.uploadedBy, createdAt: p.createdAt })));
+  } catch { return c.json([], 200); }
 });
 
 app.get("/photos/:id", async (c) => {

@@ -931,10 +931,9 @@ struct ExploreView: View {
         isLoading = true
         defer { isLoading = false }
         
-        // Fast path: Load from cache only if it's less than 2 hours old
+        // Load from cache immediately (any age) for fast display
         if let cachedData = UserDefaults.standard.data(forKey: "ExploreCache"),
-           let cache = try? JSONDecoder().decode(ExploreCache.self, from: cachedData),
-           let savedAt = cache.savedAt, Date().timeIntervalSince(savedAt) < 7200 {
+           let cache = try? JSONDecoder().decode(ExploreCache.self, from: cachedData) {
             self.daysTogether = cache.daysTogether
             self.todayQuestion = cache.todayQuestion
             self.todayMood = cache.todayMood
@@ -954,93 +953,86 @@ struct ExploreView: View {
             self.rewards = cache.rewards
             self.experiences = cache.experiences
             self.partnerDiary = cache.partnerDiary
+            // If cache is fresh (< 2 hours), skip network fetch
+            if let savedAt = cache.savedAt, Date().timeIntervalSince(savedAt) < 7200 {
+                return
+            }
         }
         
-        
-        // Fetch fresh data from network
-        do {
-            async let d = try? APIService.shared.fetchDaysTogether()
-            async let q = try? APIService.shared.fetchTodayQuestion()
-            async let m = try? APIService.shared.fetchTodayMood()
-            async let c = try? APIService.shared.fetchCoupons()
-            async let a = try? APIService.shared.fetchAchievements()
-            async let s = try? APIService.shared.fetchSongs()
-            async let dates = try? APIService.shared.fetchSpecialDates()
-            async let p = try? APIService.shared.fetchPlans()
-            async let ph = try? APIService.shared.fetchPhotos()
-            async let mh = try? APIService.shared.fetchMoods()
-            async let aq = try? APIService.shared.fetchAnsweredQuestions()
-            
-            async let fetchedFactPromise = try? APIService.shared.fetchRandomFact()
-            async let fetchedWordPromise = try? APIService.shared.fetchTodayWord()
-            async let fetchedScratchPromise = try? APIService.shared.fetchAvailableScratchCard()
-            async let fetchedOptionsPromise = try? APIService.shared.fetchRouletteOptions(category: "general")
-            async let ptsResultPromise = try? APIService.shared.fetchPoints(username: "girlfriend")
-            async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
-            async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
-            async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "girlfriend" : "admin")
-            
-            let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
-            
-            let fetchedFact = await fetchedFactPromise
-            let fetchedWord = await fetchedWordPromise
-            let fetchedScratch = await fetchedScratchPromise
-            let fetchedOptions = await fetchedOptionsPromise ?? []
-            let ptsResult = await ptsResultPromise
-            let fetchedBalance = ptsResult?.balance ?? 0
-            let fetchedRewards = await fetchedRewardsPromise ?? []
-            let fetchedExperiences = await fetchedExperiencesPromise ?? []
-            let fetchedDiary = await fetchedDiaryPromise ?? []
-            
-            // Detect if everything failed (server unreachable)
-            let allEmpty = days == nil && (cps ?? []).isEmpty && (achs ?? []).isEmpty && (sgs ?? []).isEmpty && (phs ?? []).isEmpty
-            if allEmpty {
-                loadFailed = true
-            } else {
-                loadFailed = false
-            }
-            
-            self.daysTogether = days
-            self.todayQuestion = question
-            self.todayMood = mood
-            self.coupons = cps ?? []
-            self.achievements = achs ?? []
-            self.songs = sgs ?? []
-            self.specialDates = dts ?? []
-            self.plans = pls ?? []
-            if let fetchedPhotos = phs, !fetchedPhotos.isEmpty {
-                Task.detached(priority: .utility) {
-                    for photo in fetchedPhotos {
-                        if let b64 = photo.imageData, !b64.isEmpty {
-                            await PhotoStore.shared.save(base64: b64, id: photo.id)
-                        }
-                    }
-                }
-                self.photos = fetchedPhotos.map {
-                    SharedPhoto(id: $0.id, imageData: nil, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt)
-                }
-            } else {
-                self.photos = phs ?? []
-            }
-            self.moodHistory = moods ?? []
-            self.answeredQuestions = answered ?? []
-            self.customFact = fetchedFact
-            self.todayWord = fetchedWord
-            self.scratchCard = fetchedScratch
-            self.rouletteOptions = fetchedOptions
-            self.pointsBalance = fetchedBalance
-            self.rewards = fetchedRewards
-            self.experiences = fetchedExperiences
-            self.partnerDiary = fetchedDiary
-            
-            // Save to cache with timestamp
-            let photosMeta = self.photos.map { SharedPhotoMeta(id: $0.id, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
-            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photosMeta: photosMeta, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary, savedAt: Date())
-            if let encoded = try? JSONEncoder().encode(newCache), encoded.count < 500_000 {
-                UserDefaults.standard.set(encoded, forKey: "ExploreCache")
-            }
-        } catch {
+        // Fetch fresh data in two batches to avoid memory pressure
+        // Batch 1: Core data
+        async let d = try? APIService.shared.fetchDaysTogether()
+        async let q = try? APIService.shared.fetchTodayQuestion()
+        async let m = try? APIService.shared.fetchTodayMood()
+        async let c = try? APIService.shared.fetchCoupons()
+        async let a = try? APIService.shared.fetchAchievements()
+        async let s = try? APIService.shared.fetchSongs()
+        async let dates = try? APIService.shared.fetchSpecialDates()
+        async let p = try? APIService.shared.fetchPlans()
+        async let ph = try? APIService.shared.fetchPhotos()
+
+        let (days, question, mood, cps, achs, sgs, dts, pls, phs) = await (d, q, m, c, a, s, dates, p, ph)
+
+        // Detect if server is unreachable
+        if days == nil && (cps ?? []).isEmpty && (achs ?? []).isEmpty && (sgs ?? []).isEmpty && (phs ?? []).isEmpty {
             loadFailed = true
+            return
+        }
+        loadFailed = false
+
+        self.daysTogether = days
+        self.todayQuestion = question
+        self.todayMood = mood
+        self.coupons = cps ?? []
+        self.achievements = achs ?? []
+        self.songs = sgs ?? []
+        self.specialDates = dts ?? []
+        self.plans = pls ?? []
+        // Photos: list now only has metadata (no base64), PhotoGalleryCard fetches each lazily
+        if let fetchedPhotos = phs, !fetchedPhotos.isEmpty {
+            self.photos = fetchedPhotos
+        }
+
+        // Batch 2: Secondary data
+        async let mh = try? APIService.shared.fetchMoods()
+        async let aq = try? APIService.shared.fetchAnsweredQuestions()
+        async let fetchedFactP = try? APIService.shared.fetchRandomFact()
+        async let fetchedWordP = try? APIService.shared.fetchTodayWord()
+        async let fetchedScratchP = try? APIService.shared.fetchAvailableScratchCard()
+        async let fetchedOptionsP = try? APIService.shared.fetchRouletteOptions(category: "general")
+        async let ptsP = try? APIService.shared.fetchPoints(username: "girlfriend")
+        async let rewardsP = try? APIService.shared.fetchRewards()
+        async let experiencesP = try? APIService.shared.fetchExperiences()
+        async let diaryP = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "girlfriend" : "admin")
+
+        let (moods, answered, fetchedFact, fetchedWord, fetchedScratch, fetchedOptions, ptsResult, fetchedRewards, fetchedExperiences, fetchedDiary) =
+            await (mh, aq, fetchedFactP, fetchedWordP, fetchedScratchP, fetchedOptionsP, ptsP, rewardsP, experiencesP, diaryP)
+
+        self.moodHistory = moods ?? []
+        self.answeredQuestions = answered ?? []
+        self.customFact = fetchedFact
+        self.todayWord = fetchedWord
+        self.scratchCard = fetchedScratch
+        self.rouletteOptions = fetchedOptions ?? []
+        self.pointsBalance = ptsResult?.balance ?? 0
+        self.rewards = fetchedRewards ?? []
+        self.experiences = fetchedExperiences ?? []
+        self.partnerDiary = fetchedDiary ?? []
+
+        // Save to cache
+        let photosMeta = self.photos.map { SharedPhotoMeta(id: $0.id, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
+        let newCache = ExploreCache(
+            daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood,
+            coupons: self.coupons, achievements: self.achievements, songs: self.songs,
+            specialDates: self.specialDates, plans: self.plans, photosMeta: photosMeta,
+            moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions,
+            customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard,
+            rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance,
+            rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary,
+            savedAt: Date()
+        )
+        if let encoded = try? JSONEncoder().encode(newCache) {
+            UserDefaults.standard.set(encoded, forKey: "ExploreCache")
         }
     }
     

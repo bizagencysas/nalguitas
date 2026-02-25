@@ -9,6 +9,7 @@ struct PhotoGalleryCard: View {
 
     @State private var image: UIImage?
     @State private var isLoading = false
+    @State private var failed = false
 
     var body: some View {
         Color(.secondarySystemBackground)
@@ -25,6 +26,10 @@ struct PhotoGalleryCard: View {
                             ProgressView()
                                 .tint(Theme.rosePrimary)
                                 .scaleEffect(0.8)
+                        } else if failed {
+                            Image(systemName: "exclamationmark.circle")
+                                .font(.title2)
+                                .foregroundStyle(.secondary.opacity(0.5))
                         } else {
                             Image(systemName: "photo.fill")
                                 .font(.title2)
@@ -58,16 +63,33 @@ struct PhotoGalleryCard: View {
 
     private func loadImage() async {
         let photoId = photo.id
-        let b64 = photo.imageData
 
         if let cached = PhotoStore.shared.load(id: photoId) {
             image = cached
             return
         }
-        guard let b64str = b64, !b64str.isEmpty else { return }
+
+        if let b64str = photo.imageData, !b64str.isEmpty {
+            isLoading = true
+            await PhotoStore.shared.save(base64: b64str, id: photoId)
+            image = PhotoStore.shared.load(id: photoId)
+            isLoading = false
+            return
+        }
+
         isLoading = true
-        await PhotoStore.shared.save(base64: b64str, id: photoId)
-        image = PhotoStore.shared.load(id: photoId)
-        isLoading = false
+        defer { isLoading = false }
+
+        do {
+            let fetched = try await APIService.shared.fetchPhotoById(id: photoId)
+            if let b64 = fetched.imageData, !b64.isEmpty {
+                await PhotoStore.shared.save(base64: b64, id: photoId)
+                image = PhotoStore.shared.load(id: photoId)
+            } else {
+                failed = true
+            }
+        } catch {
+            failed = true
+        }
     }
 }
