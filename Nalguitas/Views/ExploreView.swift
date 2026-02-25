@@ -85,6 +85,9 @@ struct ExploreView: View {
     @State private var toastText: String?
     @State private var fullScreenPhoto: UIImage?
     
+    @State private var isLoading: Bool = false
+    @State private var loadFailed: Bool = false
+    
     @Namespace private var exploreAnimation
     @StateObject private var confettiManager = ConfettiManager()
     
@@ -94,6 +97,42 @@ struct ExploreView: View {
                 Theme.meshBackground
                 
                 ScrollView {
+                    if isLoading {
+                        HStack(spacing: 8) {
+                            ProgressView().tint(Theme.rosePrimary)
+                            Text("Cargando...")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    } else if loadFailed {
+                        HStack(spacing: 10) {
+                            Image(systemName: "wifi.slash")
+                                .foregroundStyle(Theme.rosePrimary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("No se pudo conectar")
+                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                Text("Tira hacia abajo para reintentar")
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button {
+                                Task { await loadData() }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(.subheadline, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(8)
+                                    .background(Circle().fill(Theme.rosePrimary))
+                            }
+                        }
+                        .padding(14)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial))
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                    }
                     topSection
                     middleSection
                     newFeaturesSection
@@ -931,6 +970,7 @@ struct ExploreView: View {
         let rewards: [Reward]
         let experiences: [Experience]
         let partnerDiary: [DiaryEntry]
+        let savedAt: Date?
     }
     
     private struct SharedPhotoMeta: Codable {
@@ -942,9 +982,14 @@ struct ExploreView: View {
     
     // MARK: - Actions
     private func loadData() async {
-        // Fast path: Load from cache instantly
+        loadFailed = false
+        isLoading = true
+        defer { isLoading = false }
+        
+        // Fast path: Load from cache only if it's less than 2 hours old
         if let cachedData = UserDefaults.standard.data(forKey: "ExploreCache"),
-           let cache = try? JSONDecoder().decode(ExploreCache.self, from: cachedData) {
+           let cache = try? JSONDecoder().decode(ExploreCache.self, from: cachedData),
+           let savedAt = cache.savedAt, Date().timeIntervalSince(savedAt) < 7200 {
             self.daysTogether = cache.daysTogether
             self.todayQuestion = cache.todayQuestion
             self.todayMood = cache.todayMood
@@ -967,8 +1012,8 @@ struct ExploreView: View {
         }
         
         
-        // Launch network requests in a detached task to avoid blocking the initial cache render
-        Task {
+        // Fetch fresh data from network
+        do {
             async let d = try? APIService.shared.fetchDaysTogether()
             async let q = try? APIService.shared.fetchTodayQuestion()
             async let m = try? APIService.shared.fetchTodayMood()
@@ -988,11 +1033,10 @@ struct ExploreView: View {
             async let ptsResultPromise = try? APIService.shared.fetchPoints(username: "girlfriend")
             async let fetchedRewardsPromise = try? APIService.shared.fetchRewards()
             async let fetchedExperiencesPromise = try? APIService.shared.fetchExperiences()
-            async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "admin" : "girlfriend")
+            async let fetchedDiaryPromise = try? APIService.shared.fetchPartnerDiary(author: isAdmin ? "girlfriend" : "admin")
             
             let (days, question, mood, cps, achs, sgs, dts, pls, phs, moods, answered) = await (d, q, m, c, a, s, dates, p, ph, mh, aq)
             
-            // Await the new async let promises concurrently
             let fetchedFact = await fetchedFactPromise
             let fetchedWord = await fetchedWordPromise
             let fetchedScratch = await fetchedScratchPromise
@@ -1003,7 +1047,14 @@ struct ExploreView: View {
             let fetchedExperiences = await fetchedExperiencesPromise ?? []
             let fetchedDiary = await fetchedDiaryPromise ?? []
             
-            // Update state on MainActor implicitly via await
+            // Detect if everything failed (server unreachable)
+            let allEmpty = days == nil && (cps ?? []).isEmpty && (achs ?? []).isEmpty && (sgs ?? []).isEmpty && (phs ?? []).isEmpty
+            if allEmpty {
+                loadFailed = true
+            } else {
+                loadFailed = false
+            }
+            
             self.daysTogether = days
             self.todayQuestion = question
             self.todayMood = mood
@@ -1024,12 +1075,14 @@ struct ExploreView: View {
             self.experiences = fetchedExperiences
             self.partnerDiary = fetchedDiary
             
-            // Save to cache (strip imageData from photos to avoid UserDefaults size limits)
+            // Save to cache with timestamp
             let photosMeta = self.photos.map { SharedPhotoMeta(id: $0.id, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
-            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photosMeta: photosMeta, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
+            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photosMeta: photosMeta, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary, savedAt: Date())
             if let encoded = try? JSONEncoder().encode(newCache), encoded.count < 500_000 {
                 UserDefaults.standard.set(encoded, forKey: "ExploreCache")
             }
+        } catch {
+            loadFailed = true
         }
     }
     
