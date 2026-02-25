@@ -181,18 +181,6 @@ struct ExploreView: View {
             .task { await loadData() }
             .refreshable { await loadData() }
             
-            if showScratchSheet {
-                scratchCardSheet
-                    .matchedGeometryEffect(id: "scratchGeo", in: exploreAnimation)
-                    .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .scale(scale: 0.95).combined(with: .opacity)))
-                    .zIndex(200)
-            }
-            if showDiarySheet {
-                diarySheet
-                    .matchedGeometryEffect(id: "diaryGeo", in: exploreAnimation)
-                    .transition(.asymmetric(insertion: .scale(scale: 0.95).combined(with: .opacity), removal: .scale(scale: 0.95).combined(with: .opacity)))
-                    .zIndex(200)
-            }
         }
     }
     
@@ -932,7 +920,7 @@ struct ExploreView: View {
         let songs: [Song]
         let specialDates: [SpecialDate]
         let plans: [DatePlan]
-        let photos: [SharedPhoto]
+        let photosMeta: [SharedPhotoMeta]
         let moodHistory: [MoodEntry]
         let answeredQuestions: [DailyQuestion]
         let customFact: CustomFact?
@@ -943,6 +931,13 @@ struct ExploreView: View {
         let rewards: [Reward]
         let experiences: [Experience]
         let partnerDiary: [DiaryEntry]
+    }
+    
+    private struct SharedPhotoMeta: Codable {
+        let id: String
+        let caption: String
+        let uploadedBy: String
+        let createdAt: String?
     }
     
     // MARK: - Actions
@@ -958,7 +953,7 @@ struct ExploreView: View {
             self.songs = cache.songs
             self.specialDates = cache.specialDates
             self.plans = cache.plans
-            self.photos = cache.photos
+            self.photos = cache.photosMeta.map { SharedPhoto(id: $0.id, imageData: nil, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
             self.moodHistory = cache.moodHistory
             self.answeredQuestions = cache.answeredQuestions
             self.customFact = cache.customFact
@@ -1029,9 +1024,10 @@ struct ExploreView: View {
             self.experiences = fetchedExperiences
             self.partnerDiary = fetchedDiary
             
-            // Save to cache
-            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photos: self.photos, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
-            if let encoded = try? JSONEncoder().encode(newCache) {
+            // Save to cache (strip imageData from photos to avoid UserDefaults size limits)
+            let photosMeta = self.photos.map { SharedPhotoMeta(id: $0.id, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
+            let newCache = ExploreCache(daysTogether: self.daysTogether, todayQuestion: self.todayQuestion, todayMood: self.todayMood, coupons: self.coupons, achievements: self.achievements, songs: self.songs, specialDates: self.specialDates, plans: self.plans, photosMeta: photosMeta, moodHistory: self.moodHistory, answeredQuestions: self.answeredQuestions, customFact: self.customFact, todayWord: self.todayWord, scratchCard: self.scratchCard, rouletteOptions: self.rouletteOptions, pointsBalance: self.pointsBalance, rewards: self.rewards, experiences: self.experiences, partnerDiary: self.partnerDiary)
+            if let encoded = try? JSONEncoder().encode(newCache), encoded.count < 500_000 {
                 UserDefaults.standard.set(encoded, forKey: "ExploreCache")
             }
         }
@@ -1340,7 +1336,7 @@ extension ExploreView {
     
     // MARK: - Scratch Card Preview
     private var scratchCardPreview: some View {
-        Button { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showScratchSheet = true } } label: {
+        Button { showScratchSheet = true } label: {
             HStack {
                 Text("🎟").font(.system(size: 36))
                 VStack(alignment: .leading, spacing: 4) {
@@ -1356,7 +1352,6 @@ extension ExploreView {
             }
             .padding(20)
             .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
-            .matchedGeometryEffect(id: "scratchGeo", in: exploreAnimation)
         }
     }
     
@@ -1597,7 +1592,7 @@ extension ExploreView {
     
     // MARK: - Diary Preview
     private var diaryPreviewCard: some View {
-        Button { withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { showDiarySheet = true } } label: {
+        Button { showDiarySheet = true } label: {
             HStack {
                 Text("📖").font(.system(size: 36))
                 VStack(alignment: .leading, spacing: 4) {
@@ -1613,7 +1608,6 @@ extension ExploreView {
             }
             .padding(20)
             .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.ultraThinMaterial).shadow(color: Theme.rosePrimary.opacity(0.1), radius: 8, y: 4))
-            .matchedGeometryEffect(id: "diaryGeo", in: exploreAnimation)
         }
     }
     
