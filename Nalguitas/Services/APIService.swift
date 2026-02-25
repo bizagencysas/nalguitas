@@ -360,6 +360,38 @@ nonisolated final class APIService: Sendable {
     }
     
     // MARK: - Chat
+    func chatStream(since: Date?) -> AsyncThrowingStream<ChatMessage, Error> {
+        let sinceMs = since.map { Int($0.timeIntervalSince1970 * 1000) } ?? (Int(Date().timeIntervalSince1970 * 1000) - 10000)
+        let url = URL(string: "\(baseURL)/api/chat/stream?since=\(sinceMs)")!
+        let d = decoder
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let (bytes, response) = try await URLSession.shared.bytes(from: url)
+                    guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                        continuation.finish(throwing: URLError(.badServerResponse))
+                        return
+                    }
+                    for try await line in bytes.lines {
+                        if Task.isCancelled { break }
+                        if line.hasPrefix("data: ") {
+                            let json = String(line.dropFirst(6))
+                            guard json != "connected", !json.isEmpty else { continue }
+                            if let data = json.data(using: .utf8),
+                               let msg = try? d.decode(ChatMessage.self, from: data) {
+                                continuation.yield(msg)
+                            }
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     func fetchChatMessages(limit: Int = 50, before: String? = nil) async throws -> [ChatMessage] {
         var urlStr = "\(baseURL)/api/chat/messages?limit=\(limit)"
         if let b = before { urlStr += "&before=\(b)" }

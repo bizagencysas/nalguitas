@@ -1,6 +1,7 @@
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { streamSSE } from "hono/streaming";
 
 import { appRouter } from "./trpc/app-router";
 import { createContext } from "./trpc/create-context";
@@ -535,6 +536,44 @@ app.post("/plans/:id/status", async (c) => {
 
 app.delete("/plans/:id", async (c) => {
   try { await deletePlan(c.req.param("id")); return c.json({ success: true }); } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// --- Chat SSE Stream ---
+
+app.get("/chat/stream", async (c) => {
+  const sinceParam = c.req.query("since");
+  let lastTs = sinceParam ? parseInt(sinceParam) : (Date.now() - 10000);
+
+  return streamSSE(c, async (stream) => {
+    let running = true;
+    stream.onAbort(() => { running = false; });
+
+    await stream.writeSSE({ data: "connected", event: "connected" });
+
+    let tick = 0;
+    while (running) {
+      try {
+        const msgs = await loadChatMessages(30);
+        const fresh = msgs
+          .filter((m: any) => new Date(m.createdAt).getTime() > lastTs)
+          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        for (const msg of fresh) {
+          if (!running) break;
+          await stream.writeSSE({ data: JSON.stringify(msg), event: "message", id: msg.id });
+          const t = new Date(msg.createdAt).getTime();
+          if (t > lastTs) lastTs = t;
+        }
+
+        tick++;
+        if (tick % 25 === 0) {
+          await stream.writeSSE({ data: String(Date.now()), event: "ping" });
+        }
+      } catch (_e) { }
+
+      await stream.sleep(1000);
+    }
+  });
 });
 
 // --- Chat Endpoints ---

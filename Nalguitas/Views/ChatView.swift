@@ -141,11 +141,17 @@ struct ChatView: View {
             }
             .task {
                 Task { await loadProfiles() }
-                startPolling()
+                if let fresh = try? await APIService.shared.fetchChatMessages() {
+                    messages = fresh
+                    ChatCache.save(fresh)
+                }
+                startSSEStream()
             }
             .onDisappear { pollTask?.cancel() }
             .onReceive(NotificationCenter.default.publisher(for: .didReceiveRemoteMessage)) { _ in
-                Task { @MainActor in await pollNewMessages() }
+                if pollTask == nil || pollTask?.isCancelled == true {
+                    startSSEStream()
+                }
             }
         }
     }
@@ -914,56 +920,45 @@ struct ChatView: View {
         } catch {}
     }
     
-    private func startPolling() {
-        guard pollTask == nil || pollTask?.isCancelled == true else { return }
+    private func startSSEStream() {
+        pollTask?.cancel()
         pollTask = Task { @MainActor in
             while !Task.isCancelled {
-                await pollNewMessages()
-                try? await Task.sleep(for: .seconds(3))
-            }
-        }
-    }
-    
-    private func pollNewMessages() async {
-        guard let newMsgs = try? await APIService.shared.fetchChatMessages() else { return }
-        // Remove local temp messages that the server now has
-        let localPending = messages.filter { $0.id.hasPrefix("local_") && pendingMessages.contains($0.id) }
-        
-        // Polling hook: If a new message from partner is detected during poll
-        let oldPartnerCount = messages.filter { $0.sender != mySender }.count
-        
-        do {
-            let fetched = newMsgs
-            let newPartnerCount = fetched.filter { $0.sender != mySender }.count
-            
-            // Standard update: keep server messages + any still-pending local messages
-            var merged = fetched
-            for pending in localPending {
-                // Check if server already has this message (by content match)
-                let alreadySent = fetched.contains { $0.sender == pending.sender && $0.content == pending.content && $0.type == pending.type }
-                if !alreadySent {
-                    merged.append(pending)
-                } else {
-                    pendingMessages.remove(pending.id)
+                let lastDate = messages.compactMap { parseDate($0.createdAt) }.max()
+                do {
+                    for try await msg in APIService.shared.chatStream(since: lastDate) {
+                        guard !Task.isCancelled else { break }
+                        guard !messages.contains(where: { $0.id == msg.id }) else { continue }
+                        // Replace matching optimistic pending message
+                        if let pendingIdx = messages.firstIndex(where: {
+                            $0.id.hasPrefix("local_") &&
+                            pendingMessages.contains($0.id) &&
+                            $0.sender == msg.sender &&
+                            $0.content == msg.content &&
+                            $0.type == msg.type
+                        }) {
+                            let pendingId = messages[pendingIdx].id
+                            pendingMessages.remove(pendingId)
+                            messages.remove(at: pendingIdx)
+                        }
+                        messages.append(msg)
+                        messages.sort {
+                            (parseDate($0.createdAt) ?? Date.distantPast) <
+                            (parseDate($1.createdAt) ?? Date.distantPast)
+                        }
+                        ChatCache.save(messages)
+                        Task { try? await APIService.shared.markChatSeen(sender: mySender) }
+                        if msg.sender != mySender {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            AmbientAudio.shared.playReceivedMessage()
+                        }
+                        if let proxy = scrollProxy { scrollToBottom(proxy) }
+                    }
+                } catch {
+                    guard !Task.isCancelled else { break }
+                    try? await Task.sleep(for: .seconds(3))
                 }
             }
-            
-            let oldCount = messages.count
-            messages = merged
-            ChatCache.save(merged)
-            try await APIService.shared.markChatSeen(sender: mySender)
-            
-            if merged.count > oldCount {
-                if newPartnerCount > oldPartnerCount {
-                    // Haptic ping and Native Received Sound on arrival for partner messages
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    AmbientAudio.shared.playReceivedMessage()
-                } else {
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                }
-            }
-        } catch {
-            print("Poll error: \(error)")
         }
     }
     
