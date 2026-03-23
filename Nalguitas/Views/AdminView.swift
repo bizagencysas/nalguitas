@@ -7,6 +7,7 @@ struct AdminView: View {
     @State private var newSubtitle: String = "Para ti"
     @State private var selectedTone: String = "tierno"
     @State private var messages: [LoveMessage] = []
+    @State private var visibleMessagesLimit: Int = 3
     @State private var isLoading: Bool = false
     @State private var toastMessage: String?
     @State private var showToast: Bool = false
@@ -206,7 +207,8 @@ struct AdminView: View {
                 Text("No hay mensajes guardados")
                     .foregroundColor(.secondary)
             } else {
-                ForEach(messages) { msg in
+                let displayedMessages = Array(messages.prefix(visibleMessagesLimit))
+                ForEach(displayedMessages) { msg in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(msg.content)
                             .font(.subheadline)
@@ -225,6 +227,18 @@ struct AdminView: View {
                             Label("Eliminar", systemImage: "trash")
                         }
                     }
+                }
+                
+                if messages.count > visibleMessagesLimit {
+                    Button {
+                        visibleMessagesLimit += 3
+                    } label: {
+                        Text("Ver más mensajes (\(messages.count - visibleMessagesLimit) restantes)")
+                            .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            .foregroundStyle(Theme.rosePrimary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .padding(.vertical, 8)
                 }
             }
         } header: {
@@ -449,6 +463,7 @@ struct AdminView: View {
     private func sendNotification() async {
         sendingNotification = true
         defer { sendingNotification = false }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         do {
             try await APIService.shared.sendNotification(message: messageText.trimmingCharacters(in: .whitespacesAndNewlines))
             messageText = ""
@@ -461,6 +476,7 @@ struct AdminView: View {
     private func createMessage() async {
         creatingMessage = true
         defer { creatingMessage = false }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         let content = newContent.trimmingCharacters(in: .whitespacesAndNewlines)
         let sub = newSubtitle.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
@@ -539,6 +555,7 @@ struct AdminView: View {
         
         sendingGift = true
         defer { sendingGift = false }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         
         do {
             let characterUrl = GiftCharacter.imageURL(for: selectedCharacter.id)?.absoluteString ?? ""

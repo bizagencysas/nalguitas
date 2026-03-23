@@ -827,7 +827,10 @@ struct ChatView: View {
         
         // 2. Try sending in background
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl, replyTo: replyId)
+            let serverMsg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: text, mediaUrl: mediaUrl, replyTo: replyId)
+            if let idx = messages.firstIndex(where: { $0.id == tempId }) {
+                messages[idx] = serverMsg
+            }
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió mensaje 💬")
         } catch {
@@ -856,7 +859,10 @@ struct ChatView: View {
         
         // 2. Try sending in background
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, replyTo: replyId)
+            let serverMsg = try await APIService.shared.sendChatMessage(sender: mySender, type: type, content: type == "sticker" ? "🎨" : "📷", mediaData: base64, replyTo: replyId)
+            if let idx = messages.firstIndex(where: { $0.id == tempId }) {
+                messages[idx] = serverMsg
+            }
             pendingMessages.remove(tempId)
             await PointsService.shared.awardPoint(reason: "Envió media 📷")
         } catch {
@@ -884,7 +890,10 @@ struct ChatView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { scrollProxy?.scrollTo(tempId, anchor: .bottom) }
         
         do {
-            let _ = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji, replyTo: replyId)
+            let serverMsg = try await APIService.shared.sendChatMessage(sender: mySender, type: "text", content: emoji, replyTo: replyId)
+            if let idx = messages.firstIndex(where: { $0.id == tempId }) {
+                messages[idx] = serverMsg
+            }
             pendingMessages.remove(tempId)
         } catch {
             // Enqueue into offline outbox
