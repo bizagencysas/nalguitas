@@ -426,6 +426,17 @@ nonisolated final class APIService: Sendable {
         struct R: Decodable { let count: Int }
         return try decoder.decode(R.self, from: data).count
     }
+    func addReaction(messageId: String, username: String, emoji: String?) async throws {
+        var request = URLRequest(url: URL(string: "\(baseURL)/api/chat/\(messageId)/react")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = ["username": username]
+        if let e = emoji { body["emoji"] = e }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkResponse(data, response)
+    }
+    
     func generateAISticker(prompt: String) async throws -> AISticker {
         var request = URLRequest(url: URL(string: "\(baseURL)/api/stickers/generate")!)
         request.httpMethod = "POST"
