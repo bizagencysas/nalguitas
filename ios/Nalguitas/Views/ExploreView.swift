@@ -1135,9 +1135,26 @@ struct ExploreView: View {
         } catch {}
     }
     
+    // Static formatters for ExploreView
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    private static let isoFallbackFormatter = ISO8601DateFormatter()
+    private static let shortDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "dd/MM"
+        return f
+    }()
+    private static let yyyyMMddFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+    
     private func daysUntilDate(_ dateStr: String) -> Int {
-        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"
-        guard let date = formatter.date(from: dateStr) else { return -1 }
+        guard let date = Self.yyyyMMddFormatter.date(from: dateStr) else { return -1 }
         var nextDate = date; let now = Date()
         while nextDate < now { nextDate = Calendar.current.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate }
         return Calendar.current.dateComponents([.day], from: now, to: nextDate).day ?? -1
@@ -1145,10 +1162,8 @@ struct ExploreView: View {
     
     private func shortDate(_ dateStr: String?) -> String {
         guard let str = dateStr else { return "" }
-        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = iso.date(from: str) ?? ISO8601DateFormatter().date(from: str) else { return String(str.prefix(10)) }
-        let df = DateFormatter(); df.dateFormat = "dd/MM"
-        return df.string(from: date)
+        guard let date = Self.isoFormatter.date(from: str) ?? Self.isoFallbackFormatter.date(from: str) else { return String(str.prefix(10)) }
+        return Self.shortDateFormatter.string(from: date)
     }
     
     private func showToast(_ text: String) {
@@ -2001,13 +2016,20 @@ struct SwipeablePlanCard: View {
         // Admin shouldn't swipe if it's the girlfriend's app logic, but let's allow it for testing if needed
     }
     
+    private static let inputDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+    private static let outputDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "dd/MM"
+        return f
+    }()
+    
     private func formatDate(_ dateStr: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        if let date = formatter.date(from: dateStr) {
-            let df = DateFormatter()
-            df.dateFormat = "dd/MM"
-            return df.string(from: date)
+        if let date = Self.inputDateFormatter.date(from: dateStr) {
+            return Self.outputDateFormatter.string(from: date)
         }
         return dateStr
     }
