@@ -29,7 +29,8 @@ class NotificationService {
         let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
         deviceToken = token
         Task {
-            try? await APIService.shared.registerDevice(token: token)
+            let isAdmin = UserDefaults.standard.bool(forKey: "isAdminDevice")
+            try? await APIService.shared.registerDevice(token: token, isAdmin: isAdmin)
         }
     }
 }
