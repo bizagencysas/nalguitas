@@ -141,6 +141,7 @@ struct AnimatedMeshBackground: View {
         )
         .ignoresSafeArea()
         .onAppear {
+            timer?.invalidate()
             timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
                 withAnimation(.linear(duration: 0.05)) {
                     t += 0.02
@@ -149,6 +150,7 @@ struct AnimatedMeshBackground: View {
         }
         .onDisappear {
             timer?.invalidate()
+            timer = nil
         }
     }
 }

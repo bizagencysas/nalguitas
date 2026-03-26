@@ -19,9 +19,7 @@ struct TodayView: View {
     @State private var unreadChatCount = 0
     @State private var showNotifications = false
     
-    // Holographic Magic
-    @State private var dragOffset: CGSize = .zero
-    @State private var isDragging: Bool = false
+    
     
     // Antigravity Confetti Magic
     @StateObject private var confettiManager = ConfettiManager()
