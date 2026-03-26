@@ -288,30 +288,8 @@ struct TodayView: View {
                         )
                 }
         }
-        // Holographic Tilt Magic
-        .rotation3DEffect(
-            .degrees(isDragging ? Double(dragOffset.width / -15) : 0),
-            axis: (x: 0, y: 1, z: 0)
-        )
-        .rotation3DEffect(
-            .degrees(isDragging ? Double(dragOffset.height / 15) : 0),
-            axis: (x: 1, y: 0, z: 0)
-        )
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.7)) {
-                        isDragging = true
-                        dragOffset = value.translation
-                    }
-                }
-                .onEnded { _ in
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.6)) {
-                        isDragging = false
-                        dragOffset = .zero
-                    }
-                }
-        )
+        // Subtle gyroscope-based holographic tilt (doesn't steal scroll)
+        .parallaxMotion(magnitude: 8)
         .onTapGesture {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             confettiManager.burst()
