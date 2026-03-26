@@ -1136,8 +1136,6 @@ struct ChatView: View {
                         }
                 )
                 .ignoresSafeArea()
-                // Cinematic Parallax tilt
-                .parallaxMotion(magnitude: 35)
             
             VStack {
                 HStack {
