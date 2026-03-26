@@ -12,8 +12,6 @@ struct GiftOverlayView: View {
     @State private var characterScale: CGFloat = 0.3
     @State private var characterRotation: Double = -5
     @State private var backgroundOpacity: Double = 0
-    @State private var heartsTimer: Timer?
-    @State private var sparklesTimer: Timer?
     
     var body: some View {
         ZStack {
@@ -189,12 +187,6 @@ struct GiftOverlayView: View {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
         
-        // Invalidate timers immediately to prevent use-after-free
-        heartsTimer?.invalidate()
-        heartsTimer = nil
-        sparklesTimer?.invalidate()
-        sparklesTimer = nil
-        
         withAnimation(.easeOut(duration: 0.3)) {
             backgroundOpacity = 0
             showCharacter = false
@@ -221,7 +213,7 @@ struct GiftOverlayView: View {
             Theme.blush,
         ]
         
-        heartsTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
             let screenWidth = UIScreen.main.bounds.width
             let screenHeight = UIScreen.main.bounds.height
             
@@ -255,7 +247,7 @@ struct GiftOverlayView: View {
     }
     
     private func startFloatingSparkles() {
-        sparklesTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { timer in
+        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { timer in
             let screenWidth = UIScreen.main.bounds.width
             let screenHeight = UIScreen.main.bounds.height
             

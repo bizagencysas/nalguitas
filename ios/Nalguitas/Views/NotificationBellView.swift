@@ -152,16 +152,11 @@ struct NotificationBellView: View {
         }
     }
     
-    private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-    private static let isoFallbackFormatter = ISO8601DateFormatter()
-    
     private func formatTimeAgo(_ dateStr: String?) -> String {
         guard let str = dateStr else { return "" }
-        guard let date = Self.isoFormatter.date(from: str) ?? Self.isoFallbackFormatter.date(from: str) else { return "" }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: str) ?? ISO8601DateFormatter().date(from: str) else { return "" }
         let diff = Date().timeIntervalSince(date)
         if diff < 60 { return "Ahora" }
         if diff < 3600 { return "Hace \(Int(diff/60))m" }

@@ -6,25 +6,6 @@ import Photos
 
 struct ChatView: View {
     let isAdmin: Bool
-    
-    // Static formatters: avoid re-creating expensive formatters on every call
-    private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-    private static let isoFallbackFormatter = ISO8601DateFormatter()
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "h:mm a"
-        return f
-    }()
-    private static let dateTimeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "d MMM, h:mm a"
-        f.locale = Locale(identifier: "es_ES")
-        return f
-    }()
     @State private var messages: [ChatMessage] = ChatCache.load()
     @State private var messageText = ""
     @State private var isSending = false
@@ -254,7 +235,35 @@ struct ChatView: View {
     
     // MARK: - Audio Message Bubble Spoof
     private func audioMessageBubble(duration: String, isMe: Bool) -> some View {
-        AudioWaveformBubble(duration: duration, isMe: isMe, sentGradient: sentGradient)
+        HStack(spacing: 8) {
+            Image(systemName: "play.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(isMe ? .white : Theme.rosePrimary)
+            
+            // Fake Waveform
+            HStack(spacing: 3) {
+                ForEach(0..<12, id: \.self) { i in
+                    Capsule()
+                        .fill(isMe ? .white.opacity(0.7) : Theme.textSecondary.opacity(0.5))
+                        .frame(width: 3, height: CGFloat.random(in: 4...20))
+                }
+            }
+            
+            Text(duration)
+                .font(.system(.caption, design: .rounded, weight: .bold))
+                .foregroundStyle(isMe ? .white : Theme.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            iMessageBubbleShape(isMe: isMe, showTail: true)
+                .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
+                .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
+        )
+        .onTapGesture {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            // Here you'd trigger actual AVPlayer audio
+        }
     }
     
     // MARK: - iMessage Bubble
@@ -576,7 +585,9 @@ struct ChatView: View {
     
     private func parseDate(_ dateStr: String?) -> Date? {
         guard let str = dateStr else { return nil }
-        return Self.isoFormatter.date(from: str) ?? Self.isoFallbackFormatter.date(from: str)
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return iso.date(from: str) ?? ISO8601DateFormatter().date(from: str)
     }
     
     // MARK: - Chat Input Bar (WhatsApp-style)
@@ -970,18 +981,24 @@ struct ChatView: View {
     
     private func formatTime(_ dateStr: String?) -> String {
         guard let date = parseDate(dateStr) else { return "" }
-        return Self.timeFormatter.string(from: date)
+        let df = DateFormatter(); df.dateFormat = "h:mm a"
+        return df.string(from: date)
     }
     
     private func formatDate(_ dateStr: String?) -> String {
         guard let date = parseDate(dateStr) else { return "" }
         let calendar = Calendar.current
+        let df = DateFormatter()
         if calendar.isDateInToday(date) {
-            return Self.timeFormatter.string(from: date)
+            df.dateFormat = "h:mm a"
+            return df.string(from: date)
         } else if calendar.isDateInYesterday(date) {
-            return "Ayer " + Self.timeFormatter.string(from: date)
+            df.dateFormat = "h:mm a"
+            return "Ayer " + df.string(from: date)
         } else {
-            return Self.dateTimeFormatter.string(from: date)
+            df.dateFormat = "d MMM, h:mm a"
+            df.locale = Locale(identifier: "es_ES")
+            return df.string(from: date)
         }
     }
     
@@ -1119,6 +1136,8 @@ struct ChatView: View {
                         }
                 )
                 .ignoresSafeArea()
+                // Cinematic Parallax tilt
+                .parallaxMotion(magnitude: 35)
             
             VStack {
                 HStack {
@@ -1153,46 +1172,6 @@ struct ChatView: View {
         }
         .transition(.opacity)
         .zIndex(100)
-    }
-}
-
-// MARK: - Audio Waveform Bubble (stable heights)
-struct AudioWaveformBubble: View {
-    let duration: String
-    let isMe: Bool
-    let sentGradient: LinearGradient
-    
-    // Generate waveform heights once, keep stable across re-renders
-    @State private var barHeights: [CGFloat] = (0..<12).map { _ in CGFloat.random(in: 4...20) }
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "play.fill")
-                .font(.system(size: 14))
-                .foregroundStyle(isMe ? .white : Theme.rosePrimary)
-            
-            HStack(spacing: 3) {
-                ForEach(0..<12, id: \.self) { i in
-                    Capsule()
-                        .fill(isMe ? .white.opacity(0.7) : Theme.textSecondary.opacity(0.5))
-                        .frame(width: 3, height: barHeights[i])
-                }
-            }
-            
-            Text(duration)
-                .font(.system(.caption, design: .rounded, weight: .bold))
-                .foregroundStyle(isMe ? .white : Theme.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isMe ? AnyShapeStyle(sentGradient) : AnyShapeStyle(.ultraThinMaterial))
-                .shadow(color: isMe ? Theme.rosePrimary.opacity(0.15) : .black.opacity(0.04), radius: isMe ? 8 : 4, y: 2)
-        )
-        .onTapGesture {
-            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-        }
     }
 }
 
@@ -1571,7 +1550,6 @@ struct AsyncBase64VideoView: View {
 // MARK: - Typing Indicator View
 struct TypingIndicatorView: View {
     @State private var step = 0
-    @State private var timer: Timer?
     let dotColor = Theme.rosePrimary.opacity(0.8)
     
     var body: some View {
@@ -1615,14 +1593,10 @@ struct TypingIndicatorView: View {
             )
         }
         .onAppear {
-            timer?.invalidate()
-            timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+            let timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
                 step = (step + 1) % 4
             }
-        }
-        .onDisappear {
-            timer?.invalidate()
-            timer = nil
+            RunLoop.current.add(timer, forMode: .common)
         }
     }
 }

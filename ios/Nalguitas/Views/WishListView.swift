@@ -13,8 +13,6 @@ struct WishListView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var isAdding = false
-    @State private var imageCache: [String: UIImage] = []
-    
     
     @Environment(\.dismiss) private var dismiss
     
@@ -149,25 +147,14 @@ struct WishListView: View {
     private func wishItemCard(_ item: WishItem) -> some View {
         HStack(spacing: 12) {
             // Photo
-            if let cachedImage = imageCache[item.id] {
-                Image(uiImage: cachedImage)
+            if let imgStr = item.imageData, !imgStr.isEmpty,
+               let data = Data(base64Encoded: imgStr),
+               let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 70, height: 70)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            } else if item.imageData != nil {
-                // Placeholder while we decode in background
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Theme.rosePale)
-                    .frame(width: 70, height: 70)
-                    .overlay(ProgressView().tint(Theme.rosePrimary).scaleEffect(0.7))
-                    .task {
-                        if let imgStr = item.imageData, !imgStr.isEmpty,
-                           let data = Data(base64Encoded: imgStr),
-                           let uiImage = UIImage(data: data) {
-                            imageCache[item.id] = uiImage
-                        }
-                    }
             } else {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Theme.rosePale)

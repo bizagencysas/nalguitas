@@ -255,7 +255,6 @@ struct GirlfriendTabView: View {
     }
     
     private func startBadgePolling() {
-        badgeTimer?.invalidate()
         badgeTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             Task { @MainActor in await refreshBadge() }
         }

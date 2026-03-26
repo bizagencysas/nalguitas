@@ -5,13 +5,6 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MessageHistory.receivedAt, order: .reverse) private var history: [MessageHistory]
     @State private var appeared = false
-    
-    private static let groupDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "es_MX")
-        f.dateFormat = "d 'de' MMMM"
-        return f
-    }()
 
     var body: some View {
         NavigationStack {
@@ -135,22 +128,33 @@ struct HistoryView: View {
 
     private var groupedByDate: [(key: String, messages: [MessageHistory])] {
         let calendar = Calendar.current
-        let formatter = Self.groupDateFormatter
-        
-        func dateKey(for date: Date) -> String {
-            if calendar.isDateInToday(date) { return "Hoy" }
-            if calendar.isDateInYesterday(date) { return "Ayer" }
-            return formatter.string(from: date)
-        }
-        
         let grouped = Dictionary(grouping: history) { entry in
-            dateKey(for: entry.receivedAt)
+            if calendar.isDateInToday(entry.receivedAt) {
+                return "Hoy"
+            } else if calendar.isDateInYesterday(entry.receivedAt) {
+                return "Ayer"
+            } else {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "es_MX")
+                formatter.dateFormat = "d 'de' MMMM"
+                return formatter.string(from: entry.receivedAt)
+            }
         }
 
         let order: [String: Int] = {
             var map: [String: Int] = [:]
             for entry in history {
-                let key = dateKey(for: entry.receivedAt)
+                let key: String
+                if calendar.isDateInToday(entry.receivedAt) {
+                    key = "Hoy"
+                } else if calendar.isDateInYesterday(entry.receivedAt) {
+                    key = "Ayer"
+                } else {
+                    let formatter = DateFormatter()
+                    formatter.locale = Locale(identifier: "es_MX")
+                    formatter.dateFormat = "d 'de' MMMM"
+                    key = formatter.string(from: entry.receivedAt)
+                }
                 if map[key] == nil {
                     map[key] = map.count
                 }

@@ -1,13 +1,6 @@
 import SwiftUI
 import PhotosUI
 
-// Helper for fullScreenCover item binding
-struct IdentifiableImage: Identifiable {
-    let id = UUID()
-    let image: UIImage
-}
-
-
 struct ExploreView: View {
     let isAdmin: Bool
     @State private var daysTogether: DaysTogether?
@@ -91,8 +84,6 @@ struct ExploreView: View {
     
     @State private var toastText: String?
     @State private var fullScreenPhoto: UIImage?
-    @State private var photoZoomScale: CGFloat = 1.0
-    @State private var throwbackPhoto: SharedPhoto?
     
     @State private var isLoading: Bool = false
     @State private var loadFailed: Bool = false
@@ -163,67 +154,51 @@ struct ExploreView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .fullScreenCover(item: Binding(
-                get: { fullScreenPhoto.map { IdentifiableImage(image: $0) } },
-                set: { if $0 == nil { fullScreenPhoto = nil; photoZoomScale = 1.0 } }
-            )) { wrapper in
-                ZStack {
-                    Color.black.ignoresSafeArea()
-                    
-                    Image(uiImage: wrapper.image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(photoZoomScale)
-                        .gesture(
-                            MagnifyGesture()
-                                .onChanged { value in
-                                    photoZoomScale = max(1.0, min(value.magnification, 5.0))
+            .overlay {
+                if let image = fullScreenPhoto {
+                    ZStack {
+                        Color.black.ignoresSafeArea()
+                            .onTapGesture { withAnimation { fullScreenPhoto = nil } }
+                        
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .ignoresSafeArea()
+                            .parallaxMotion(magnitude: 35)
+                        
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button {
+                                    withAnimation { fullScreenPhoto = nil }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.white.opacity(0.8))
+                                        .padding(16)
                                 }
-                                .onEnded { _ in
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        if photoZoomScale < 1.2 { photoZoomScale = 1.0 }
-                                    }
+                            }
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button {
+                                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                                    withAnimation { fullScreenPhoto = nil }
+                                } label: {
+                                    Label("Guardar", systemImage: "square.and.arrow.down")
+                                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(Capsule().fill(.ultraThinMaterial))
                                 }
-                        )
-                        .onTapGesture(count: 2) {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                photoZoomScale = photoZoomScale > 1.0 ? 1.0 : 2.5
+                                .padding(20)
                             }
-                        }
-                    
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button {
-                                fullScreenPhoto = nil
-                                photoZoomScale = 1.0
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundStyle(.white.opacity(0.8))
-                                    .padding(16)
-                            }
-                        }
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Button {
-                                UIImageWriteToSavedPhotosAlbum(wrapper.image, nil, nil, nil)
-                                fullScreenPhoto = nil
-                                photoZoomScale = 1.0
-                            } label: {
-                                Label("Guardar", systemImage: "square.and.arrow.down")
-                                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 12)
-                                    .background(Capsule().fill(.ultraThinMaterial))
-                            }
-                            .padding(20)
                         }
                     }
+                    .transition(.opacity)
+                    .zIndex(100)
                 }
-                .statusBarHidden()
             }
             .navigationTitle("Explorar")
             .navigationBarTitleDisplayMode(.inline)
@@ -1005,24 +980,17 @@ struct ExploreView: View {
         }
         loadFailed = false
 
-        // Apply state updates without animation to prevent rendering avalanche
-        UIView.performWithoutAnimation {
-            self.daysTogether = days
-            self.todayQuestion = question
-            self.todayMood = mood
-            self.coupons = cps ?? []
-            self.achievements = achs ?? []
-            self.songs = sgs ?? []
-            self.specialDates = dts ?? []
-            self.plans = pls ?? []
-            // Photos: list now only has metadata (no base64), PhotoGalleryCard fetches each lazily
-            if let fetchedPhotos = phs, !fetchedPhotos.isEmpty {
-                self.photos = fetchedPhotos
-                // Stabilize throwback card selection
-                if self.throwbackPhoto == nil, fetchedPhotos.count > 3 {
-                    self.throwbackPhoto = fetchedPhotos.dropFirst(2).randomElement()
-                }
-            }
+        self.daysTogether = days
+        self.todayQuestion = question
+        self.todayMood = mood
+        self.coupons = cps ?? []
+        self.achievements = achs ?? []
+        self.songs = sgs ?? []
+        self.specialDates = dts ?? []
+        self.plans = pls ?? []
+        // Photos: list now only has metadata (no base64), PhotoGalleryCard fetches each lazily
+        if let fetchedPhotos = phs, !fetchedPhotos.isEmpty {
+            self.photos = fetchedPhotos
         }
 
         // Batch 2: Secondary data
@@ -1040,18 +1008,16 @@ struct ExploreView: View {
         let (moods, answered, fetchedFact, fetchedWord, fetchedScratch, fetchedOptions, ptsResult, fetchedRewards, fetchedExperiences, fetchedDiary) =
             await (mh, aq, fetchedFactP, fetchedWordP, fetchedScratchP, fetchedOptionsP, ptsP, rewardsP, experiencesP, diaryP)
 
-        UIView.performWithoutAnimation {
-            self.moodHistory = moods ?? []
-            self.answeredQuestions = answered ?? []
-            self.customFact = fetchedFact
-            self.todayWord = fetchedWord
-            self.scratchCard = fetchedScratch
-            self.rouletteOptions = fetchedOptions ?? []
-            self.pointsBalance = ptsResult?.balance ?? 0
-            self.rewards = fetchedRewards ?? []
-            self.experiences = fetchedExperiences ?? []
-            self.partnerDiary = fetchedDiary ?? []
-        }
+        self.moodHistory = moods ?? []
+        self.answeredQuestions = answered ?? []
+        self.customFact = fetchedFact
+        self.todayWord = fetchedWord
+        self.scratchCard = fetchedScratch
+        self.rouletteOptions = fetchedOptions ?? []
+        self.pointsBalance = ptsResult?.balance ?? 0
+        self.rewards = fetchedRewards ?? []
+        self.experiences = fetchedExperiences ?? []
+        self.partnerDiary = fetchedDiary ?? []
 
         // Save to cache
         let photosMeta = self.photos.map { SharedPhotoMeta(id: $0.id, caption: $0.caption, uploadedBy: $0.uploadedBy, createdAt: $0.createdAt) }
@@ -1135,26 +1101,9 @@ struct ExploreView: View {
         } catch {}
     }
     
-    // Static formatters for ExploreView
-    private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-    private static let isoFallbackFormatter = ISO8601DateFormatter()
-    private static let shortDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "dd/MM"
-        return f
-    }()
-    private static let yyyyMMddFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-    
     private func daysUntilDate(_ dateStr: String) -> Int {
-        guard let date = Self.yyyyMMddFormatter.date(from: dateStr) else { return -1 }
+        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: dateStr) else { return -1 }
         var nextDate = date; let now = Date()
         while nextDate < now { nextDate = Calendar.current.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate }
         return Calendar.current.dateComponents([.day], from: now, to: nextDate).day ?? -1
@@ -1162,8 +1111,10 @@ struct ExploreView: View {
     
     private func shortDate(_ dateStr: String?) -> String {
         guard let str = dateStr else { return "" }
-        guard let date = Self.isoFormatter.date(from: str) ?? Self.isoFallbackFormatter.date(from: str) else { return String(str.prefix(10)) }
-        return Self.shortDateFormatter.string(from: date)
+        let iso = ISO8601DateFormatter(); iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = iso.date(from: str) ?? ISO8601DateFormatter().date(from: str) else { return String(str.prefix(10)) }
+        let df = DateFormatter(); df.dateFormat = "dd/MM"
+        return df.string(from: date)
     }
     
     private func showToast(_ text: String) {
@@ -1518,7 +1469,7 @@ extension ExploreView {
     // MARK: - Throwback Memory Card
     @ViewBuilder
     private var throwbackMemoryCard: some View {
-        if let randomOldPhoto = throwbackPhoto {
+        if photos.count > 3, let randomOldPhoto = photos.dropFirst(2).randomElement() {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "clock.arrow.circlepath")
@@ -2016,20 +1967,13 @@ struct SwipeablePlanCard: View {
         // Admin shouldn't swipe if it's the girlfriend's app logic, but let's allow it for testing if needed
     }
     
-    private static let inputDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-    private static let outputDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "dd/MM"
-        return f
-    }()
-    
     private func formatDate(_ dateStr: String) -> String {
-        if let date = Self.inputDateFormatter.date(from: dateStr) {
-            return Self.outputDateFormatter.string(from: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: dateStr) {
+            let df = DateFormatter()
+            df.dateFormat = "dd/MM"
+            return df.string(from: date)
         }
         return dateStr
     }
