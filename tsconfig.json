@@ -11,7 +11,7 @@
         "resolveJsonModule": true
     },
     "include": [
-        "backend/**/*"
+        "**/*.ts"
     ],
     "exclude": [
         "node_modules",
