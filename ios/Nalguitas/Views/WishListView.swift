@@ -13,7 +13,7 @@ struct WishListView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var isAdding = false
-    @State private var imageCache: [String: UIImage] = []
+    @State private var imageCache: [String: UIImage] = [:]
     
     
     @Environment(\.dismiss) private var dismiss
