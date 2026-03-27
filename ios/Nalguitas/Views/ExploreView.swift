@@ -3,7 +3,7 @@ import PhotosUI
 
 // Helper for fullScreenCover item binding
 struct IdentifiableImage: Identifiable {
-    let id = UUID()
+    var id: ObjectIdentifier { ObjectIdentifier(image) }
     let image: UIImage
 }
 

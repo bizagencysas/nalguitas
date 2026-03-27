@@ -973,7 +973,12 @@ app.post("/words/ai-example", async (c: any) => {
     const resp = await fetch("https://toolkit.rork.com/agent/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: `Create a fun, romantic, and short example sentence using the English word "${word}" (which means "${translation}" in Spanish). The sentence should be playful and cute, as if a boyfriend wrote it for his girlfriend. Reply with ONLY the sentence in English, then a line break, then the Spanish translation. Keep it under 15 words each.` })
+      body: JSON.stringify({ 
+        messages: [{
+          role: "user", 
+          content: `Create a fun, romantic, and short example sentence using the English word "${word}" (which means "${translation}" in Spanish). The sentence should be playful and cute, as if a boyfriend wrote it for his girlfriend. Reply with ONLY the sentence in English, then a line break, then the Spanish translation. Keep it under 15 words each.`
+        }]
+      })
     });
     const data: any = await resp.json();
     const aiText = data.response || data.text || data.message || "";
